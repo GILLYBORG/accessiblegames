@@ -34,6 +34,11 @@ window.GAME_CONFIG = {
   // "sounds" folder and write its name here, for example "sounds/pop.mp3".
   revealSound: "",
   specialSound: "",
+  coverSound: "",      // plays when a square flips back to the cover
+
+  // true: pressing an open square flips it back to the cover.
+  // false: open squares stay open until New game.
+  flipBack: true,
 
   // Starting choices for the Settings panel. Each device remembers any
   // changes a student or teacher makes in Settings.

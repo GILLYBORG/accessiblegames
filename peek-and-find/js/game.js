@@ -17,6 +17,8 @@
     specialMessage: userCfg.specialMessage || "You found it!",
     revealSound: userCfg.revealSound || "",
     specialSound: userCfg.specialSound || "",
+    coverSound: userCfg.coverSound || "",
+    flipBack: userCfg.flipBack !== false,
     defaults: Object.assign({
       sound: true, volume: 80, animation: true, highContrast: false,
       scanning: false, scanSeconds: 2
@@ -84,6 +86,7 @@
   }
   loadFileSound("reveal", cfg.revealSound);
   loadFileSound("special", cfg.specialSound);
+  loadFileSound("cover", cfg.coverSound);
 
   function tone(freq, start, dur, type, peak) {
     var t0 = audioCtx.currentTime + start;
@@ -122,6 +125,10 @@
         tone(f, i * 0.11, 0.5, "triangle", peak);
       });
       tone(1567.98, 0.6, 0.9, "sine", peak * 0.7);
+    } else if (kind === "cover") {
+      // Falling two notes for flipping a square back.
+      tone(880, 0, 0.18, "sine", peak * 0.8);
+      tone(587.33, 0.08, 0.28, "sine", peak * 0.7);
     } else {
       // Soft two-note "pop".
       tone(587.33, 0, 0.18, "sine", peak);
@@ -218,9 +225,19 @@
     var isSpecial = i === state.special;
     var picture = isSpecial ? cfg.specialImage : cfg.revealImage;
     if (state.open[i]) {
-      // Already open: replay the sound and name the picture again.
-      playSound(isSpecial ? "special" : "reveal");
-      announce(picture.alt);
+      if (!cfg.flipBack) {
+        // Flip back turned off: replay the sound and name the picture again.
+        playSound(isSpecial ? "special" : "reveal");
+        announce(picture.alt);
+        return;
+      }
+      // Already open: flip it back to the cover.
+      state.open[i] = false;
+      t.classList.remove("is-open", "is-special");
+      t.setAttribute("aria-label", tileLabel(i));
+      playSound("cover");
+      updateStatus();
+      announce(cfg.coverImage.alt + ".");
       return;
     }
     state.open[i] = true;

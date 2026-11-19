@@ -1,7 +1,8 @@
 # Peek and Find
 
 A 5 x 5 picture reveal game. Every square starts with the cover picture. Tapping a
-square flips it to the reveal picture and plays a sound. One random square hides a
+square flips it to the reveal picture and plays a sound. Tapping it again flips it back
+(set `flipBack: false` in `js/config.js` to keep squares open). One random square hides a
 special picture instead, and it moves to a new square every time you press **New game**.
 
 ## Change the pictures and sounds
