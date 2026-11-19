@@ -347,8 +347,19 @@
   function fitBoard() {
     var hint = $("scan-hint");
     var hintH = hint.hidden ? 0 : hint.offsetHeight + 8;
+    // In full screen, make sure the exit button never covers a square.
+    var exitBtn = $("btn-exit-fs");
+    stage.style.setProperty("--fs-room", "0px");
     var w = stage.clientWidth;
     var h = stage.clientHeight - hintH;
+    if (!exitBtn.hidden) {
+      var bw = exitBtn.offsetWidth + 16, bh = exitBtn.offsetHeight + 16;
+      var sizeNoRoom = Math.min(w, h * cfg.columns / cfg.rows);
+      if ((w - sizeNoRoom) / 2 < bw) {
+        stage.style.setProperty("--fs-room", bh + "px");
+        h -= bh;
+      }
+    }
     var size = Math.max(120, Math.min(w, h * cfg.columns / cfg.rows));
     board.style.setProperty("--board-w", size + "px");
     board.style.setProperty("--board-h", (size * cfg.rows / cfg.columns) + "px");
@@ -418,7 +429,7 @@
   document.addEventListener("keydown", function (e) {
     if (!settings.scanning || openPanel) return;
     if (e.key !== " " && e.key !== "Enter" && e.key !== "Spacebar") return;
-    if (e.target.closest && e.target.closest(".actions")) return; // let toolbar buttons work
+    if (e.target.closest && e.target.closest(".actions, .fs-exit")) return; // let toolbar buttons work
     e.preventDefault();
     if (!e.repeat) scanSelect();
   });
@@ -522,8 +533,21 @@
     return !!((root.requestFullscreen || root.webkitRequestFullscreen) &&
               (document.fullscreenEnabled || document.webkitFullscreenEnabled));
   }
+  // In full screen, hide the top bar and show only an exit button.
   function updateFsButton() {
-    $("fullscreen-label").textContent = fsElement() ? "Exit full screen" : "Full screen";
+    var on = !!fsElement();
+    var wasOn = root.classList.contains("is-fullscreen");
+    root.classList.toggle("is-fullscreen", on);
+    $("btn-exit-fs").hidden = !on;
+    $("fullscreen-label").textContent = on ? "Exit full screen" : "Full screen";
+    if (on && !wasOn) {
+      // The button that was pressed is now hidden: move focus to the board.
+      var current = tiles.filter(function (t) { return t.tabIndex === 0; })[0] || tiles[0];
+      if (!settings.scanning && current) current.focus(); else board.focus();
+      announce("Full screen. To leave, use the Exit full screen button in the top corner.");
+    } else if (!on && wasOn) {
+      $("btn-fullscreen").focus();
+    }
   }
   function toggleFullscreen(e) {
     var btn = e.currentTarget;
@@ -553,6 +577,7 @@
   var fsBtn = $("btn-fullscreen");
   if (isStandalone()) fsBtn.hidden = true;
   fsBtn.addEventListener("click", toggleFullscreen);
+  $("btn-exit-fs").addEventListener("click", toggleFullscreen);
 
   // Unlock audio on the first touch anywhere (needed on iPad).
   ["pointerdown", "keydown", "touchend"].forEach(function (ev) {

@@ -252,6 +252,20 @@ h1 {
   text-align: center;
 }
 
+/* ---------- Full screen: board only, plus one exit button ---------- */
+.is-fullscreen .bar { display: none; }
+.is-fullscreen .app { padding-top: max(12px, env(safe-area-inset-top, 0px)); }
+.fs-exit {
+  position: fixed;
+  z-index: 15;
+  top: calc(8px + env(safe-area-inset-top, 0px));
+  right: calc(8px + env(safe-area-inset-right, 0px));
+  opacity: 0.9;
+}
+.fs-exit:hover, .fs-exit:focus-visible { opacity: 1; }
+/* game.js adds top room when the button would cover a square. */
+.is-fullscreen .stage { padding-top: var(--fs-room, 0px); }
+
 /* ---------- Panels ---------- */
 .overlay {
   position: fixed;
