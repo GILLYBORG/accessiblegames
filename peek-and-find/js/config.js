@@ -25,10 +25,10 @@ window.GAME_CONFIG = {
 
   // Image C: the special picture hidden under one random square.
   // It moves to a new square every time you press "New game".
-  specialImage: { src: "images/special.svg", alt: "Star" },
+  specialImage: { src: "images/surprise.png", alt: "Surprise" },
 
   // What the game says when the special picture is found.
-  specialMessage: "You found the star!",
+  specialMessage: "You found the surprise!",
 
   // Sounds. Leave as "" to use the built-in chimes, or put a sound file in the
   // "sounds" folder and write its name here, for example "sounds/pop.mp3".
