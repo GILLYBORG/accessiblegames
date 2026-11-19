@@ -30,8 +30,15 @@ window.GAME_CONFIG = {
   // What the game says when the special picture is found.
   specialMessage: "You found the surprise!",
 
-  // Sounds. Leave as "" to use the built-in chimes, or put a sound file in the
-  // "sounds" folder and write its name here, for example "sounds/pop.mp3".
+  // Sound that plays every time a student presses a square, before the
+  // picture's own sound. To use your own recording, put it in the "sounds"
+  // folder and change the name here. Write "none" for no tap sound.
+  tapSound: "sounds/sniff.wav",
+  tapSoundLength: 0.6, // seconds to wait after the tap sound before the next sound
+
+  // Sounds. Leave as "" to use the built-in chimes, put a sound file in the
+  // "sounds" folder and write its name here (for example "sounds/pop.mp3"),
+  // or write "none" for silence.
   revealSound: "",
   specialSound: "",
   coverSound: "",      // plays when a square flips back to the cover

@@ -1,7 +1,7 @@
 # Peek and Find
 
 A 5 x 5 picture reveal game. Every square starts with the cover picture. Tapping a
-square flips it to the reveal picture and plays a sound. Tapping it again flips it back
+square plays a sniff, then flips it to the reveal picture with a chime. Tapping it again flips it back
 (set `flipBack: false` in `js/config.js` to keep squares open). One random square hides a
 special picture instead, and it moves to a new square every time you press **New game**.
 
@@ -10,7 +10,7 @@ special picture instead, and it moves to a new square every time you press **New
 1. Copy your pictures into the `images` folder.
 2. Open `js/config.js` in any text editor and change the file names and the `alt`
    words. The `alt` word is what VoiceOver and ChromeVox say aloud.
-3. For your own sounds, put MP3 files in `sounds` and add their names to
+3. For your own sounds, put MP3 files in `sounds` and add their names to `tapSound` (the sniff),
    `revealSound` and `specialSound`. Leave them empty to keep the built-in chimes.
 
 You can also change the title, the grid size, and the starting settings in the same file.

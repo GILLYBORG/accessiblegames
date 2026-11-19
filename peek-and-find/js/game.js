@@ -18,6 +18,8 @@
     revealSound: userCfg.revealSound || "",
     specialSound: userCfg.specialSound || "",
     coverSound: userCfg.coverSound || "",
+    tapSound: userCfg.tapSound === undefined ? "sounds/sniff.wav" : userCfg.tapSound,
+    tapSoundLength: typeof userCfg.tapSoundLength === "number" ? userCfg.tapSoundLength : 0.6,
     flipBack: userCfg.flipBack !== false,
     defaults: Object.assign({
       sound: true, volume: 80, animation: true, highContrast: false,
@@ -75,15 +77,60 @@
     if (audioCtx && audioCtx.state === "suspended") {
       audioCtx.resume().catch(function () {});
     }
+    Object.keys(fileSounds).forEach(function (k) { decodeEntry(fileSounds[k]); });
   }
 
+  // Sound files: decoded through Web Audio where possible (so the volume
+  // setting works on iPad), otherwise played with a plain audio element.
   function loadFileSound(name, src) {
-    if (!src) return;
-    var a = new Audio();
-    a.preload = "auto";
-    a.src = src;
-    fileSounds[name] = a;
+    if (!src || src === "none") return;
+    var entry = { src: src, el: null, data: null, buffer: null };
+    fileSounds[name] = entry;
+    if (window.fetch && location.protocol !== "file:") {
+      fetch(src).then(function (r) {
+        if (!r.ok) throw new Error(r.status);
+        return r.arrayBuffer();
+      }).then(function (data) { entry.data = data; decodeEntry(entry); })
+        .catch(function () { entry.el = makeEl(src); });
+    } else {
+      entry.el = makeEl(src);
+    }
   }
+  function makeEl(src) { var a = new Audio(); a.preload = "auto"; a.src = src; return a; }
+  function decodeEntry(entry) {
+    if (!audioCtx || !entry.data || entry.buffer || entry.decoding) return;
+    entry.decoding = true;
+    var data = entry.data; entry.data = null;
+    var done = function (buf) { entry.buffer = buf; };
+    var fail = function () { entry.el = makeEl(entry.src); };
+    try {
+      var p = audioCtx.decodeAudioData(data, done, fail);
+      if (p && p.catch) p.catch(fail);
+    } catch (e) { fail(); }
+  }
+  function playFile(entry, vol, delay) {
+    if (entry.buffer && audioCtx) {
+      var srcNode = audioCtx.createBufferSource();
+      var gain = audioCtx.createGain();
+      srcNode.buffer = entry.buffer;
+      gain.gain.value = vol;
+      srcNode.connect(gain).connect(audioCtx.destination);
+      srcNode.start(audioCtx.currentTime + (delay || 0));
+      return true;
+    }
+    var el = entry.el || (entry.el = makeEl(entry.src));
+    var play = function () {
+      try {
+        var clip = el.cloneNode(true);
+        clip.volume = vol;
+        var p = clip.play();
+        if (p && p.catch) p.catch(function () {});
+      } catch (e) { /* ignore */ }
+    };
+    if (delay) setTimeout(play, delay * 1000); else play();
+    return true;
+  }
+  loadFileSound("tap", cfg.tapSound);
   loadFileSound("reveal", cfg.revealSound);
   loadFileSound("special", cfg.specialSound);
   loadFileSound("cover", cfg.coverSound);
@@ -102,38 +149,42 @@
     osc.stop(t0 + dur + 0.05);
   }
 
-  function playSound(kind) {
+  // kind: "tap", "reveal", "cover" or "special". delay is in seconds.
+  function playSound(kind, delay) {
     if (!settings.sound) return;
     var vol = Math.max(0, Math.min(100, settings.volume)) / 100;
     if (vol === 0) return;
-    var file = fileSounds[kind];
-    if (file) {
-      try {
-        var clip = file.cloneNode(true);
-        clip.volume = vol;
-        var p = clip.play();
-        if (p && p.catch) p.catch(function () {});
-        return;
-      } catch (e) { /* fall back to chime */ }
-    }
+    var setting = { tap: cfg.tapSound, reveal: cfg.revealSound, cover: cfg.coverSound, special: cfg.specialSound }[kind];
+    if (setting === "none") return;
     ensureAudio();
+    var file = fileSounds[kind];
+    if (file && playFile(file, vol, delay)) return;
+    if (kind === "tap") return; // no built-in tap sound
     if (!audioCtx) return;
     var peak = 0.35 * vol + 0.0002;
+    var d = delay || 0;
     if (kind === "special") {
       // Bright rising arpeggio, clearly different from the normal reveal.
       [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach(function (f, i) {
-        tone(f, i * 0.11, 0.5, "triangle", peak);
+        tone(f, d + i * 0.11, 0.5, "triangle", peak);
       });
-      tone(1567.98, 0.6, 0.9, "sine", peak * 0.7);
+      tone(1567.98, d + 0.6, 0.9, "sine", peak * 0.7);
     } else if (kind === "cover") {
       // Falling two notes for flipping a square back.
-      tone(880, 0, 0.18, "sine", peak * 0.8);
-      tone(587.33, 0.08, 0.28, "sine", peak * 0.7);
+      tone(880, d + 0, 0.18, "sine", peak * 0.8);
+      tone(587.33, d + 0.08, 0.28, "sine", peak * 0.7);
     } else {
       // Soft two-note "pop".
-      tone(587.33, 0, 0.18, "sine", peak);
-      tone(880, 0.08, 0.28, "sine", peak * 0.8);
+      tone(587.33, d + 0, 0.18, "sine", peak);
+      tone(880, d + 0.08, 0.28, "sine", peak * 0.8);
     }
+  }
+
+  // Every press plays the tap sound first, then the picture's own sound.
+  function playPress(kind) {
+    var hasTap = settings.sound && cfg.tapSound && cfg.tapSound !== "none";
+    if (hasTap) playSound("tap");
+    playSound(kind, hasTap ? cfg.tapSoundLength : 0);
   }
 
   /* ---------- Announcements for screen readers ---------- */
@@ -227,7 +278,7 @@
     if (state.open[i]) {
       if (!cfg.flipBack) {
         // Flip back turned off: replay the sound and name the picture again.
-        playSound(isSpecial ? "special" : "reveal");
+        playPress(isSpecial ? "special" : "reveal");
         announce(picture.alt);
         return;
       }
@@ -235,7 +286,7 @@
       state.open[i] = false;
       t.classList.remove("is-open", "is-special");
       t.setAttribute("aria-label", tileLabel(i));
-      playSound("cover");
+      playPress("cover");
       updateStatus();
       announce(cfg.coverImage.alt + ".");
       return;
@@ -248,7 +299,7 @@
       state.foundSpecial = true;
     }
     t.setAttribute("aria-label", tileLabel(i));
-    playSound(isSpecial ? "special" : "reveal");
+    playPress(isSpecial ? "special" : "reveal");
     updateStatus();
 
     var msg = picture.alt + ".";
