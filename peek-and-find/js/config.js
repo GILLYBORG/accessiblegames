@@ -18,7 +18,7 @@ window.GAME_CONFIG = {
   columns: 5,
 
   // Image A: the cover every square shows at the start.
-  coverImage: { src: "images/cover.svg", alt: "Covered" },
+  coverImage: { src: "images/flamingo.png", alt: "Flamingo" },
 
   // Image B: what most squares show when opened.
   revealImage: { src: "images/reveal.svg", alt: "Apple" },
