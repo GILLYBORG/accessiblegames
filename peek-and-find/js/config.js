@@ -18,10 +18,10 @@ window.GAME_CONFIG = {
   columns: 5,
 
   // Image A: the cover every square shows at the start.
-  coverImage: { src: "images/flamingo.png", alt: "Flamingo" },
+  coverImage: { src: "images/flamingo.png", alt: "Pink flamingo" },
 
   // Image B: what most squares show when opened.
-  revealImage: { src: "images/reveal.svg", alt: "Apple" },
+  revealImage: { src: "images/blue-flamingo.png", alt: "Blue flamingo" },
 
   // Image C: the special picture hidden under one random square.
   // It moves to a new square every time you press "New game".
