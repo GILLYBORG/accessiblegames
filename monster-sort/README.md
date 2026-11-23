@@ -42,8 +42,9 @@ Scramble shapes and Next level keep the score going. Screen readers hear the sco
 
 1. **Curvy or straight**: pink circles go to the round monster, pink squares to the square monster.
 2. **Red or blue**: 2 red squares and 2 red triangles go to the red monster, 2 blue rectangles and
-   2 blue circles go to the blue monster. Both monsters sit on the same gray rounded square, so the
-   backing shape gives no hint. The monsters are placeholders until SG's red and blue monsters arrive.
+   2 blue circles go to the blue monster. There are no gray shapes on this level, so
+   only the colour matters (`backdrop: "none"`). The drop area around each monster is the same size,
+   and lights up while a shape is chosen or dragged. A background picture can be added later.
 
 Moving between levels:
 - After finishing a level, a **Next level** button appears next to **Play again**.

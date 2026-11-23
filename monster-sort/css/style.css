@@ -189,6 +189,10 @@ h1 {
 .target.is-circle, .target.is-circle .backdrop { border-radius: 50%; }
 .target.is-square, .target.is-square .backdrop { border-radius: calc(var(--u) * 6); }
 .target.is-rounded, .target.is-rounded .backdrop { border-radius: 16%; }
+/* backdrop: "none": just the monster. The drop area is the same size; it only
+   shows (as a light outline) while a shape is chosen or dragged. */
+.target.is-none, .target.is-none .backdrop { border-radius: 16%; }
+.target.is-none .backdrop { background: transparent; border-color: transparent; }
 .monster {
   position: absolute;
   left: 50%; top: 50%;
@@ -213,6 +217,8 @@ h1 {
 .target.is-over .backdrop,
 .has-selection .target:hover .backdrop { background: #c8d6f5; border-color: var(--accent); border-style: solid; }
 .has-selection .target .backdrop { border-color: var(--accent); }
+.target.is-none.is-over .backdrop,
+.has-selection .target.is-none:hover .backdrop { background: rgba(200, 214, 245, 0.5); }
 
 .target:focus-visible { outline-offset: calc(var(--u) * 10); }
 
@@ -282,7 +288,7 @@ h1 {
 
 /* High contrast: thick black outlines on everything you can touch. */
 .hc .piece svg g { stroke: #ffffff; stroke-width: 6; }
-.hc .backdrop { border-style: dashed; border-color: #000; border-width: calc(var(--u) * 12); }
+.hc .target:not(.is-none) .backdrop { border-style: dashed; border-color: #000; border-width: calc(var(--u) * 12); }
 
 /* Movement effects off */
 .no-motion .piece { transition: none; }
