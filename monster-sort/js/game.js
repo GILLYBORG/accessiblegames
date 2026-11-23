@@ -308,7 +308,7 @@
     targets = level.targets.map(function (def, i) {
       var btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "target is-" + (def.backdrop === "square" || def.backdrop === "rounded" ? def.backdrop : "circle");
+      btn.className = "target is-" + (def.backdrop === "square" || def.backdrop === "rounded" || def.backdrop === "none" ? def.backdrop : "circle");
       btn.dataset.index = String(i);
       btn.setAttribute("aria-label", def.label);
       btn.innerHTML = '<span class="backdrop" aria-hidden="true"></span>' +

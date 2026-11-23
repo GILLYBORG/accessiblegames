@@ -85,7 +85,8 @@ window.GAME_CONFIG = {
   //   monsterClosed: optional picture with the mouth shut. When a shape is
   //             eaten the monster goes chomp, chomp. Leave it out to skip.
   //   backdrop: the large gray shape behind a monster: "circle", "square",
-  //             or "rounded" (a square with soft corners).
+  //             "rounded" (a square with soft corners), or "none" (just the
+  //             monster; the drop area stays the same size).
   //   accepts:  which shapes ("circle") or colours ("red") this monster eats.
   //   pieces:   the shapes on the black bar, how many of each, and their colour.
   //             Shapes you can use: circle, square, rectangle, triangle,
@@ -128,17 +129,17 @@ window.GAME_CONFIG = {
       targets: [
         {
           label: "Red monster",
-          backdrop: "rounded",
+          backdrop: "none",
           monster: "images/monster-red.png",
-          monsterSize: 0.85,
+          monsterSize: 0.95,
           mouth: { x: 0.5, y: 0.44 },
           accepts: ["red"]
         },
         {
           label: "Blue monster",
-          backdrop: "rounded",
+          backdrop: "none",
           monster: "images/monster-blue.png",
-          monsterSize: 0.85,
+          monsterSize: 0.95,
           mouth: { x: 0.49, y: 0.51 },
           accepts: ["blue"]
         }
