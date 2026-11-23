@@ -70,9 +70,9 @@ window.GAME_CONFIG = {
         {
           label: "Square monster, straight sides",
           backdrop: "square",
-          monster: "images/monster-straight.svg",
-          monsterSize: 0.8,
-          mouth: { x: 0.5, y: 0.69 },
+          monster: "images/monster-square.png",
+          monsterSize: 0.85,
+          mouth: { x: 0.5, y: 0.57 },
           accepts: ["square"]
         }
       ],
