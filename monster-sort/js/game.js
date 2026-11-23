@@ -21,6 +21,11 @@
     voiceName: userCfg.voiceName || "",
     pieceColor: userCfg.pieceColor || "#f9c4d8",
     pieceOutline: userCfg.pieceOutline || "#d9789f",
+    colors: Object.assign({
+      pink: { fill: "#f9c4d8", outline: "#d9789f" },
+      red: { fill: "#e0282e", outline: "#8f1116" },
+      blue: { fill: "#1f6fe0", outline: "#0b3a85" }
+    }, userCfg.colors || {}),
     backdropColor: userCfg.backdropColor || "#dcdcdc",
     backdropOutline: userCfg.backdropOutline || "#8c8c8c",
     barColor: userCfg.barColor || "#000000",
@@ -40,6 +45,11 @@
     var saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
     if (saved && typeof saved === "object") Object.assign(settings, saved);
   } catch (e) { /* storage unavailable: use defaults */ }
+  // A link can open a level directly, for example index.html?level=2
+  try {
+    var urlLevel = parseInt(new URLSearchParams(location.search).get("level"), 10);
+    if (urlLevel >= 1 && urlLevel <= cfg.levels.length) settings.level = urlLevel - 1;
+  } catch (e) { /* ignore */ }
   if (!(settings.level >= 0 && settings.level < cfg.levels.length)) settings.level = 0;
 
   function saveSettings() {
@@ -70,9 +80,17 @@
     star: '<polygon points="50,5 61,37 95,37 68,57 78,90 50,70 22,90 32,57 5,37 39,37"/>',
     heart: '<path d="M50 90 C 18 66, 4 48, 4 30 C 4 14, 16 6, 28 6 C 38 6, 46 12, 50 22 C 54 12, 62 6, 72 6 C 84 6, 96 14, 96 30 C 96 48, 82 66, 50 90 Z"/>'
   };
-  function shapeSvg(shape) {
-    return '<svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><g fill="' + cfg.pieceColor +
-      '" stroke="' + cfg.pieceOutline + '" stroke-width="3" stroke-linejoin="round">' +
+  // color: a name from cfg.colors ("red"), a colour code ("#ff0000"), or empty for pink.
+  function colorOf(color) {
+    if (!color) return { fill: cfg.pieceColor, outline: cfg.pieceOutline };
+    var c = cfg.colors[String(color).toLowerCase()];
+    if (c) return { fill: c.fill, outline: c.outline || c.fill };
+    return { fill: color, outline: color };
+  }
+  function shapeSvg(shape, color) {
+    var c = colorOf(color);
+    return '<svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><g fill="' + c.fill +
+      '" stroke="' + c.outline + '" stroke-width="3" stroke-linejoin="round">' +
       (SHAPES[shape] || SHAPES.circle) + "</g></svg>";
   }
 
@@ -268,7 +286,7 @@
     targets = level.targets.map(function (def, i) {
       var btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "target is-" + (def.backdrop === "square" ? "square" : "circle");
+      btn.className = "target is-" + (def.backdrop === "square" || def.backdrop === "rounded" ? def.backdrop : "circle");
       btn.dataset.index = String(i);
       btn.setAttribute("aria-label", def.label);
       btn.innerHTML = '<span class="backdrop" aria-hidden="true"></span>' +
@@ -311,9 +329,11 @@
         btn.innerHTML = '<img alt="" draggable="false">';
         btn.querySelector("img").src = p.image;
       } else {
-        btn.innerHTML = shapeSvg(p.shape);
+        btn.innerHTML = shapeSvg(p.shape, p.color);
       }
-      var piece = { el: btn, shape: p.shape, label: p.label || p.shape, slot: i, done: false, lastDrag: 0, lastTap: 0 };
+      var colorName = p.color || "pink";
+      var piece = { el: btn, shape: p.shape, color: String(colorName).toLowerCase(),
+        label: p.label || (colorName.charAt(0) === "#" ? "" : colorName + " ") + p.shape, slot: i, done: false, lastDrag: 0, lastTap: 0 };
       btn.addEventListener("pointerdown", function (e) { onPiecePointerDown(piece, e); });
       btn.addEventListener("click", function (e) { onPieceClick(piece, e); });
       btn.addEventListener("keydown", function (e) { onPieceKey(piece, e); });
@@ -330,7 +350,7 @@
   function remaining() { return pieces.filter(function (p) { return !p.done; }); }
 
   function labelPiece(p) {
-    var name = "Pink " + p.label.toLowerCase();
+    var name = p.label.charAt(0).toUpperCase() + p.label.slice(1).toLowerCase();
     p.el.setAttribute("aria-label", name);
   }
 
@@ -357,7 +377,7 @@
     var spacing = W / n;
     var size = Math.min(spacing * layout.targetFrac, areaH * 0.8);
     targets.forEach(function (t, i) {
-      var s = t.def.backdrop === "square" ? size * 0.95 : size;
+      var s = t.def.backdrop === "circle" || !t.def.backdrop ? size : size * 0.95;
       t.cx = spacing * (i + 0.5);
       t.cy = areaH / 2 + 6;
       t.size = s;
@@ -446,7 +466,9 @@
   // Try to feed piece p to monster t. how: "drag", "tap", "key" or "scan".
   function attempt(p, t, how) {
     if (finished || p.done) return;
-    var ok = (t.def.accepts || []).indexOf(p.shape) >= 0;
+    // accepts lists shapes ("circle") and/or colours ("red") this monster eats.
+    var acc = (t.def.accepts || []).map(function (a) { return String(a).toLowerCase(); });
+    var ok = acc.indexOf(p.shape) >= 0 || acc.indexOf(p.color) >= 0;
     var name = p.el.getAttribute("aria-label");
     var hadFocus = document.activeElement === p.el || document.activeElement === t.el;
     deselect(false);

@@ -46,14 +46,26 @@ window.GAME_CONFIG = {
   backdropOutline: "#8c8c8c", // their dotted outline. Write "none" for no outline.
   barColor: "#000000",        // the bar along the bottom
 
+  // Named colours for shapes. "fill" is the colour, "outline" its edge.
+  colors: {
+    pink: { fill: "#f9c4d8", outline: "#d9789f" },
+    red: { fill: "#e0282e", outline: "#8f1116" },
+    blue: { fill: "#1f6fe0", outline: "#0b3a85" }
+  },
+
   // Levels. Students start on the first one. Add more levels by copying a
   // whole { ... } block below and changing it.
   //
-  //   backdrop: the large gray shape behind a monster: "circle" or "square".
-  //   accepts:  which shapes this monster eats.
-  //   pieces:   the shapes on the black bar, and how many of each.
+  //   backdrop: the large gray shape behind a monster: "circle", "square",
+  //             or "rounded" (a square with soft corners).
+  //   accepts:  which shapes ("circle") or colours ("red") this monster eats.
+  //   pieces:   the shapes on the black bar, how many of each, and their colour.
   //             Shapes you can use: circle, square, rectangle, triangle,
   //             oval, semicircle, hexagon, star, heart, diamond.
+  //             Colours: pink (if you leave colour out), red, blue, or any
+  //             colour added to "colors" below.
+  //
+  // A link can open a level directly: add ?level=2 to the end of the address.
   levels: [
     {
       name: "Curvy or straight",
@@ -77,8 +89,36 @@ window.GAME_CONFIG = {
         }
       ],
       pieces: [
-        { shape: "circle", label: "Circle", count: 4 },
-        { shape: "square", label: "Square", count: 4 }
+        { shape: "circle", count: 4 },
+        { shape: "square", count: 4 }
+      ]
+    },
+    {
+      name: "Red or blue",
+      directions: "Feed each shape to a monster. Red shapes go to the red monster. Blue shapes go to the blue monster.",
+      targets: [
+        {
+          label: "Red monster",
+          backdrop: "rounded",
+          monster: "images/monster-red.svg",
+          monsterSize: 0.8,
+          mouth: { x: 0.5, y: 0.68 },
+          accepts: ["red"]
+        },
+        {
+          label: "Blue monster",
+          backdrop: "rounded",
+          monster: "images/monster-blue.svg",
+          monsterSize: 0.8,
+          mouth: { x: 0.5, y: 0.68 },
+          accepts: ["blue"]
+        }
+      ],
+      pieces: [
+        { shape: "square", color: "red", count: 2 },
+        { shape: "triangle", color: "red", count: 2 },
+        { shape: "rectangle", color: "blue", count: 2 },
+        { shape: "circle", color: "blue", count: 2 }
       ]
     }
   ],

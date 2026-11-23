@@ -159,6 +159,7 @@ h1 {
 }
 .target.is-circle, .target.is-circle .backdrop { border-radius: 50%; }
 .target.is-square, .target.is-square .backdrop { border-radius: calc(var(--u) * 6); }
+.target.is-rounded, .target.is-rounded .backdrop { border-radius: 16%; }
 .monster {
   position: absolute;
   left: 50%; top: 50%;
