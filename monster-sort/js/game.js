@@ -18,6 +18,7 @@
     phrases: Object.assign({ correct: "That's right!", wrong: "Try again", finish: "Woo hoo, you did it!" }, userCfg.phrases || {}),
     voiceFiles: Object.assign({ correct: "", wrong: "", finish: "" }, userCfg.voiceFiles || {}),
     voiceRate: typeof userCfg.voiceRate === "number" ? userCfg.voiceRate : 0.9,
+    voiceName: userCfg.voiceName || "",
     pieceColor: userCfg.pieceColor || "#f9c4d8",
     pieceOutline: userCfg.pieceOutline || "#d9789f",
     backdropColor: userCfg.backdropColor || "#dcdcdc",
@@ -152,6 +153,51 @@
     speak(cfg.phrases[key], queue);
   }
 
+  /* Pick the most natural-sounding English voice this device has.
+     Chromebook: Google voices. iPad: Premium or Enhanced voices if downloaded
+     (Settings > Accessibility > Spoken Content > Voices), else Samantha.
+     Novelty and old robotic voices are never chosen. */
+  var NOVELTY = /^(albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|good news|hysterical|jester|organ|pipe organ|superstar|trinoids|whisper|wobble|zarvox|fred|junior|ralph|kathy|grandma|grandpa|eddy|flo|reed|rocko|sandy|shelley)\b/i;
+  var GOOD_NAMES = /\b(ava|samantha|allison|susan|zoe|evan|nathan|noelle|joelle|nicky|tom|serena|karen|daniel|kate|moira|tessa|aria|jenny|guy|michelle)\b/i;
+  var chosenVoice = null;
+  var voiceSearched = false;
+  var badVoices = {};
+  function scoreVoice(v) {
+    var name = v.name || "", lang = (v.lang || "").replace("_", "-").toLowerCase();
+    if (lang.indexOf("en") !== 0) return -1;
+    if (NOVELTY.test(name) || badVoices[v.voiceURI || name]) return -1;
+    var s = 0;
+    if (cfg.voiceName && name.toLowerCase().indexOf(String(cfg.voiceName).toLowerCase()) >= 0) s += 1000;
+    if (/premium/i.test(name)) s += 80;
+    if (/enhanced|neural|natural/i.test(name)) s += 70;
+    if (/google/i.test(name)) s += 60;
+    if (GOOD_NAMES.test(name)) s += 40;
+    if (/eloquence|espeak|compact/i.test(name)) s -= 50;
+    if (lang === "en-us" || lang === "en-ca") s += 10;
+    else if (lang === "en-gb") s += 5;
+    if (v.default) s += 3;
+    return s;
+  }
+  function pickVoice() {
+    if (!synth || !synth.getVoices) return null;
+    var voices = synth.getVoices() || [];
+    if (!voices.length) return null;
+    voiceSearched = true;
+    var best = null, bestScore = -1;
+    voices.forEach(function (v) {
+      var sc = scoreVoice(v);
+      if (sc > bestScore) { bestScore = sc; best = v; }
+    });
+    chosenVoice = best;
+    return best;
+  }
+  if (synth) {
+    pickVoice();
+    // Chrome loads its voice list a moment after the page.
+    if (synth.addEventListener) synth.addEventListener("voiceschanged", pickVoice);
+    else synth.onvoiceschanged = pickVoice;
+  }
+
   // Speak any text with the browser's built-in voice.
   var keepAlive = [];      // keeps Chrome from dropping utterances early
   var readyAt = 0;         // when a delayed phrase will start
@@ -159,10 +205,21 @@
     if (!settings.voice || !text || !synth || !window.SpeechSynthesisUtterance) return;
     var vol = Math.max(0, Math.min(100, settings.volume)) / 100;
     if (vol === 0) return;
+    if (!voiceSearched) pickVoice();
     var u = new SpeechSynthesisUtterance(text);
-    u.lang = root.lang || "en";
+    var v = chosenVoice;
+    if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = root.lang || "en"; }
     u.rate = cfg.voiceRate;
     u.volume = vol;
+    if (v && !v.localService) {
+      // Online voices (like Google's) fail without internet: fall back to the device voice.
+      u.onerror = function (ev) {
+        if (ev && (ev.error === "interrupted" || ev.error === "canceled")) return;
+        badVoices[v.voiceURI || v.name] = true;
+        pickVoice();
+        speak(text, true);
+      };
+    }
     keepAlive.push(u);
     if (keepAlive.length > 6) keepAlive.shift();
     var now = Date.now();

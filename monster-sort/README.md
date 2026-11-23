@@ -35,7 +35,10 @@ with `image:`). With more than one level, a Level menu appears in Settings and a
 - A shape counts as sorted when it is dropped anywhere on the monster or its gray
   shape (the mouth is where it is drawn going in). The gray shapes have a dotted outline.
   Drop zones are generous for students with motor impairments.
-- The voice is the device's built-in speech (iPad and Chromebook both have it).
+- The voice is the device's built-in speech (iPad and Chromebook both have it). The game picks the most
+  natural English voice the device has (Google voices on Chromebook; Premium or Enhanced voices on
+  iPad, then Samantha) and skips novelty voices. Set `voiceName` in `js/config.js` to choose one.
+  On iPad, download a better voice in Settings > Accessibility > Spoken Content > Voices > English.
   Recordings in `voiceFiles` replace it.
 
 ## Accessibility built in
