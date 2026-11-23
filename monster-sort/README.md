@@ -22,13 +22,29 @@ Everything is in `js/config.js`:
 
 The monsters that ship with the game are placeholders until the Canva pictures arrive.
 
-## Adding levels
+## Score
 
-`levels` in `js/config.js` is a list. Copy the whole Level 1 block, change the
-monsters, what each one `accepts`, and the `pieces`. Built-in shapes: circle, square,
-rectangle, triangle, oval, semicircle, hexagon, star, heart, diamond (or use a picture
-with `image:`). With more than one level, a Level menu appears in Settings and a
-**Next level** button appears after a win.
+A star score in the top-left corner of the game adds 100 points for each correct answer
+(change `pointsPerCorrect` in `js/config.js`). New game and Play again start it at 0;
+Next level keeps the score going. Screen readers hear the score after each correct answer.
+
+## Levels
+
+1. **Curvy or straight**: pink circles go to the round monster, pink squares to the square monster.
+2. **Red or blue**: 2 red squares and 2 red triangles go to the red monster, 2 blue rectangles and
+   2 blue circles go to the blue monster. Both monsters sit on the same gray rounded square, so the
+   backing shape gives no hint. The monsters are placeholders until SG's red and blue monsters arrive.
+
+Moving between levels:
+- After finishing a level, a **Next level** button appears next to **Play again**.
+- Settings has a **Level** menu.
+- A link can open a level directly: `.../monster-sort/?level=2`.
+- Each device remembers the last level played.
+
+To add a level, copy a whole level block in `js/config.js` and change the monsters, what each
+one `accepts` (shapes like `"circle"` or colours like `"red"`), and the `pieces` (shape, colour,
+count). Built-in shapes: circle, square, rectangle, triangle, oval, semicircle, hexagon, star,
+heart, diamond (or use a picture with `image:`). Colours live in `colors`.
 
 ## Choices made where the spec was open
 
