@@ -29,7 +29,7 @@ window.GAME_CONFIG = {
   voiceFiles: {
     correct: "sounds/thats-right.mp3",
     wrong: "sounds/try-again.mp3",
-    finish: ""
+    finish: "sounds/woo-hoo.mp3"
   },
 
   // Points added to the score (top-left corner) for each correct answer.
