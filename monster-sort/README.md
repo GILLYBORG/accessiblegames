@@ -22,6 +22,8 @@ Everything is in `js/config.js`:
 5. `phrases` holds what the voice says. To use your own recordings, put MP3 files in
    `sounds` and add them to `voiceFiles`.
 
+SG's own recordings of "That's right!" (`sounds/thats-right.mp3`) and "Try again" (`sounds/try-again.mp3`) play with the Regular voice style; Silly and Growly still use the computer voice.
+
 All four monsters are SG's Canva pictures. The round monster also has a closed-mouth picture.
 
 ## Voice style
