@@ -1017,6 +1017,12 @@
     hidePanel(true);
     settings.level = 0;
     saveSettings();
+    // Drop a ?level=2 from the address so reloading the page stays on Level 1.
+    try {
+      if (/[?&]level=/.test(location.search) && history.replaceState) {
+        history.replaceState(null, "", location.pathname + location.hash);
+      }
+    } catch (e) { /* ignore */ }
     var sel = $("set-level"); if (sel) sel.value = "0";
     score = 0;
     buildLevel();
