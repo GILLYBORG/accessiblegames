@@ -27,8 +27,8 @@ All four monsters are SG's Canva pictures. The round monster also has a closed-m
 ## Score
 
 A star score in the top-left corner of the game adds 100 points for each correct answer
-(change `pointsPerCorrect` in `js/config.js`). Scramble shapes and Play again start it at 0;
-Next level keeps the score going. Screen readers hear the score after each correct answer.
+(change `pointsPerCorrect` in `js/config.js`). Play again and Start over set it to 0;
+Scramble shapes and Next level keep the score going. Screen readers hear the score after each correct answer.
 
 ## Levels
 

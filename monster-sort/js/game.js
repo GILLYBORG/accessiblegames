@@ -308,11 +308,11 @@
     newGame(true);
   }
 
-  function newGame(isFirst) {
+  function newGame(isFirst, keepScore) {
     finished = false;
     sortedCount = 0;
-    // Scramble shapes and Play again start the score over; Next level keeps it.
-    if (!isFirst) score = 0;
+    // Play again starts the score over; Scramble shapes and Next level keep it.
+    if (!isFirst && !keepScore) score = 0;
     showScore(false);
     selected = null;
     root.classList.remove("won", "has-selection");
@@ -1002,7 +1002,7 @@
   fitScene();
   buildLevel();
 
-  $("btn-new").addEventListener("click", function () { unlockAudio(); newGame(false); });
+  $("btn-new").addEventListener("click", function () { unlockAudio(); newGame(false, true); });
   $("btn-directions").addEventListener("click", function () {
     unlockAudio();
     var text = level.directions || "";
