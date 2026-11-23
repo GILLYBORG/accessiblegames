@@ -18,6 +18,8 @@
     phrases: Object.assign({ correct: "That's right!", wrong: "Try again", finish: "Woo hoo, you did it!" }, userCfg.phrases || {}),
     voiceFiles: Object.assign({ correct: "", wrong: "", finish: "" }, userCfg.voiceFiles || {}),
     voiceRate: typeof userCfg.voiceRate === "number" ? userCfg.voiceRate : 0.9,
+    sillyVoice: Object.assign({ pitch: 1.9, rate: 1.05 }, userCfg.sillyVoice || {}),
+    sillyVoiceFiles: Object.assign({ correct: "", wrong: "", finish: "" }, userCfg.sillyVoiceFiles || {}),
     voiceName: userCfg.voiceName || "",
     pointsPerCorrect: typeof userCfg.pointsPerCorrect === "number" ? userCfg.pointsPerCorrect : 100,
     pieceColor: userCfg.pieceColor || "#f9c4d8",
@@ -32,7 +34,7 @@
     barColor: userCfg.barColor || "#000000",
     levels: (userCfg.levels && userCfg.levels.length) ? userCfg.levels : [],
     defaults: Object.assign({
-      voice: true, volume: 90, animation: true, highContrast: false,
+      voice: true, voiceStyle: "regular", volume: 90, animation: true, highContrast: false,
       scanning: false, scanSeconds: 2
     }, userCfg.defaults || {})
   };
@@ -116,18 +118,23 @@
   /* ---------- Voice ---------- */
   var synth = window.speechSynthesis || null;
   var speechUnlocked = false;
-  var voiceClips = {};
+  // Recordings, if any: one set for the regular voice, one for the silly voice.
+  var voiceClips = { regular: {}, silly: {} };
   var playingClip = null;
-
-  Object.keys(cfg.voiceFiles).forEach(function (k) {
-    var src = cfg.voiceFiles[k];
-    if (src && src !== "none") {
-      var a = new Audio();
-      a.preload = "auto";
-      a.src = src;
-      voiceClips[k] = a;
-    }
-  });
+  function loadClips(files, into) {
+    Object.keys(files).forEach(function (k) {
+      var src = files[k];
+      if (src && src !== "none") {
+        var a = new Audio();
+        a.preload = "auto";
+        a.src = src;
+        into[k] = a;
+      }
+    });
+  }
+  loadClips(cfg.voiceFiles, voiceClips.regular);
+  loadClips(cfg.sillyVoiceFiles, voiceClips.silly);
+  function isSilly() { return settings.voiceStyle === "silly"; }
 
   function unlockAudio() {
     try {
@@ -150,7 +157,7 @@
     if (!settings.voice) return;
     var vol = Math.max(0, Math.min(100, settings.volume)) / 100;
     if (vol === 0) return;
-    var clip = voiceClips[key];
+    var clip = voiceClips[isSilly() ? "silly" : "regular"][key];
     if (clip) {
       var play = function () {
         try {
@@ -229,7 +236,13 @@
     var u = new SpeechSynthesisUtterance(text);
     var v = chosenVoice;
     if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = root.lang || "en"; }
-    u.rate = cfg.voiceRate;
+    if (isSilly()) {
+      // Silly monster voice: the same clear voice, pitched way up.
+      u.pitch = Math.max(0, Math.min(2, cfg.sillyVoice.pitch));
+      u.rate = cfg.sillyVoice.rate;
+    } else {
+      u.rate = cfg.voiceRate;
+    }
     u.volume = vol;
     if (v && !v.localService) {
       // Online voices (like Google's) fail without internet: fall back to the device voice.
@@ -909,6 +922,12 @@
         hc = $("set-contrast"), scanBox = $("set-scanning"), speed = $("set-scan-speed"),
         levelSel = $("set-level");
     voice.checked = !!settings.voice;
+    var style = $("set-voice-style");
+    style.value = isSilly() ? "silly" : "regular";
+    style.addEventListener("change", function () {
+      settings.voiceStyle = style.value; saveSettings();
+      unlockAudio(); say("correct");
+    });
     vol.value = settings.volume;
     vol.setAttribute("aria-valuetext", settings.volume + " percent");
     anim.checked = !!settings.animation;

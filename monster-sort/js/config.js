@@ -38,6 +38,18 @@ window.GAME_CONFIG = {
   // Computer voice speed: 1 is normal, 0.8 is slower.
   voiceRate: 0.9,
 
+  // "Silly monster" voice (chosen in Settings > Voice style). It uses the
+  // same computer voice with a higher pitch: pitch goes from 0 (low) to 2 (high).
+  sillyVoice: { pitch: 1.9, rate: 1.05 },
+
+  // Your own silly recordings for the Silly monster style. Leave as "" to use
+  // the pitched computer voice. Example: correct: "sounds/silly-thats-right.mp3"
+  sillyVoiceFiles: {
+    correct: "",
+    wrong: "",
+    finish: ""
+  },
+
   // The game picks the most natural voice each device has. To choose one
   // yourself, write part of its name, for example "Ava" or "Google US English".
   voiceName: "",
@@ -133,6 +145,7 @@ window.GAME_CONFIG = {
   // changes a student or teacher makes in Settings.
   defaults: {
     voice: true,
+    voiceStyle: "regular", // "regular" or "silly"
     volume: 90,          // 0 to 100
     animation: true,     // movement effects (turned off automatically if the
                          // device is set to reduce motion)
