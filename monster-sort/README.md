@@ -90,8 +90,10 @@ slanted-triangle (or use a picture with `image:`). Colours live in `colors`.
 ## Full screen
 
 The **Full screen** button hides everything except an **Exit full screen** button.
-On an iPad where Safari can't go full screen, the game explains **Add to Home Screen**,
-which always opens full screen.
+Safari on iPhone can't make a web page full screen, so there the button hides the game's own
+buttons the same way (Safari's address bar stays), and the first time it explains
+**Add to Home Screen**, which always opens full screen. The same happens in any other browser
+that refuses full screen.
 
 ## Live address
 
