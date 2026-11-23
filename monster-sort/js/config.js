@@ -27,7 +27,7 @@ window.GAME_CONFIG = {
   // Your own recordings. Leave as "" to use the computer voice.
   // Example: correct: "sounds/thats-right.mp3"
   voiceFiles: {
-    correct: "",
+    correct: "sounds/thats-right.mp3",
     wrong: "",
     finish: ""
   },
