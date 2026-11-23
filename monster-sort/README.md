@@ -47,6 +47,9 @@ Scramble shapes and Next level keep the score going. Screen readers hear the sco
    2 blue circles go to the blue monster. There are no gray shapes on this level, so
    only the colour matters (`backdrop: "none"`). The drop area around each monster is the same size,
    and lights up while a shape is chosen or dragged. A background picture can be added later.
+3. **3 sides or 4 sides**: 10 pink shapes. Five triangles (regular, right, tall, wide, slanted) go to the
+   triangle monster; five four-sided shapes (square, rectangle, diamond, trapezoid, parallelogram) go to
+   the box monster. The monsters are placeholders until SG's pictures arrive.
 
 Moving between levels:
 - After finishing a level, a **Next level** button appears next to **Play again**.
@@ -58,7 +61,8 @@ Moving between levels:
 To add a level, copy a whole level block in `js/config.js` and change the monsters, what each
 one `accepts` (shapes like `"circle"` or colours like `"red"`), and the `pieces` (shape, colour,
 count). Built-in shapes: circle, square, rectangle, triangle, oval, semicircle, hexagon, star,
-heart, diamond (or use a picture with `image:`). Colours live in `colors`.
+heart, diamond, trapezoid, parallelogram, kite, right-triangle, tall-triangle, wide-triangle,
+slanted-triangle (or use a picture with `image:`). Colours live in `colors`.
 
 ## Choices made where the spec was open
 

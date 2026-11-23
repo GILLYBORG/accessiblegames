@@ -78,6 +78,13 @@
     square: '<rect x="4" y="4" width="92" height="92"/>',
     rectangle: '<rect x="4" y="20" width="92" height="60"/>',
     triangle: '<polygon points="50,6 96,90 4,90"/>',
+    "right-triangle": '<polygon points="8,8 8,92 92,92"/>',
+    "tall-triangle": '<polygon points="50,4 74,96 26,96"/>',
+    "wide-triangle": '<polygon points="50,26 97,80 3,80"/>',
+    "slanted-triangle": '<polygon points="30,8 96,88 4,68"/>',
+    trapezoid: '<polygon points="26,20 74,20 96,80 4,80"/>',
+    parallelogram: '<polygon points="30,22 96,22 70,78 4,78"/>',
+    kite: '<polygon points="50,4 84,36 50,96 16,36"/>',
     oval: '<ellipse cx="50" cy="50" rx="46" ry="31"/>',
     semicircle: '<path d="M4 74 A46 46 0 0 1 96 74 Z"/>',
     hexagon: '<polygon points="27,8 73,8 96,50 73,92 27,92 4,50"/>',
@@ -359,7 +366,7 @@
       }
       var colorName = p.color || "pink";
       var piece = { el: btn, shape: p.shape, color: String(colorName).toLowerCase(),
-        label: p.label || (colorName.charAt(0) === "#" ? "" : colorName + " ") + p.shape, slot: i, done: false, lastDrag: 0, lastTap: 0 };
+        label: p.label || (colorName.charAt(0) === "#" ? "" : colorName + " ") + String(p.shape).replace(/-/g, " "), slot: i, done: false, lastDrag: 0, lastTap: 0 };
       btn.addEventListener("pointerdown", function (e) { onPiecePointerDown(piece, e); });
       btn.addEventListener("click", function (e) { onPieceClick(piece, e); });
       btn.addEventListener("keydown", function (e) { onPieceKey(piece, e); });
