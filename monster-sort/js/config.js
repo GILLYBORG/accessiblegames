@@ -103,9 +103,9 @@ window.GAME_CONFIG = {
         {
           label: "Red monster",
           backdrop: "rounded",
-          monster: "images/monster-red.svg",
-          monsterSize: 0.8,
-          mouth: { x: 0.5, y: 0.68 },
+          monster: "images/monster-red.png",
+          monsterSize: 0.85,
+          mouth: { x: 0.5, y: 0.44 },
           accepts: ["red"]
         },
         {
