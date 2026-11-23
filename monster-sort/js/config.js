@@ -90,7 +90,9 @@ window.GAME_CONFIG = {
   //   accepts:  which shapes ("circle") or colours ("red") this monster eats.
   //   pieces:   the shapes on the black bar, how many of each, and their colour.
   //             Shapes you can use: circle, square, rectangle, triangle,
-  //             oval, semicircle, hexagon, star, heart, diamond.
+  //             oval, semicircle, hexagon, star, heart, diamond, trapezoid,
+  //             parallelogram, kite, right-triangle, tall-triangle,
+  //             wide-triangle, slanted-triangle.
   //             Colours: pink (if you leave colour out), red, blue, or any
   //             colour added to "colors" below.
   //
@@ -150,6 +152,42 @@ window.GAME_CONFIG = {
         { shape: "triangle", color: "red", count: 2 },
         { shape: "rectangle", color: "blue", count: 2 },
         { shape: "circle", color: "blue", count: 2 }
+      ]
+    },
+    {
+      name: "3 sides or 4 sides",
+      directions: "Feed each shape to a monster. Shapes with 3 sides go to the triangle monster. Shapes with 4 sides go to the box monster.",
+      targets: [
+        {
+          label: "Triangle monster, 3 sides",
+          backdrop: "none",
+          monster: "images/monster-three.svg", // placeholder until SG's picture arrives
+          monsterClosed: "images/monster-three-closed.svg",
+          monsterSize: 0.9,
+          mouth: { x: 0.5, y: 0.68 },
+          accepts: ["triangle", "right-triangle", "tall-triangle", "wide-triangle", "slanted-triangle"]
+        },
+        {
+          label: "Box monster, 4 sides",
+          backdrop: "none",
+          monster: "images/monster-four.svg", // placeholder until SG's picture arrives
+          monsterClosed: "images/monster-four-closed.svg",
+          monsterSize: 0.9,
+          mouth: { x: 0.5, y: 0.65 },
+          accepts: ["square", "rectangle", "diamond", "trapezoid", "parallelogram", "kite"]
+        }
+      ],
+      pieces: [
+        { shape: "triangle", count: 1 },
+        { shape: "right-triangle", count: 1 },
+        { shape: "tall-triangle", count: 1 },
+        { shape: "wide-triangle", count: 1 },
+        { shape: "slanted-triangle", count: 1 },
+        { shape: "square", count: 1 },
+        { shape: "rectangle", count: 1 },
+        { shape: "diamond", count: 1 },
+        { shape: "trapezoid", count: 1 },
+        { shape: "parallelogram", count: 1 }
       ]
     }
   ],
