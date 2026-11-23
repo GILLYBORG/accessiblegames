@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Monster Sort</title>
+<meta name="description" content="An accessible shape sorting game for touch, mouse, keyboard, switch and screen reader users.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Monster Sort">
+<link rel="apple-touch-icon" href="images/icon-180.png">
+<link rel="icon" href="images/icon.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="app" id="app">
+  <header class="bar">
+    <div class="bar-text">
+      <h1 id="game-title">Monster Sort</h1>
+      <p class="status" id="status" aria-hidden="true"></p>
+    </div>
+    <div class="actions" id="actions">
+      <button type="button" class="btn" id="btn-directions">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <span>Directions</span>
+      </button>
+      <button type="button" class="btn btn-primary" id="btn-new">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v5h5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>New game</span>
+      </button>
+      <button type="button" class="btn" id="btn-settings" aria-haspopup="dialog" aria-controls="panel-settings">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="7" r="2.5" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="10" cy="17" r="2.5" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>
+        <span>Settings</span>
+      </button>
+      <button type="button" class="btn" id="btn-fullscreen">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="fullscreen-label">Full screen</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+    <h2 class="sr-only" id="scene-label">Game</h2>
+    <p class="sr-only" id="sr-directions"></p>
+    <div class="scene" id="scene" tabindex="-1">
+      <div class="floor" id="floor" aria-hidden="true"></div>
+      <div class="pieces" id="pieces" role="group" aria-label="Shapes to sort"></div>
+      <div class="targets" id="targets" role="group" aria-label="Monsters"></div>
+    </div>
+    <p class="scan-hint" id="scan-hint" hidden>Switch scanning is on. Press your switch, Space, or tap anywhere on the game to choose.</p>
+  </main>
+
+  <button type="button" class="btn fs-exit" id="btn-exit-fs" hidden>
+    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Exit full screen</span>
+  </button>
+
+  <div class="sr-only" id="live" aria-live="polite" aria-atomic="true"></div>
+</div>
+
+<div class="overlay overlay-win" id="panel-win" role="dialog" aria-modal="true" aria-labelledby="win-title" hidden>
+  <div class="panel panel-win">
+    <h2 id="win-title" tabindex="-1">Woo hoo, you did it!</h2>
+    <div class="win-actions">
+      <button type="button" class="btn btn-primary btn-big" id="btn-again">Play again</button>
+      <button type="button" class="btn btn-big" id="btn-next" hidden>Next level</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="panel-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+  <div class="panel">
+    <div class="panel-head">
+      <h2 id="settings-title" tabindex="-1">Settings</h2>
+      <button type="button" class="btn" data-close>Done</button>
+    </div>
+    <div class="panel-body">
+      <div class="field" id="field-level" hidden>
+        <label for="set-level">Level</label>
+        <select id="set-level"></select>
+      </div>
+      <label class="toggle" for="set-voice">
+        <input type="checkbox" id="set-voice" aria-describedby="voice-desc">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">Voice</span>
+      </label>
+      <p class="help" id="voice-desc">Says "That's right" and "Try again". Screen reader users hear the same words from VoiceOver or ChromeVox, so you can turn this off for them.</p>
+      <div class="field">
+        <label for="set-volume">Volume</label>
+        <input type="range" id="set-volume" min="0" max="100" step="10">
+      </div>
+      <label class="toggle" for="set-animation">
+        <input type="checkbox" id="set-animation">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">Movement effects</span>
+      </label>
+      <label class="toggle" for="set-contrast">
+        <input type="checkbox" id="set-contrast">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">High contrast</span>
+      </label>
+      <label class="toggle" for="set-scanning">
+        <input type="checkbox" id="set-scanning" aria-describedby="scan-desc">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">Switch scanning</span>
+      </label>
+      <p class="help" id="scan-desc">Highlights one shape at a time, then one monster at a time. Press a switch, Space or Enter, or tap the game to choose.</p>
+      <div class="field">
+        <label for="set-scan-speed">Scanning speed</label>
+        <select id="set-scan-speed">
+          <option value="1">1 second per step</option>
+          <option value="1.5">1.5 seconds per step</option>
+          <option value="2">2 seconds per step</option>
+          <option value="3">3 seconds per step</option>
+          <option value="4">4 seconds per step</option>
+          <option value="6">6 seconds per step</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="panel-fullscreen" role="dialog" aria-modal="true" aria-labelledby="fs-title" hidden>
+  <div class="panel">
+    <div class="panel-head">
+      <h2 id="fs-title" tabindex="-1">Play full screen</h2>
+      <button type="button" class="btn" data-close>Done</button>
+    </div>
+    <div class="panel-body prose">
+      <p>This browser cannot switch to full screen by itself. On an iPad, add the game to the Home Screen once. It then opens full screen every time.</p>
+      <ol>
+        <li>In Safari, tap the Share button (the square with an arrow).</li>
+        <li>Tap <strong>Add to Home Screen</strong>, then <strong>Add</strong>.</li>
+        <li>Open <strong>Monster Sort</strong> from the Home Screen.</li>
+      </ol>
+      <p>For a locked-down lesson, turn on <strong>Guided Access</strong> in iPad Settings under Accessibility, then triple-click the top or Home button inside the game.</p>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <!-- Placeholder round monster. Replace with SG's Canva picture in js/config.js. -->
+  <!-- curly antennae -->
+  <path d="M150 70 C 130 30, 90 40, 100 70 C 108 92, 138 80, 128 62" fill="none" stroke="#1f6f66" stroke-width="12" stroke-linecap="round"/>
+  <path d="M250 70 C 270 30, 310 40, 300 70 C 292 92, 262 80, 272 62" fill="none" stroke="#1f6f66" stroke-width="12" stroke-linecap="round"/>
+  <!-- body -->
+  <circle cx="200" cy="215" r="165" fill="#3fbfaf" stroke="#1f6f66" stroke-width="10"/>
+  <!-- feet -->
+  <ellipse cx="135" cy="378" rx="42" ry="18" fill="#1f6f66"/>
+  <ellipse cx="265" cy="378" rx="42" ry="18" fill="#1f6f66"/>
+  <!-- eyes -->
+  <circle cx="145" cy="150" r="42" fill="#fff" stroke="#1f6f66" stroke-width="8"/>
+  <circle cx="255" cy="150" r="42" fill="#fff" stroke="#1f6f66" stroke-width="8"/>
+  <circle cx="155" cy="158" r="18" fill="#14213d"/>
+  <circle cx="245" cy="158" r="18" fill="#14213d"/>
+  <circle cx="161" cy="151" r="6" fill="#fff"/>
+  <circle cx="251" cy="151" r="6" fill="#fff"/>
+  <!-- big round open mouth -->
+  <ellipse cx="200" cy="272" rx="98" ry="68" fill="#3a0d22" stroke="#1f6f66" stroke-width="8"/>
+  <ellipse cx="200" cy="310" rx="58" ry="24" fill="#ff7aa8"/>
+  <path d="M130 228 q 12 26 24 0 M176 214 q 12 28 24 0 M222 214 q 12 28 24 0" fill="#fff"/>
+</svg>
