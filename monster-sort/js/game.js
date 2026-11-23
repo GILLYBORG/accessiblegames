@@ -20,6 +20,8 @@
     voiceRate: typeof userCfg.voiceRate === "number" ? userCfg.voiceRate : 0.9,
     sillyVoice: Object.assign({ pitch: 1.9, rate: 1.05 }, userCfg.sillyVoice || {}),
     sillyVoiceFiles: Object.assign({ correct: "", wrong: "", finish: "" }, userCfg.sillyVoiceFiles || {}),
+    growlyVoice: Object.assign({ pitch: 0.4, rate: 0.8 }, userCfg.growlyVoice || {}),
+    growlyVoiceFiles: Object.assign({ correct: "", wrong: "", finish: "" }, userCfg.growlyVoiceFiles || {}),
     voiceName: userCfg.voiceName || "",
     pointsPerCorrect: typeof userCfg.pointsPerCorrect === "number" ? userCfg.pointsPerCorrect : 100,
     pieceColor: userCfg.pieceColor || "#f9c4d8",
@@ -118,8 +120,8 @@
   /* ---------- Voice ---------- */
   var synth = window.speechSynthesis || null;
   var speechUnlocked = false;
-  // Recordings, if any: one set for the regular voice, one for the silly voice.
-  var voiceClips = { regular: {}, silly: {} };
+  // Recordings, if any: one set for each voice style.
+  var voiceClips = { regular: {}, silly: {}, growly: {} };
   var playingClip = null;
   function loadClips(files, into) {
     Object.keys(files).forEach(function (k) {
@@ -134,7 +136,11 @@
   }
   loadClips(cfg.voiceFiles, voiceClips.regular);
   loadClips(cfg.sillyVoiceFiles, voiceClips.silly);
-  function isSilly() { return settings.voiceStyle === "silly"; }
+  loadClips(cfg.growlyVoiceFiles, voiceClips.growly);
+  function voiceStyle() {
+    var s = settings.voiceStyle;
+    return s === "silly" || s === "growly" ? s : "regular";
+  }
 
   function unlockAudio() {
     try {
@@ -157,7 +163,7 @@
     if (!settings.voice) return;
     var vol = Math.max(0, Math.min(100, settings.volume)) / 100;
     if (vol === 0) return;
-    var clip = voiceClips[isSilly() ? "silly" : "regular"][key];
+    var clip = voiceClips[voiceStyle()][key];
     if (clip) {
       var play = function () {
         try {
@@ -236,10 +242,11 @@
     var u = new SpeechSynthesisUtterance(text);
     var v = chosenVoice;
     if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = root.lang || "en"; }
-    if (isSilly()) {
-      // Silly monster voice: the same clear voice, pitched way up.
-      u.pitch = Math.max(0, Math.min(2, cfg.sillyVoice.pitch));
-      u.rate = cfg.sillyVoice.rate;
+    var styled = voiceStyle() === "silly" ? cfg.sillyVoice : voiceStyle() === "growly" ? cfg.growlyVoice : null;
+    if (styled) {
+      // Silly monster: the same clear voice pitched way up. Growly monster: pitched down and slower.
+      u.pitch = Math.max(0, Math.min(2, styled.pitch));
+      u.rate = styled.rate;
     } else {
       u.rate = cfg.voiceRate;
     }
@@ -923,7 +930,7 @@
         levelSel = $("set-level");
     voice.checked = !!settings.voice;
     var style = $("set-voice-style");
-    style.value = isSilly() ? "silly" : "regular";
+    style.value = voiceStyle();
     style.addEventListener("change", function () {
       settings.voiceStyle = style.value; saveSettings();
       unlockAudio(); say("correct");
