@@ -162,6 +162,7 @@ window.GAME_CONFIG = {
           label: "Triangle monster, 3 sides",
           backdrop: "none",
           monster: "images/monster-three.svg", // placeholder until SG's picture arrives
+          monsterClosed: "images/monster-three-closed.svg",
           monsterSize: 0.9,
           mouth: { x: 0.5, y: 0.68 },
           accepts: ["triangle", "right-triangle", "tall-triangle", "wide-triangle", "slanted-triangle"]
@@ -170,6 +171,7 @@ window.GAME_CONFIG = {
           label: "Box monster, 4 sides",
           backdrop: "none",
           monster: "images/monster-four.svg", // placeholder until SG's picture arrives
+          monsterClosed: "images/monster-four-closed.svg",
           monsterSize: 0.9,
           mouth: { x: 0.5, y: 0.65 },
           accepts: ["square", "rectangle", "diamond", "trapezoid", "parallelogram", "kite"]

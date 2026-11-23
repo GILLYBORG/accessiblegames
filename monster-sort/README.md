@@ -49,7 +49,7 @@ Scramble shapes and Next level keep the score going. Screen readers hear the sco
    and lights up while a shape is chosen or dragged. A background picture can be added later.
 3. **3 sides or 4 sides**: 10 pink shapes. Five triangles (regular, right, tall, wide, slanted) go to the
    triangle monster; five four-sided shapes (square, rectangle, diamond, trapezoid, parallelogram) go to
-   the box monster. The monsters are placeholders until SG's pictures arrive.
+   the box monster. Both monsters (orange triangle, teal box) have open and closed-mouth pictures, so they chomp.
 
 Moving between levels:
 - After finishing a level, a **Next level** button appears next to **Play again**.

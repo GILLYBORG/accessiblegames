@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <!-- Placeholder triangle monster, mouth shut. Replace with SG's Canva picture in js/config.js. -->
+  <!-- feet -->
+  <rect x="100" y="352" width="64" height="34" rx="6" fill="#9a4a00"/>
+  <rect x="236" y="352" width="64" height="34" rx="6" fill="#9a4a00"/>
+  <!-- arms -->
+  <path d="M112 236 L 40 196 M288 236 L 360 196" stroke="#9a4a00" stroke-width="16" stroke-linecap="round"/>
+  <!-- body: a big triangle -->
+  <polygon points="200,18 384,360 16,360" fill="#ff9a2e" stroke="#9a4a00" stroke-width="12" stroke-linejoin="round"/>
+  <!-- one big eye -->
+  <circle cx="200" cy="164" r="44" fill="#fff" stroke="#9a4a00" stroke-width="8"/>
+  <circle cx="206" cy="170" r="20" fill="#14213d"/>
+  <!-- mouth shut: a zigzag of teeth -->
+  <path d="M130 270 L 150 256 L 170 270 L 190 256 L 210 270 L 230 256 L 250 270 L 270 256" fill="none" stroke="#3a0d22" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
