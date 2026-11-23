@@ -50,6 +50,17 @@ window.GAME_CONFIG = {
     finish: ""
   },
 
+  // "Growly monster" voice: the same computer voice, lower and slower.
+  // Below about 0.3 the words get hard to understand.
+  growlyVoice: { pitch: 0.4, rate: 0.8 },
+
+  // Your own growly recordings for the Growly monster style.
+  growlyVoiceFiles: {
+    correct: "",
+    wrong: "",
+    finish: ""
+  },
+
   // The game picks the most natural voice each device has. To choose one
   // yourself, write part of its name, for example "Ava" or "Google US English".
   voiceName: "",
@@ -145,7 +156,7 @@ window.GAME_CONFIG = {
   // changes a student or teacher makes in Settings.
   defaults: {
     voice: true,
-    voiceStyle: "regular", // "regular" or "silly"
+    voiceStyle: "regular", // "regular", "silly" or "growly"
     volume: 90,          // 0 to 100
     animation: true,     // movement effects (turned off automatically if the
                          // device is set to reduce motion)

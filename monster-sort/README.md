@@ -26,10 +26,11 @@ All four monsters are SG's Canva pictures. The round monster also has a closed-m
 
 ## Voice style
 
-Settings has a **Voice style** menu: **Regular** (the most natural voice on the device) or
-**Silly monster** (the same voice, pitched way up so the words stay clear). Each device remembers
-the choice. To use your own silly recordings, put MP3s in `sounds` and add them to
-`sillyVoiceFiles` in `js/config.js`; `sillyVoice` sets the pitch and speed.
+Settings has a **Voice style** menu: **Regular** (the most natural voice on the device),
+**Silly monster** (the same voice, pitched way up so the words stay clear) or **Growly monster**
+(the same voice, lower and slower). Each device remembers the choice. To use your own recordings,
+put MP3s in `sounds` and add them to `sillyVoiceFiles` or `growlyVoiceFiles` in `js/config.js`;
+`sillyVoice` and `growlyVoice` set the pitch and speed.
 
 ## Score
 
