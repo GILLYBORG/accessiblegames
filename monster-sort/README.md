@@ -94,6 +94,7 @@ Safari on iPhone can't make a web page full screen, so there the button hides th
 buttons the same way (Safari's address bar stays), and the first time it explains
 **Add to Home Screen**, which always opens full screen. The same happens in any other browser
 that refuses full screen.
+Opened from the Home Screen, the game starts with its buttons hidden; **Exit full screen** brings them back.
 
 ## Live address
 

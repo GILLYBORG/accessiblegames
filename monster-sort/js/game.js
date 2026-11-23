@@ -1027,7 +1027,7 @@
     pseudoFs = true;
     updateFsButton();
     fitScene();
-    if (!settings.fsTipSeen) {
+    if (!settings.fsTipSeen && !isStandalone()) {
       settings.fsTipSeen = true;
       saveSettings();
       showPanel("panel-fullscreen", $("btn-exit-fs"));
@@ -1055,7 +1055,7 @@
       if (exit) { var p = exit.call(document); if (p && p.catch) p.catch(function () {}); }
       return;
     }
-    if (!fsSupported()) { fallbackFullscreen(); return; }
+    if (!fsSupported() || isStandalone()) { fallbackFullscreen(); return; }
     try {
       var req = root.requestFullscreen ? root.requestFullscreen() : root.webkitRequestFullscreen();
       if (req && req.catch) req.catch(fallbackFullscreen);
@@ -1116,7 +1116,9 @@
     if (first && !settings.scanning) first.el.focus();
   });
   var fsBtn = $("btn-fullscreen");
-  if (isStandalone()) fsBtn.hidden = true;
+  // Opened from the Home Screen: start full screen (top bar hidden, only the
+  // Exit full screen button showing), which brings back the buttons if needed.
+  if (isStandalone()) { pseudoFs = true; updateFsButton(); fitScene(); }
   fsBtn.addEventListener("click", toggleFullscreen);
   $("btn-exit-fs").addEventListener("click", toggleFullscreen);
 
