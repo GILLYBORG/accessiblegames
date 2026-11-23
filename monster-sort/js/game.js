@@ -19,6 +19,7 @@
     voiceFiles: Object.assign({ correct: "", wrong: "", finish: "" }, userCfg.voiceFiles || {}),
     voiceRate: typeof userCfg.voiceRate === "number" ? userCfg.voiceRate : 0.9,
     voiceName: userCfg.voiceName || "",
+    pointsPerCorrect: typeof userCfg.pointsPerCorrect === "number" ? userCfg.pointsPerCorrect : 100,
     pieceColor: userCfg.pieceColor || "#f9c4d8",
     pieceOutline: userCfg.pieceOutline || "#d9789f",
     colors: Object.assign({
@@ -109,6 +110,7 @@
   var pieces = [];    // { el, shape, label, slot, done, cx, cy, size }
   var selected = null;
   var sortedCount = 0;
+  var score = 0;
   var finished = false;
 
   /* ---------- Voice ---------- */
@@ -308,6 +310,9 @@
   function newGame(isFirst) {
     finished = false;
     sortedCount = 0;
+    // New game and Play again start the score over; Next level keeps it.
+    if (!isFirst) score = 0;
+    showScore(false);
     selected = null;
     root.classList.remove("won", "has-selection");
     hideWin();
@@ -352,6 +357,17 @@
   function labelPiece(p) {
     var name = p.label.charAt(0).toUpperCase() + p.label.slice(1).toLowerCase();
     p.el.setAttribute("aria-label", name);
+  }
+
+  function showScore(bump) {
+    var el = $("score");
+    $("score-value").textContent = String(score);
+    el.setAttribute("aria-label", "Score: " + score);
+    if (bump && settings.animation) {
+      el.classList.remove("bump");
+      void el.offsetWidth;
+      el.classList.add("bump");
+    }
   }
 
   function updateStatus() {
@@ -475,6 +491,8 @@
     if (ok) {
       p.done = true;
       sortedCount++;
+      score += cfg.pointsPerCorrect;
+      showScore(true);
       p.el.setAttribute("aria-hidden", "true");
       p.el.tabIndex = -1;
       p.el.classList.add("is-eaten");
@@ -494,7 +512,8 @@
       say("correct");
       var all = sortedCount === pieces.length;
       announce(cfg.phrases.correct + " " + name + " went to the " + t.def.label + ". " +
-        (all ? cfg.phrases.finish : sortedCount + " of " + pieces.length + " sorted."));
+        (all ? cfg.phrases.finish + " " : sortedCount + " of " + pieces.length + " sorted. ") +
+        "Score " + score + ".");
       if (all) {
         finished = true;
         stopScan();

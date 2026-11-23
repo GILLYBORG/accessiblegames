@@ -132,6 +132,35 @@ h1 {
   -webkit-touch-callout: none;
 }
 .scene:focus { outline: none; }
+/* Score, top-left corner of the game */
+.score {
+  position: absolute;
+  left: calc(var(--u) * 20);
+  top: calc(var(--u) * 20);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 12);
+  padding: calc(var(--u) * 10) calc(var(--u) * 26) calc(var(--u) * 10) calc(var(--u) * 16);
+  border: calc(var(--u) * 5) solid #000;
+  border-radius: calc(var(--u) * 60);
+  background: #fff;
+  color: #000;
+  font-size: calc(var(--u) * 54);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.score svg { width: calc(var(--u) * 62); height: calc(var(--u) * 62); flex: none; }
+.score.bump { animation: bump 500ms ease-out; }
+@keyframes bump {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+.no-motion .score.bump { animation: none; }
+
 .floor {
   position: absolute;
   left: 0; right: 0; bottom: 0;

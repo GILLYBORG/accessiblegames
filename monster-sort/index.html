@@ -49,6 +49,10 @@
     <h2 class="sr-only" id="scene-label">Game</h2>
     <p class="sr-only" id="sr-directions"></p>
     <div class="scene" id="scene" tabindex="-1">
+      <div class="score" id="score" role="img" aria-label="Score: 0">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z" fill="#ffbf00" stroke="#8a5a00" stroke-width="1.2" stroke-linejoin="round"/></svg>
+        <span id="score-value" aria-hidden="true">0</span>
+      </div>
       <div class="floor" id="floor" aria-hidden="true"></div>
       <div class="pieces" id="pieces" role="group" aria-label="Shapes to sort"></div>
       <div class="targets" id="targets" role="group" aria-label="Monsters"></div>

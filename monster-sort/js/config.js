@@ -32,6 +32,9 @@ window.GAME_CONFIG = {
     finish: ""
   },
 
+  // Points added to the score (top-left corner) for each correct answer.
+  pointsPerCorrect: 100,
+
   // Computer voice speed: 1 is normal, 0.8 is slower.
   voiceRate: 0.9,
 
