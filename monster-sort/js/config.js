@@ -62,9 +62,9 @@ window.GAME_CONFIG = {
         {
           label: "Round monster, curvy sides",
           backdrop: "circle",
-          monster: "images/monster-curvy.svg",
-          monsterSize: 0.8,          // size of the monster inside the gray shape (1 = same size)
-          mouth: { x: 0.5, y: 0.68 },
+          monster: "images/monster-round.png",
+          monsterSize: 0.85,         // size of the monster inside the gray shape (1 = same size)
+          mouth: { x: 0.52, y: 0.53 },
           accepts: ["circle"]
         },
         {
