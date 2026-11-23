@@ -128,16 +128,20 @@
   var synth = window.speechSynthesis || null;
   var speechUnlocked = false;
   // Recordings, if any: one set for each voice style.
+  // All recordings play through ONE audio player. iPhones and iPads (Safari and
+  // Chrome) only let a player make sound once it has played during a real tap;
+  // after that the same player may play any recording, at any time.
   var voiceClips = { regular: {}, silly: {}, growly: {} };
-  var playingClip = null;
+  var preloads = [];
   function loadClips(files, into) {
     Object.keys(files).forEach(function (k) {
       var src = files[k];
       if (src && src !== "none") {
-        var a = new Audio();
+        into[k] = src;
+        var a = new Audio(); // only to fetch the file early
         a.preload = "auto";
         a.src = src;
-        into[k] = a;
+        preloads.push(a);
       }
     });
   }
@@ -148,15 +152,22 @@
     var s = settings.voiceStyle;
     return s === "silly" || s === "growly" ? s : "regular";
   }
+  var SILENT = "data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA";
+  var player = new Audio();
+  player.preload = "auto";
+  var playerUnlocked = false, playerBusy = false, playerNext = null;
+  player.addEventListener("ended", function () {
+    playerBusy = false;
+    if (playerNext) { var f = playerNext; playerNext = null; f(); }
+  });
+  player.addEventListener("error", function () { playerBusy = false; playerNext = null; });
 
-  // iPads (Safari and Chrome) only let a page make sound after a real tap.
   // A tap counts on touchend or click, not on touchstart or pointerdown, so the
-  // game also unlocks sound on those (see the listeners below). "strong" means
-  // the call comes from one of them.
-  var clipsUnlocked = false, clipsUnlocking = false;
+  // game unlocks sound on those (see the listeners below). "strong" means the
+  // call comes from one of them.
   function unlockAudio(strong) {
     try {
-      // Safari 16.4+: play even when the iPad's silent switch is on.
+      // Safari 16.4+: play even when the silent switch is on.
       if (navigator.audioSession) navigator.audioSession.type = "playback";
     } catch (e) { /* ignore */ }
     if (synth && !speechUnlocked) {
@@ -168,34 +179,14 @@
         synth.speak(u);
       } catch (e) { /* ignore */ }
     }
-    if (!clipsUnlocked && !clipsUnlocking) {
-      // Play every recording once, muted, during the tap. iPads then allow
-      // each one to play later (after a drop, or after another recording ends).
-      var all = [];
-      Object.keys(voiceClips).forEach(function (style) {
-        Object.keys(voiceClips[style]).forEach(function (k) { all.push(voiceClips[style][k]); });
-      });
-      if (!all.length) { clipsUnlocked = true; return; }
-      clipsUnlocking = true;
-      var left = all.length, failed = false;
-      all.forEach(function (a) {
-        var done = function (ok) {
-          if (a._priming) {
-            a._priming = false;
-            try { a.pause(); a.currentTime = 0; } catch (e) { /* ignore */ }
-          }
-          a.muted = false;
-          if (!ok) failed = true;
-          if (--left === 0) { clipsUnlocking = false; if (!failed) clipsUnlocked = true; }
-        };
-        try {
-          a._priming = true;
-          a.muted = true;
-          var pr = a.play();
-          if (pr && pr.then) pr.then(function () { done(true); }, function () { done(false); });
-          else done(true);
-        } catch (e) { done(false); }
-      });
+    // Play a moment of silence (not muted: muted play does not count) during the tap.
+    if (strong && !playerUnlocked && !playerBusy) {
+      try {
+        player.src = SILENT;
+        var pr = player.play();
+        if (pr && pr.then) pr.then(function () { playerUnlocked = true; }, function () {});
+        else playerUnlocked = true;
+      } catch (e) { /* ignore */ }
     }
   }
   ["touchend", "click", "keydown"].forEach(function (type) {
@@ -207,24 +198,21 @@
     if (!settings.voice) return;
     var vol = Math.max(0, Math.min(100, settings.volume)) / 100;
     if (vol === 0) return;
-    var clip = voiceClips[voiceStyle()][key];
-    if (clip) {
+    var src = voiceClips[voiceStyle()][key];
+    if (src) {
       var play = function () {
         try {
-          clip._priming = false; // a muted unlock play may still be running: take it over
-          clip.muted = false;
-          clip.currentTime = 0;
-          clip.volume = vol;
-          playingClip = clip;
-          var p = clip.play();
-          if (p && p.catch) p.catch(function () {});
-        } catch (e) { /* ignore */ }
+          playerBusy = true;
+          player.src = src;
+          player.volume = vol;
+          var p = player.play();
+          if (p && p.then) p.then(function () { playerUnlocked = true; }, function () { playerBusy = false; });
+        } catch (e) { playerBusy = false; }
       };
-      if (queue && playingClip && !playingClip.paused && !playingClip.ended) {
-        var waiting = playingClip;
-        waiting.addEventListener("ended", function once() { waiting.removeEventListener("ended", once); play(); });
+      if (queue && playerBusy) {
+        playerNext = play;
       } else {
-        if (playingClip && playingClip !== clip) { try { playingClip.pause(); } catch (e) { /* ignore */ } }
+        playerNext = null;
         play();
       }
       return;
