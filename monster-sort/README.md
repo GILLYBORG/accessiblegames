@@ -24,7 +24,7 @@ Everything is in `js/config.js`:
 
 SG's own recordings of "That's right!" (`sounds/thats-right.mp3`) and "Try again" (`sounds/try-again.mp3`) play with the Regular voice style; Silly and Growly still use the computer voice.
 
-All four monsters are SG's Canva pictures. The round monster also has a closed-mouth picture.
+All four monsters are SG's Canva pictures. The round and square monsters also have closed-mouth pictures.
 
 ## Voice style
 
