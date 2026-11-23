@@ -59,6 +59,8 @@ window.GAME_CONFIG = {
   // Levels. Students start on the first one. Add more levels by copying a
   // whole { ... } block below and changing it.
   //
+  //   monsterClosed: optional picture with the mouth shut. When a shape is
+  //             eaten the monster goes chomp, chomp. Leave it out to skip.
   //   backdrop: the large gray shape behind a monster: "circle", "square",
   //             or "rounded" (a square with soft corners).
   //   accepts:  which shapes ("circle") or colours ("red") this monster eats.
@@ -78,6 +80,7 @@ window.GAME_CONFIG = {
           label: "Round monster, curvy sides",
           backdrop: "circle",
           monster: "images/monster-round.png",
+          monsterClosed: "images/monster-round-closed.png", // mouth shut: shown for a quick chomp
           monsterSize: 0.85,         // size of the monster inside the gray shape (1 = same size)
           mouth: { x: 0.52, y: 0.53 },
           accepts: ["circle"]

@@ -17,7 +17,7 @@ Everything is in `js/config.js`:
 2. Change `monster:` for each target to the file name, for example `"images/round-monster.png"`.
 3. If the mouth is not near the middle, change `mouth:` (x across, y down, from 0 to 1).
    Shapes fly into that point.
-4. `phrases` holds what the voice says. To use your own recordings, put MP3 files in
+5. `phrases` holds what the voice says. To use your own recordings, put MP3 files in
    `sounds` and add them to `voiceFiles`.
 
 The monsters that ship with the game are placeholders until the Canva pictures arrive.
