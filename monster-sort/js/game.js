@@ -299,6 +299,7 @@
       img.style.setProperty("--monster-size", ((def.monsterSize || 0.8) * 100) + "%");
       if (def.showLabel) btn.querySelector(".target-label").textContent = def.showLabel === true ? def.label : def.showLabel;
       if (def.monster) preload(def.monster);
+      if (def.monsterClosed) preload(def.monsterClosed);
       btn.addEventListener("click", function (e) { onTargetClick(i, e); });
       btn.addEventListener("keydown", onTargetKey);
       targetsEl.appendChild(btn);
@@ -505,8 +506,10 @@
         p.el.style.opacity = "0";
         setTimeout(function () { p.el.classList.add("is-done"); }, 420);
         setTimeout(function () { react(t, "chomp"); }, 260);
+        setTimeout(function () { chompMouth(t); }, 330);
       } else {
         p.el.classList.add("is-done");
+        chompMouth(t);
       }
       updateStatus();
       say("correct");
@@ -556,6 +559,22 @@
       p.el.classList.add("shake");
       setTimeout(function () { p.el.classList.remove("shake"); }, 900);
     }
+  }
+
+  // If the level has a closed-mouth picture, the monster closes and opens
+  // its mouth twice: chomp, chomp.
+  function chompMouth(t) {
+    var closed = t.def.monsterClosed;
+    if (!closed) return;
+    var img = t.el.querySelector(".monster");
+    clearTimeout(t.chompTimer);
+    var steps = [closed, t.def.monster, closed, t.def.monster];
+    var i = 0;
+    (function next() {
+      img.src = steps[i];
+      i += 1;
+      if (i < steps.length) t.chompTimer = setTimeout(next, i % 2 ? 200 : 140);
+    })();
   }
 
   function react(t, cls) {

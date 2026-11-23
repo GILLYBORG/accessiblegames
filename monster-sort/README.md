@@ -17,10 +17,12 @@ Everything is in `js/config.js`:
 2. Change `monster:` for each target to the file name, for example `"images/round-monster.png"`.
 3. If the mouth is not near the middle, change `mouth:` (x across, y down, from 0 to 1).
    Shapes fly into that point.
-4. `phrases` holds what the voice says. To use your own recordings, put MP3 files in
+4. Optional: add `monsterClosed:` with the same monster's mouth shut (same size and position).
+   The monster then goes chomp, chomp whenever it eats a shape.
+5. `phrases` holds what the voice says. To use your own recordings, put MP3 files in
    `sounds` and add them to `voiceFiles`.
 
-The monsters that ship with the game are placeholders until the Canva pictures arrive.
+All four monsters are SG's Canva pictures. The round monster also has a closed-mouth picture.
 
 ## Score
 
