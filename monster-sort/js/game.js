@@ -1019,8 +1019,22 @@
               (document.fullscreenEnabled || document.webkitFullscreenEnabled));
   }
   // In full screen, hide the top bar and show only an exit button.
+  // iPhone Safari (and some other browsers) can't make a page full screen.
+  // There the button still hides the top bar and shows only the exit button,
+  // and the first time it explains Add to Home Screen for true full screen.
+  var pseudoFs = false;
+  function fallbackFullscreen() {
+    pseudoFs = true;
+    updateFsButton();
+    fitScene();
+    if (!settings.fsTipSeen && !isStandalone()) {
+      settings.fsTipSeen = true;
+      saveSettings();
+      showPanel("panel-fullscreen", $("btn-exit-fs"));
+    }
+  }
   function updateFsButton() {
-    var on = !!fsElement();
+    var on = !!fsElement() || pseudoFs;
     var wasOn = root.classList.contains("is-fullscreen");
     root.classList.toggle("is-fullscreen", on);
     $("btn-exit-fs").hidden = !on;
@@ -1035,18 +1049,18 @@
     }
   }
   function toggleFullscreen(e) {
-    var btn = e.currentTarget;
+    if (pseudoFs) { pseudoFs = false; updateFsButton(); fitScene(); return; }
     if (fsElement()) {
       var exit = document.exitFullscreen || document.webkitExitFullscreen;
       if (exit) { var p = exit.call(document); if (p && p.catch) p.catch(function () {}); }
       return;
     }
-    if (!fsSupported()) { showPanel("panel-fullscreen", btn); return; }
+    if (!fsSupported() || isStandalone()) { fallbackFullscreen(); return; }
     try {
       var req = root.requestFullscreen ? root.requestFullscreen() : root.webkitRequestFullscreen();
-      if (req && req.catch) req.catch(function () { showPanel("panel-fullscreen", btn); });
+      if (req && req.catch) req.catch(fallbackFullscreen);
     } catch (err) {
-      showPanel("panel-fullscreen", btn);
+      fallbackFullscreen();
     }
   }
   document.addEventListener("fullscreenchange", function () { updateFsButton(); fitScene(); });
@@ -1102,14 +1116,12 @@
     if (first && !settings.scanning) first.el.focus();
   });
   var fsBtn = $("btn-fullscreen");
-  if (isStandalone()) fsBtn.hidden = true;
+  // Opened from the Home Screen: start full screen (top bar hidden, only the
+  // Exit full screen button showing), which brings back the buttons if needed.
+  if (isStandalone()) { pseudoFs = true; updateFsButton(); fitScene(); }
   fsBtn.addEventListener("click", toggleFullscreen);
   $("btn-exit-fs").addEventListener("click", toggleFullscreen);
 
-  // Unlock sound and voice on the first touch anywhere (needed on iPad).
-  ["pointerdown", "keydown", "touchend"].forEach(function (ev) {
-    document.addEventListener(ev, unlockAudio, { once: true, passive: true });
-  });
 
   if (window.ResizeObserver) new ResizeObserver(fitScene).observe(stage);
   window.addEventListener("resize", fitScene);
