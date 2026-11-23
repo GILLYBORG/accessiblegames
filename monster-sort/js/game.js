@@ -753,6 +753,7 @@
     root.classList.add("won");
     $("win-title").textContent = cfg.phrases.finish;
     $("btn-next").hidden = settings.level >= cfg.levels.length - 1;
+    $("btn-win-start-over").hidden = settings.level === 0;
     showPanel("panel-win", null, $("btn-again"));
   }
   function hideWin() {
@@ -1010,6 +1011,21 @@
   });
   $("btn-settings").addEventListener("click", function (e) { showPanel("panel-settings", e.currentTarget); });
   $("btn-again").addEventListener("click", function () { hidePanel(); });
+  // Start over: back to Level 1 with the score at 0.
+  function startOver() {
+    unlockAudio();
+    hidePanel(true);
+    settings.level = 0;
+    saveSettings();
+    var sel = $("set-level"); if (sel) sel.value = "0";
+    score = 0;
+    buildLevel();
+    announce("Starting over at level 1. " + (level.directions || ""));
+    var first = nextRemaining(-1);
+    if (first && !settings.scanning) first.el.focus();
+  }
+  $("btn-start-over").addEventListener("click", startOver);
+  $("btn-win-start-over").addEventListener("click", startOver);
   $("btn-next").addEventListener("click", function () {
     hidePanel(true);
     settings.level = Math.min(cfg.levels.length - 1, settings.level + 1);

@@ -41,7 +41,8 @@ Moving between levels:
 - After finishing a level, a **Next level** button appears next to **Play again**.
 - Settings has a **Level** menu.
 - A link can open a level directly: `.../monster-sort/?level=2`.
-- Each device remembers the last level played.
+- Each device remembers the last level played. **Start over** (top bar, and on the win message
+  after Level 2) goes back to Level 1 with the score at 0.
 
 To add a level, copy a whole level block in `js/config.js` and change the monsters, what each
 one `accepts` (shapes like `"circle"` or colours like `"red"`), and the `pieces` (shape, colour,
