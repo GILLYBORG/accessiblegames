@@ -35,6 +35,10 @@ window.GAME_CONFIG = {
   // Computer voice speed: 1 is normal, 0.8 is slower.
   voiceRate: 0.9,
 
+  // The game picks the most natural voice each device has. To choose one
+  // yourself, write part of its name, for example "Ava" or "Google US English".
+  voiceName: "",
+
   // Colours of the scene.
   pieceColor: "#f9c4d8",      // light pink shapes
   pieceOutline: "#d9789f",
