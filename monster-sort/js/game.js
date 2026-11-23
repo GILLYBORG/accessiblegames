@@ -149,21 +149,58 @@
     return s === "silly" || s === "growly" ? s : "regular";
   }
 
-  function unlockAudio() {
+  // iPads (Safari and Chrome) only let a page make sound after a real tap.
+  // A tap counts on touchend or click, not on touchstart or pointerdown, so the
+  // game also unlocks sound on those (see the listeners below). "strong" means
+  // the call comes from one of them.
+  var clipsUnlocked = false, clipsUnlocking = false;
+  function unlockAudio(strong) {
     try {
       // Safari 16.4+: play even when the iPad's silent switch is on.
       if (navigator.audioSession) navigator.audioSession.type = "playback";
     } catch (e) { /* ignore */ }
     if (synth && !speechUnlocked) {
-      // iPad only lets a page speak after the first touch: speak a silent word now.
-      speechUnlocked = true;
+      // Speak a silent word now, so later words are allowed.
+      if (strong) speechUnlocked = true;
       try {
         var u = new SpeechSynthesisUtterance(" ");
         u.volume = 0;
         synth.speak(u);
       } catch (e) { /* ignore */ }
     }
+    if (!clipsUnlocked && !clipsUnlocking) {
+      // Play every recording once, muted, during the tap. iPads then allow
+      // each one to play later (after a drop, or after another recording ends).
+      var all = [];
+      Object.keys(voiceClips).forEach(function (style) {
+        Object.keys(voiceClips[style]).forEach(function (k) { all.push(voiceClips[style][k]); });
+      });
+      if (!all.length) { clipsUnlocked = true; return; }
+      clipsUnlocking = true;
+      var left = all.length, failed = false;
+      all.forEach(function (a) {
+        var done = function (ok) {
+          if (a._priming) {
+            a._priming = false;
+            try { a.pause(); a.currentTime = 0; } catch (e) { /* ignore */ }
+          }
+          a.muted = false;
+          if (!ok) failed = true;
+          if (--left === 0) { clipsUnlocking = false; if (!failed) clipsUnlocked = true; }
+        };
+        try {
+          a._priming = true;
+          a.muted = true;
+          var pr = a.play();
+          if (pr && pr.then) pr.then(function () { done(true); }, function () { done(false); });
+          else done(true);
+        } catch (e) { done(false); }
+      });
+    }
   }
+  ["touchend", "click", "keydown"].forEach(function (type) {
+    document.addEventListener(type, function () { unlockAudio(true); }, true);
+  });
 
   // key: "correct", "wrong" or "finish". queue: wait for what is already playing.
   function say(key, queue) {
@@ -174,6 +211,8 @@
     if (clip) {
       var play = function () {
         try {
+          clip._priming = false; // a muted unlock play may still be running: take it over
+          clip.muted = false;
           clip.currentTime = 0;
           clip.volume = vol;
           playingClip = clip;
