@@ -28,7 +28,7 @@ window.GAME_CONFIG = {
   // Example: correct: "sounds/thats-right.mp3"
   voiceFiles: {
     correct: "sounds/thats-right.mp3",
-    wrong: "",
+    wrong: "sounds/try-again.mp3",
     finish: ""
   },
 
