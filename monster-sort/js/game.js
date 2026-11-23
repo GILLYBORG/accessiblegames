@@ -311,7 +311,7 @@
   function newGame(isFirst) {
     finished = false;
     sortedCount = 0;
-    // New game and Play again start the score over; Next level keeps it.
+    // Scramble shapes and Play again start the score over; Next level keeps it.
     if (!isFirst) score = 0;
     showScore(false);
     selected = null;
@@ -349,7 +349,7 @@
     pieces.forEach(function (p) { labelPiece(p); });
     layoutScene();
     updateStatus();
-    if (!isFirst) announce("New game. " + pieces.length + " shapes to sort. " + (level.directions || ""));
+    if (!isFirst) announce("Shapes scrambled. " + pieces.length + " shapes to sort. " + (level.directions || ""));
     if (settings.scanning) startScan();
   }
 
