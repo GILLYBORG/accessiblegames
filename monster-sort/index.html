@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
-<link rel="stylesheet" href="css/style.css?v=20261123d">
+<link rel="stylesheet" href="css/style.css?v=20261123e">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -102,6 +102,13 @@
       </label>
       <p class="help" id="voice-desc">Says "That's right" and "Try again". Screen reader users hear the same words from VoiceOver or ChromeVox, so you can turn this off for them.</p>
       <div class="field">
+        <label for="set-voice-style">Voice style</label>
+        <select id="set-voice-style">
+          <option value="regular">Regular</option>
+          <option value="silly">Silly monster</option>
+        </select>
+      </div>
+      <div class="field">
         <label for="set-volume">Volume</label>
         <input type="range" id="set-volume" min="0" max="100" step="10">
       </div>
@@ -154,7 +161,7 @@
   </div>
 </div>
 
-<script src="js/config.js?v=20261123d"></script>
-<script src="js/game.js?v=20261123d"></script>
+<script src="js/config.js?v=20261123e"></script>
+<script src="js/game.js?v=20261123e"></script>
 </body>
 </html>
