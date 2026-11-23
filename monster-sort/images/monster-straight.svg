@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <!-- Placeholder square monster. Replace with SG's Canva picture in js/config.js. -->
+  <!-- straight antennae -->
+  <path d="M130 70 L 100 18 M270 70 L 300 18" stroke="#4b2d9c" stroke-width="12" stroke-linecap="square"/>
+  <rect x="84" y="4" width="32" height="32" fill="#4b2d9c"/>
+  <rect x="284" y="4" width="32" height="32" fill="#4b2d9c"/>
+  <!-- body -->
+  <rect x="40" y="62" width="320" height="300" rx="10" fill="#8a6ae6" stroke="#4b2d9c" stroke-width="10"/>
+  <!-- feet -->
+  <rect x="90" y="360" width="70" height="30" fill="#4b2d9c"/>
+  <rect x="240" y="360" width="70" height="30" fill="#4b2d9c"/>
+  <!-- square eyes -->
+  <rect x="96" y="104" width="84" height="84" fill="#fff" stroke="#4b2d9c" stroke-width="8"/>
+  <rect x="220" y="104" width="84" height="84" fill="#fff" stroke="#4b2d9c" stroke-width="8"/>
+  <rect x="128" y="138" width="34" height="34" fill="#14213d"/>
+  <rect x="238" y="138" width="34" height="34" fill="#14213d"/>
+  <!-- big square open mouth -->
+  <rect x="100" y="218" width="200" height="118" fill="#3a0d22" stroke="#4b2d9c" stroke-width="8"/>
+  <rect x="140" y="296" width="120" height="36" fill="#ff7aa8"/>
+  <path d="M104 222 L 129 252 L 154 222 Z M246 222 L 271 252 L 296 222 Z" fill="#fff"/>
+</svg>
