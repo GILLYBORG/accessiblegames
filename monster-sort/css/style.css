@@ -463,7 +463,7 @@ h1 {
   font-size: calc(var(--u) * 24); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6b4f00;
 }
 .rule-main { display: flex; align-items: center; gap: calc(var(--u) * 16); }
-.rule-name { font-size: calc(var(--u) * 50); font-weight: 700; white-space: nowrap; }
+.rule-name { font-size: calc(var(--u) * 50); font-weight: 700; line-height: 1.1; text-align: center; }
 .rule-icons { display: inline-flex; gap: calc(var(--u) * 6); }
 .rule-spotlight .rule-icons svg { width: calc(var(--u) * 52); height: calc(var(--u) * 52); }
 .rule-badge {

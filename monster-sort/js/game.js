@@ -386,12 +386,6 @@
     ruleBox.setAttribute("aria-hidden", "true"); // the rule is read out in the status and announcements
     var html = '<div class="rule-spotlight"><span class="rule-kicker">Rule Spotlight</span>' +
       '<span class="rule-main"><span class="rule-icons"></span><span class="rule-name"></span></span></div>';
-    level.rules.forEach(function (r, i) {
-      html += '<div class="rule-badge" data-rule="' + i + '"><span class="rule-badge-letter">' +
-        esc(r.badge || String.fromCharCode(65 + i)) + '</span><span class="rule-icons">' +
-        r.sides.map(function (s) { return chipSvg(s.chip); }).join("") + '</span><span class="rule-badge-name">' +
-        esc(r.name) + '</span><span class="rule-badge-detail">' + esc(r.detail || "") + '</span></div>';
-    });
     targets.forEach(function (t) { html += '<div class="rule-head" data-side="' + t.index + '"></div>'; });
     html += '<div class="tchart-h"></div><div class="tchart-v"></div>';
     ruleBox.innerHTML = html;
@@ -415,11 +409,8 @@
     if (!r) { $("sr-directions").textContent = level.directions || ""; return; }
     $("sr-directions").textContent = (level.directions || "") + " " + ruleDirections(r);
     var spot = ruleBox.querySelector(".rule-spotlight");
-    spot.querySelector(".rule-name").textContent = "Sort by " + r.name.toLowerCase();
+    spot.querySelector(".rule-name").textContent = r.spotlight || ("Sort by " + r.name.toLowerCase());
     spot.querySelector(".rule-icons").innerHTML = r.sides.map(function (s) { return chipSvg(s.chip); }).join("");
-    Array.prototype.forEach.call(ruleBox.querySelectorAll(".rule-badge"), function (b) {
-      b.classList.toggle("is-active", Number(b.dataset.rule) === ruleIdx);
-    });
     targets.forEach(function (t) {
       var s = r.sides[t.index];
       ruleBox.querySelector('.rule-head[data-side="' + t.index + '"]').innerHTML =
@@ -586,18 +577,10 @@
     var wide = layout === LAYOUTS.wide;
     var q = function (sel) { return ruleBox.querySelector(sel); };
     // The score sits in the top-left corner, so keep clear of it.
-    var spotY = wide ? 90 : 75, spotW = wide ? 540 : 580;
+    var spotY = wide ? 90 : 85, spotW = wide ? 900 : 680;
     var spotX = wide ? W / 2 : W - 30 - spotW / 2;
-    placeEl(q(".rule-spotlight"), spotX, spotY, spotW, wide ? 140 : 120);
-    var badges = ruleBox.querySelectorAll(".rule-badge");
-    var badgeY = wide ? spotY : 200;
-    var bw = wide ? 250 : 330, bh = wide ? 120 : 90;
-    Array.prototype.forEach.call(badges, function (b, i) {
-      var x = wide ? (i === 0 ? spotX - spotW / 2 - 20 - bw / 2 : spotX + spotW / 2 + 20 + bw / 2)
-                   : (i === 0 ? W / 2 - 20 - bw / 2 : W / 2 + 20 + bw / 2);
-      placeEl(b, x, badgeY, bw, bh);
-    });
-    var headY = wide ? 225 : 300;
+    placeEl(q(".rule-spotlight"), spotX, spotY, spotW, wide ? 140 : 140);
+    var headY = wide ? 225 : 220;
     targets.forEach(function (t, i) {
       placeEl(q('.rule-head[data-side="' + i + '"]'), spacing * (i + 0.5), headY, spacing * 0.8, 80);
     });
