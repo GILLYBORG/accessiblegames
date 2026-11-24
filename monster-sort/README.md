@@ -50,6 +50,14 @@ Scramble shapes and Next level keep the score going. Screen readers hear the sco
 3. **3 sides or 4 sides**: 10 pink shapes. Five triangles (regular, right, tall, wide, slanted) go to the
    triangle monster; five four-sided shapes (square, rectangle, diamond, trapezoid, parallelogram) go to
    the box monster. Both monsters (orange triangle, teal box) have open and closed-mouth pictures, so they chomp.
+4. **Switch the rule**: a T-chart with a **Rule Spotlight** at the top and two rule badges beside it
+   (A: Colour, red or blue; B: Corners, 3 or 4). 8 shapes (red and blue, 3 and 4 corners) are sorted
+   by colour first. When they are all sorted the spotlight changes to corners, the voice says
+   "New rule! Sort by corners." and the same shapes come back to sort again. The win comes after both
+   rules. A drop anywhere in a column counts. The pink round and square monsters are reused here.
+
+   To make another rule switch level, copy this level in `js/config.js` and change its `rules`
+   (each rule names its two sides, a `chip` picture for each, and what each side `accepts`).
 
 Moving between levels:
 - After finishing a level, a **Next level** button appears next to **Play again**.

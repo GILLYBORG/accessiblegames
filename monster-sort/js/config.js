@@ -189,6 +189,64 @@ window.GAME_CONFIG = {
         { shape: "trapezoid", count: 1 },
         { shape: "parallelogram", count: 1 }
       ]
+    },
+    {
+      // A rule switch level: the shapes are sorted once for each rule, in order.
+      // Each rule names the two sides of the T-chart and what each side takes.
+      // "chip" is the little picture next to a side's name.
+      name: "Switch the rule",
+      directions: "Look at the Rule Spotlight. Feed each shape to the monster on the right side of the chart. When the rule changes, sort the shapes again with the new rule.",
+      targets: [
+        {
+          label: "Left monster",
+          backdrop: "none",
+          monster: "images/monster-round.png",
+          monsterClosed: "images/monster-round-closed.png",
+          monsterSize: 0.95,
+          mouth: { x: 0.52, y: 0.53 }
+        },
+        {
+          label: "Right monster",
+          backdrop: "none",
+          monster: "images/monster-square.png",
+          monsterClosed: "images/monster-square-closed.png",
+          monsterSize: 0.95,
+          mouth: { x: 0.5, y: 0.57 }
+        }
+      ],
+      rules: [
+        {
+          badge: "A",
+          name: "Colour",
+          detail: "Red or blue",
+          sides: [
+            { label: "Red", chip: { shape: "circle", color: "red" }, accepts: ["red"] },
+            { label: "Blue", chip: { shape: "circle", color: "blue" }, accepts: ["blue"] }
+          ]
+        },
+        {
+          badge: "B",
+          name: "Corners",
+          detail: "3 or 4 corners",
+          say: "New rule! Sort by corners.",
+          sides: [
+            { label: "3 corners", chip: { shape: "triangle", color: "#555555" },
+              accepts: ["triangle", "right-triangle", "tall-triangle", "wide-triangle", "slanted-triangle"] },
+            { label: "4 corners", chip: { shape: "square", color: "#555555" },
+              accepts: ["square", "rectangle", "diamond", "trapezoid", "parallelogram", "kite"] }
+          ]
+        }
+      ],
+      pieces: [
+        { shape: "triangle", color: "red", count: 1 },
+        { shape: "right-triangle", color: "red", count: 1 },
+        { shape: "square", color: "red", count: 1 },
+        { shape: "rectangle", color: "red", count: 1 },
+        { shape: "tall-triangle", color: "blue", count: 1 },
+        { shape: "wide-triangle", color: "blue", count: 1 },
+        { shape: "diamond", color: "blue", count: 1 },
+        { shape: "trapezoid", color: "blue", count: 1 }
+      ]
     }
   ],
 

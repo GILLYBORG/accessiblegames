@@ -357,13 +357,96 @@
       btn.addEventListener("click", function (e) { onTargetClick(i, e); });
       btn.addEventListener("keydown", onTargetKey);
       targetsEl.appendChild(btn);
-      return { el: btn, def: def };
+      return { el: btn, def: def, index: i };
     });
+    buildRuleBox();
     newGame(true);
   }
 
-  function newGame(isFirst, keepScore) {
+  /* ---------- Rule switch levels ----------
+     A level with "rules" is sorted once for each rule, in order. The two sides
+     of the T-chart take their names and what they accept from the rule in the
+     Rule Spotlight. When every shape is sorted, the rule changes and the shapes
+     come back. */
+  var ruleIdx = 0;
+  var ruleBox = null;
+  function activeRule() { return level && level.rules ? level.rules[ruleIdx] : null; }
+  function sideOf(t) { var r = activeRule(); return r ? r.sides[t.index] : null; }
+  function targetAccepts(t) { var s = sideOf(t); return (s ? s.accepts : t.def.accepts) || []; }
+  function targetLabel(t) { var s = sideOf(t); return s ? s.label + " side" : t.def.label; }
+  function chipSvg(chip) { return chip ? shapeSvg(chip.shape || "circle", chip.color || "#555555") : ""; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  function buildRuleBox() {
+    if (ruleBox) { ruleBox.remove(); ruleBox = null; }
+    scene.classList.toggle("has-rules", !!level.rules);
+    if (!level.rules) return;
+    ruleBox = document.createElement("div");
+    ruleBox.className = "rulebox";
+    ruleBox.setAttribute("aria-hidden", "true"); // the rule is read out in the status and announcements
+    var html = '<div class="rule-spotlight"><span class="rule-kicker">Rule Spotlight</span>' +
+      '<span class="rule-main"><span class="rule-icons"></span><span class="rule-name"></span></span></div>';
+    level.rules.forEach(function (r, i) {
+      html += '<div class="rule-badge" data-rule="' + i + '"><span class="rule-badge-letter">' +
+        esc(r.badge || String.fromCharCode(65 + i)) + '</span><span class="rule-icons">' +
+        r.sides.map(function (s) { return chipSvg(s.chip); }).join("") + '</span><span class="rule-badge-name">' +
+        esc(r.name) + '</span><span class="rule-badge-detail">' + esc(r.detail || "") + '</span></div>';
+    });
+    targets.forEach(function (t) { html += '<div class="rule-head" data-side="' + t.index + '"></div>'; });
+    html += '<div class="tchart-h"></div><div class="tchart-v"></div>';
+    ruleBox.innerHTML = html;
+    scene.insertBefore(ruleBox, targetsEl);
+  }
+
+  function renderRule(switching) {
+    var r = activeRule();
+    if (!r) { $("sr-directions").textContent = level.directions || ""; return; }
+    $("sr-directions").textContent = (level.directions || "") + " " + ruleDirections(r);
+    var spot = ruleBox.querySelector(".rule-spotlight");
+    spot.querySelector(".rule-name").textContent = "Sort by " + r.name.toLowerCase();
+    spot.querySelector(".rule-icons").innerHTML = r.sides.map(function (s) { return chipSvg(s.chip); }).join("");
+    Array.prototype.forEach.call(ruleBox.querySelectorAll(".rule-badge"), function (b) {
+      b.classList.toggle("is-active", Number(b.dataset.rule) === ruleIdx);
+    });
+    targets.forEach(function (t) {
+      var s = r.sides[t.index];
+      ruleBox.querySelector('.rule-head[data-side="' + t.index + '"]').innerHTML =
+        chipSvg(s.chip) + "<span>" + esc(s.label) + "</span>";
+      t.el.setAttribute("aria-label", targetLabel(t));
+    });
+    if (switching && settings.animation) {
+      ruleBox.classList.remove("is-switching");
+      void ruleBox.offsetWidth;
+      ruleBox.classList.add("is-switching");
+      setTimeout(function () { if (ruleBox) ruleBox.classList.remove("is-switching"); }, 1400);
+    }
+  }
+  function ruleDirections(r) {
+    return "Rule: sort by " + r.name.toLowerCase() + ". " + r.sides.map(function (s, i) {
+      return s.label + " on the " + (i === 0 ? "left" : "right") + " side";
+    }).join(", ") + ".";
+  }
+
+  // Every shape is sorted under this rule: switch to the next one.
+  function nextRule() {
+    finished = true; // no sorting while the rule changes
+    stopScan();
+    setTimeout(function () {
+      ruleIdx += 1;
+      var r = activeRule();
+      newGame(true, true, true);
+      renderRule(true);
+      var text = (r.say || ("New rule! Sort by " + r.name.toLowerCase() + ".")) ;
+      speak(text, false);
+      announce(text + " " + ruleDirections(r));
+      var first = nextRemaining(-1);
+      if (first && !settings.scanning && document.activeElement && document.activeElement !== document.body) first.el.focus();
+    }, settings.animation ? 1300 : 900);
+  }
+
+  function newGame(isFirst, keepScore, keepRule) {
     finished = false;
+    if (!keepRule) ruleIdx = 0;
     sortedCount = 0;
     // Play again starts the score over; Scramble shapes and Next level keep it.
     if (!isFirst && !keepScore) score = 0;
@@ -401,6 +484,7 @@
       return piece;
     });
     pieces.forEach(function (p) { labelPiece(p); });
+    if (level.rules) renderRule(false);
     layoutScene();
     updateStatus();
     if (!isFirst) announce("Shapes scrambled. " + pieces.length + " shapes to sort. " + (level.directions || ""));
@@ -427,7 +511,8 @@
 
   function updateStatus() {
     var name = cfg.levels.length > 1 ? "Level " + (settings.level + 1) + ": " + level.name + ". " : (level.name ? level.name + ". " : "");
-    statusEl.textContent = name + sortedCount + " of " + pieces.length + " sorted";
+    var r = activeRule();
+    statusEl.textContent = name + (r ? "Rule: " + r.name + ". " : "") + sortedCount + " of " + pieces.length + " sorted";
   }
 
   /* ---------- Placing things in the scene ---------- */
@@ -446,12 +531,16 @@
     // Monsters: spread evenly across the top area.
     var n = targets.length;
     var spacing = W / n;
-    var size = Math.min(spacing * layout.targetFrac, areaH * 0.8);
+    var top = 0;
+    if (ruleBox) top = layoutRuleBox(W, areaH, spacing);
+    var size = Math.min(spacing * layout.targetFrac, (areaH - top) * (top ? 0.9 : 0.8));
     targets.forEach(function (t, i) {
       var s = t.def.backdrop === "circle" || !t.def.backdrop ? size : size * 0.95;
       t.cx = spacing * (i + 0.5);
-      t.cy = areaH / 2 + 6;
+      t.cy = top ? top + (areaH - top) / 2 : areaH / 2 + 6;
       t.size = s;
+      // On a T-chart, a drop anywhere in the column counts.
+      t.zone = top ? { x0: spacing * i, x1: spacing * (i + 1), y0: top - 20, y1: areaH } : null;
       placeEl(t.el, t.cx, t.cy, s, s);
     });
 
@@ -473,6 +562,33 @@
       p.size = ps;
       placeEl(p.el, p.cx, p.cy, ps, ps);
     });
+  }
+
+  // Rule Spotlight, badges, column headings and T-chart lines. Returns where
+  // the columns start (scene units from the top).
+  function layoutRuleBox(W, areaH, spacing) {
+    var wide = layout === LAYOUTS.wide;
+    var q = function (sel) { return ruleBox.querySelector(sel); };
+    // The score sits in the top-left corner, so keep clear of it.
+    var spotY = wide ? 90 : 75, spotW = wide ? 540 : 580;
+    var spotX = wide ? W / 2 : W - 30 - spotW / 2;
+    placeEl(q(".rule-spotlight"), spotX, spotY, spotW, wide ? 140 : 120);
+    var badges = ruleBox.querySelectorAll(".rule-badge");
+    var badgeY = wide ? spotY : 200;
+    var bw = wide ? 250 : 330, bh = wide ? 120 : 90;
+    Array.prototype.forEach.call(badges, function (b, i) {
+      var x = wide ? (i === 0 ? spotX - spotW / 2 - 20 - bw / 2 : spotX + spotW / 2 + 20 + bw / 2)
+                   : (i === 0 ? W / 2 - 20 - bw / 2 : W / 2 + 20 + bw / 2);
+      placeEl(b, x, badgeY, bw, bh);
+    });
+    var headY = wide ? 225 : 300;
+    targets.forEach(function (t, i) {
+      placeEl(q('.rule-head[data-side="' + i + '"]'), spacing * (i + 0.5), headY, spacing * 0.8, 80);
+    });
+    var lineY = headY + 50;
+    placeEl(q(".tchart-h"), W / 2, lineY, W - 60, 8);
+    placeEl(q(".tchart-v"), W / 2, (headY - 40 + areaH - 10) / 2, 8, areaH - 10 - (headY - 40));
+    return lineY + 6;
   }
 
   function mouthOf(t) {
@@ -538,7 +654,7 @@
   function attempt(p, t, how) {
     if (finished || p.done) return;
     // accepts lists shapes ("circle") and/or colours ("red") this monster eats.
-    var acc = (t.def.accepts || []).map(function (a) { return String(a).toLowerCase(); });
+    var acc = targetAccepts(t).map(function (a) { return String(a).toLowerCase(); });
     var ok = acc.indexOf(p.shape) >= 0 || acc.indexOf(p.color) >= 0;
     var name = p.el.getAttribute("aria-label");
     var hadFocus = document.activeElement === p.el || document.activeElement === t.el;
@@ -568,10 +684,13 @@
       updateStatus();
       say("correct");
       var all = sortedCount === pieces.length;
-      announce(cfg.phrases.correct + " " + name + " went to the " + t.def.label + ". " +
-        (all ? cfg.phrases.finish + " " : sortedCount + " of " + pieces.length + " sorted. ") +
+      var moreRules = all && level.rules && ruleIdx < level.rules.length - 1;
+      announce(cfg.phrases.correct + " " + name + " went to the " + targetLabel(t) + ". " +
+        (moreRules ? "All sorted. " : all ? cfg.phrases.finish + " " : sortedCount + " of " + pieces.length + " sorted. ") +
         "Score " + score + ".");
-      if (all) {
+      if (moreRules) {
+        nextRule();
+      } else if (all) {
         finished = true;
         stopScan();
         say("finish", true);
@@ -655,7 +774,7 @@
     var t = targets[i];
     if (!selected) {
       react(t, "nope");
-      announce(t.def.label + ". Choose a shape first.");
+      announce(targetLabel(t) + ". Choose a shape first.");
       return;
     }
     attempt(selected, t, e.detail === 0 ? "key" : "tap");
@@ -721,6 +840,10 @@
   function targetAt(pt) {
     var best = null, bestD = Infinity;
     targets.forEach(function (t) {
+      if (t.zone) {
+        if (pt.x >= t.zone.x0 && pt.x < t.zone.x1 && pt.y >= t.zone.y0 && pt.y <= t.zone.y1) { best = t; bestD = -1; }
+        return;
+      }
       var half = t.size / 2 + 40;
       var dx = pt.x - t.cx, dy = pt.y - t.cy;
       if (Math.abs(dx) <= half && Math.abs(dy) <= half) {
@@ -1076,10 +1199,10 @@
   fitScene();
   buildLevel();
 
-  $("btn-new").addEventListener("click", function () { unlockAudio(); newGame(false, true); });
+  $("btn-new").addEventListener("click", function () { unlockAudio(); newGame(false, true, true); });
   $("btn-directions").addEventListener("click", function () {
     unlockAudio();
-    var text = level.directions || "";
+    var text = (level.directions || "") + (activeRule() ? " " + ruleDirections(activeRule()) : "");
     announce(text);
     speak(text, false);
   });
