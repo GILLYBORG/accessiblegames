@@ -199,7 +199,7 @@ window.GAME_CONFIG = {
       // Each rule names the two sides of the T-chart and what each side takes.
       // "chip" is the little picture next to a side's name.
       name: "Switch the rule",
-      directions: "Look at the Rule Spotlight. Feed each shape to the monster on the right side of the chart. When the rule changes, sort the shapes again with the new rule.",
+      directions: "Look at the rule at the top. Feed each shape to the monster on the right side of the chart. When the rule changes, sort the shapes again with the new rule.",
       targets: [
         {
           label: "Left monster",
