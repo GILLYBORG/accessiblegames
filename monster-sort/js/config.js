@@ -100,6 +100,7 @@ window.GAME_CONFIG = {
   levels: [
     {
       name: "Curvy or straight",
+      rule: "Sort by sides: curvy or straight",   // the big sentence at the top
       directions: "Feed each shape to a monster. Shapes with curvy sides go to the round monster. Shapes with straight sides go to the square monster.",
       targets: [
         {
@@ -128,6 +129,7 @@ window.GAME_CONFIG = {
     },
     {
       name: "Red or blue",
+      rule: "Sort by colour: red or blue",
       directions: "Feed each shape to a monster. Red shapes go to the red monster. Blue shapes go to the blue monster.",
       targets: [
         {
@@ -156,6 +158,7 @@ window.GAME_CONFIG = {
     },
     {
       name: "3 sides or 4 sides",
+      rule: "Sort by sides: 3 sides or 4 sides",
       directions: "Feed each shape to a monster. Shapes with 3 sides go to the triangle monster. Shapes with 4 sides go to the box monster.",
       targets: [
         {
@@ -182,12 +185,10 @@ window.GAME_CONFIG = {
         { shape: "right-triangle", count: 1 },
         { shape: "tall-triangle", count: 1 },
         { shape: "wide-triangle", count: 1 },
-        { shape: "slanted-triangle", count: 1 },
         { shape: "square", count: 1 },
         { shape: "rectangle", count: 1 },
         { shape: "diamond", count: 1 },
-        { shape: "trapezoid", count: 1 },
-        { shape: "parallelogram", count: 1 }
+        { shape: "trapezoid", count: 1 }
       ]
     },
     {
@@ -218,6 +219,7 @@ window.GAME_CONFIG = {
         {
           badge: "A",
           name: "Colour",
+          rule: "Sort by colour: red or blue",
           detail: "Red or blue",
           sides: [
             { label: "Red", chip: { shape: "circle", color: "red" }, accepts: ["red"] },
@@ -227,6 +229,7 @@ window.GAME_CONFIG = {
         {
           badge: "B",
           name: "Corners",
+          rule: "New rule! Sort by corners: 3 or 4",
           detail: "3 or 4 corners",
           say: "New rule! Sort by corners.",
           sides: [

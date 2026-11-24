@@ -42,13 +42,16 @@ Scramble shapes and Next level keep the score going. Screen readers hear the sco
 
 ## Levels
 
+Each level shows its rule in a big gold banner centred at the top (it stays in full screen). Change
+the words with `rule:` in each level in `js/config.js` (on Level 4, each rule has its own `rule:`).
+
 1. **Curvy or straight**: pink circles go to the round monster, pink squares to the square monster.
 2. **Red or blue**: 2 red squares and 2 red triangles go to the red monster, 2 blue rectangles and
    2 blue circles go to the blue monster. There are no gray shapes on this level, so
    only the colour matters (`backdrop: "none"`). The drop area around each monster is the same size,
    and lights up while a shape is chosen or dragged. A background picture can be added later.
-3. **3 sides or 4 sides**: 10 pink shapes. Five triangles (regular, right, tall, wide, slanted) go to the
-   triangle monster; five four-sided shapes (square, rectangle, diamond, trapezoid, parallelogram) go to
+3. **3 sides or 4 sides**: 8 pink shapes. Four triangles (regular, right, tall, wide) go to the
+   triangle monster; four four-sided shapes (square, rectangle, diamond, trapezoid) go to
    the box monster. Both monsters (orange triangle, teal box) have open and closed-mouth pictures, so they chomp.
 4. **Switch the rule**: a T-chart with a **Rule Spotlight** at the top and two rule badges beside it
    (A: Colour, red or blue; B: Corners, 3 or 4). 8 shapes (red and blue, 3 and 4 corners) are sorted
