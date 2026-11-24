@@ -618,11 +618,12 @@
     var wide = layout === LAYOUTS.wide;
     var q = function (sel) { return ruleBox.querySelector(sel); };
     // The score sits in the top-left corner, so keep the headings below it.
-    var headY = 170;
+    // Big colour circles (or shape pictures) so the sorting rule is easy to see.
+    var headY = 185;
     targets.forEach(function (t, i) {
-      placeEl(q('.rule-head[data-side="' + i + '"]'), spacing * (i + 0.5), headY, spacing * 0.8, 80);
+      placeEl(q('.rule-head[data-side="' + i + '"]'), spacing * (i + 0.5), headY, spacing * 0.9, 130);
     });
-    var lineY = headY + 50;
+    var lineY = headY + 78;
     placeEl(q(".tchart-h"), W / 2, lineY, W - 60, 8);
     placeEl(q(".tchart-v"), W / 2, (headY - 40 + areaH - 10) / 2, 8, areaH - 10 - (headY - 40));
     return lineY + 6;
@@ -975,7 +976,6 @@
     $("win-title").textContent = cfg.phrases.finish;
     $("win-score-value").textContent = String(score);
     $("btn-next").hidden = settings.level >= cfg.levels.length - 1;
-    $("btn-win-start-over").hidden = settings.level === 0;
     showPanel("panel-win", null, $("btn-again"));
   }
   function hideWin() {
@@ -988,6 +988,7 @@
      and SG's "Woo hoo" followed by the champion line. With Animation off,
      nothing moves: the sparkles stay still and everything shows at once. */
   var party = { timers: [], raf: 0 };
+  var championName = "";
   function later(fn, ms) { party.timers.push(setTimeout(fn, ms)); }
   function allMonsters() {
     var seen = {}, list = [];
@@ -1005,6 +1006,8 @@
     var anim = settings.animation;
     var n = cfg.levels.length;
     $("champion-count").textContent = String(n);
+    // The name stays only while the page is open; it is never saved or sent anywhere.
+    $("champion-name-input").value = championName;
     $("champion-score").textContent = String(score);
     try {
       $("champion-date").textContent = new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
@@ -1212,7 +1215,9 @@
   }
   function hidePanel(silent) {
     if (!openPanel) return;
-    var wasWin = openPanel.id === "panel-win" || openPanel.id === "panel-champion";
+    // Closing the level picker after a win (without picking) also starts a new game.
+    var wasWin = openPanel.id === "panel-win" || openPanel.id === "panel-champion" ||
+      (openPanel.id === "panel-levels" && finished);
     if (openPanel.id === "panel-champion") stopParty();
     openPanel.hidden = true;
     openPanel = null;
@@ -1385,29 +1390,56 @@
   });
   $("btn-settings").addEventListener("click", function (e) { showPanel("panel-settings", e.currentTarget); });
   $("btn-again").addEventListener("click", function () { hidePanel(); });
-  // Start over: back to Level 1 with the score at 0.
-  function startOver() {
+  // Go to any level, with the score at 0. Level 1 is "start over".
+  function goToLevel(idx) {
     unlockAudio();
     hidePanel(true);
-    settings.level = 0;
+    settings.level = Math.max(0, Math.min(cfg.levels.length - 1, idx));
     saveSettings();
-    // Drop a ?level=2 from the address so reloading the page stays on Level 1.
+    // Drop a ?level=2 from the address so reloading the page stays on the picked level.
     try {
       if (/[?&]level=/.test(location.search) && history.replaceState) {
         history.replaceState(null, "", location.pathname + location.hash);
       }
     } catch (e) { /* ignore */ }
-    var sel = $("set-level"); if (sel) sel.value = "0";
+    var sel = $("set-level"); if (sel) sel.value = String(settings.level);
     score = 0;
     buildLevel();
-    announce("Starting over at level 1. " + (level.directions || ""));
+    announce("Level " + (settings.level + 1) + ": " + (level.name || "") + ". " + (level.directions || ""));
     var first = nextRemaining(-1);
     if (first && !settings.scanning) first.el.focus();
   }
-  $("btn-start-over").addEventListener("click", startOver);
-  $("btn-win-start-over").addEventListener("click", startOver);
+
+  // Level picker: a big button for each level, with its monsters.
+  function showLevels(e) {
+    var grid = $("level-grid");
+    grid.innerHTML = "";
+    cfg.levels.forEach(function (lv, i) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "level-btn" + (i === settings.level ? " is-current" : "");
+      if (i === settings.level) b.setAttribute("aria-current", "true");
+      var pics = (lv.targets || []).map(function (t) {
+        return t.monster ? '<img src="' + esc(t.monster) + '" alt="" draggable="false">' : "";
+      }).join("");
+      b.innerHTML = '<span class="level-pics" aria-hidden="true">' + pics + "</span>" +
+        '<span class="level-num">Level ' + (i + 1) + "</span>" +
+        '<span class="level-name">' + esc(lv.name || "") + "</span>" +
+        (i === settings.level ? '<span class="level-now">Playing now</span>' : "");
+      b.setAttribute("aria-label", "Level " + (i + 1) + (lv.name ? ": " + lv.name : "") + (i === settings.level ? ", playing now" : ""));
+      b.addEventListener("click", function () { goToLevel(i); });
+      grid.appendChild(b);
+    });
+    showPanel("panel-levels", e && e.currentTarget, $("levels-title"));
+  }
+  $("btn-levels").addEventListener("click", showLevels);
+  $("btn-win-levels").addEventListener("click", showLevels);
+  $("btn-champ-levels").addEventListener("click", showLevels);
   $("btn-champ-again").addEventListener("click", function () { hidePanel(); });
-  $("btn-champ-start-over").addEventListener("click", startOver);
+  $("champion-name-input").addEventListener("input", function (e) { championName = e.target.value; });
+  $("champion-name-input").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); $("btn-champ-print").focus(); } // done typing
+  });
   $("btn-champ-print").addEventListener("click", function () { try { window.print(); } catch (e) { /* ignore */ } });
   $("btn-next").addEventListener("click", function () {
     hidePanel(true);

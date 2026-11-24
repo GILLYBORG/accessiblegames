@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
-<link rel="stylesheet" href="css/style.css?v=20261124g">
+<link rel="stylesheet" href="css/style.css?v=20261124j">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -31,9 +31,9 @@
         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
         <span>Directions</span>
       </button>
-      <button type="button" class="btn" id="btn-start-over">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 4v16M19 5l-9 7 9 7z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span>Start over</span>
+      <button type="button" class="btn" id="btn-levels" aria-haspopup="dialog" aria-controls="panel-levels">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2.3"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2.3"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2.3"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2.3"/></svg>
+        <span>Levels</span>
       </button>
       <button type="button" class="btn btn-primary" id="btn-new">
         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v5h5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -86,7 +86,7 @@
     <div class="win-actions">
       <button type="button" class="btn btn-primary btn-big" id="btn-again">Play again</button>
       <button type="button" class="btn btn-big" id="btn-next" hidden>Next level</button>
-      <button type="button" class="btn btn-big" id="btn-win-start-over" hidden>Start over</button>
+      <button type="button" class="btn btn-big" id="btn-win-levels" aria-haspopup="dialog">Pick a level</button>
     </div>
   </div>
 </div>
@@ -104,18 +104,31 @@
     </svg>
     <p class="champion-kicker">Certificate</p>
     <h2 id="champion-title" tabindex="-1">Monster Sorting Champion!</h2>
-    <p class="champion-name">This certificate is awarded to <span class="champion-line"></span></p>
+    <p class="champion-name">
+      <label for="champion-name-input">This certificate is awarded to</label>
+      <input type="text" id="champion-name-input" maxlength="40" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" placeholder="Type a name here">
+    </p>
     <p class="champion-sub" id="champion-desc">You finished all <span id="champion-count">4</span> levels! Final score: <strong id="champion-score">0</strong></p>
     <ul class="champion-levels" id="champion-levels" aria-hidden="true"></ul>
     <p class="champion-date" id="champion-date"></p>
     <div class="win-actions champion-actions">
       <button type="button" class="btn btn-primary btn-big" id="btn-champ-again">Play again</button>
-      <button type="button" class="btn btn-big" id="btn-champ-start-over">Start over</button>
+      <button type="button" class="btn btn-big" id="btn-champ-levels" aria-haspopup="dialog">Pick a level</button>
       <button type="button" class="btn btn-big" id="btn-champ-print">Print certificate</button>
     </div>
   </div>
 </div>
 <template id="tpl-star"><svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/></svg></template>
+
+<div class="overlay" id="panel-levels" role="dialog" aria-modal="true" aria-labelledby="levels-title" hidden>
+  <div class="panel panel-levels">
+    <div class="panel-head">
+      <h2 id="levels-title" tabindex="-1">Pick a level</h2>
+      <button type="button" class="btn" data-close>Keep playing</button>
+    </div>
+    <div class="level-grid" id="level-grid"></div>
+  </div>
+</div>
 
 <div class="overlay" id="panel-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
   <div class="panel">
@@ -196,7 +209,7 @@
   </div>
 </div>
 
-<script src="js/config.js?v=20261124g"></script>
-<script src="js/game.js?v=20261124g"></script>
+<script src="js/config.js?v=20261124j"></script>
+<script src="js/game.js?v=20261124j"></script>
 </body>
 </html>
