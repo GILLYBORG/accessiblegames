@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
-<link rel="stylesheet" href="css/style.css?v=20261124a">
+<link rel="stylesheet" href="css/style.css?v=20261124b">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -73,9 +73,15 @@
   <div class="sr-only" id="live" aria-live="polite" aria-atomic="true"></div>
 </div>
 
-<div class="overlay overlay-win" id="panel-win" role="dialog" aria-modal="true" aria-labelledby="win-title" hidden>
+<div class="overlay overlay-win" id="panel-win" role="dialog" aria-modal="true" aria-labelledby="win-title" aria-describedby="win-score" hidden>
   <div class="panel panel-win">
+    <div class="win-stars" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/></svg>
+    </div>
     <h2 id="win-title" tabindex="-1">Woo hoo, you did it!</h2>
+    <p class="win-score" id="win-score">Your score: <strong id="win-score-value">0</strong></p>
     <div class="win-actions">
       <button type="button" class="btn btn-primary btn-big" id="btn-again">Play again</button>
       <button type="button" class="btn btn-big" id="btn-next" hidden>Next level</button>
@@ -163,7 +169,7 @@
   </div>
 </div>
 
-<script src="js/config.js?v=20261124a"></script>
-<script src="js/game.js?v=20261124a"></script>
+<script src="js/config.js?v=20261124b"></script>
+<script src="js/game.js?v=20261124b"></script>
 </body>
 </html>
