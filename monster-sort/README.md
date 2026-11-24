@@ -53,8 +53,8 @@ the words with `rule:` in each level in `js/config.js` (on Level 4, each rule ha
 3. **3 sides or 4 sides**: 8 pink shapes. Four triangles (regular, right, tall, wide) go to the
    triangle monster; four four-sided shapes (square, rectangle, diamond, trapezoid) go to
    the box monster. Both monsters (orange triangle, teal box) have open and closed-mouth pictures, so they chomp.
-4. **Switch the rule**: a T-chart with a **Rule Spotlight** at the top (the words come from `spotlight:`). 8 shapes (red and blue, 3 and 4 corners) are sorted
-   by colour first. When they are all sorted the spotlight changes to corners, the voice says
+4. **Switch the rule**: a T-chart with a heading over each column and the big rule banner at the top. 8 shapes (red and blue, 3 and 4 corners) are sorted
+   by colour first. When they are all sorted the rule changes to corners, the voice says
    "New rule! Sort by corners." and the same shapes come back to sort again. The win comes after both
    rules. A drop anywhere in a column counts. The pink round and square monsters are reused here.
 
