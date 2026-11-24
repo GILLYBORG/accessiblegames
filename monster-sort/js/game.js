@@ -398,7 +398,19 @@
     scene.insertBefore(ruleBox, targetsEl);
   }
 
+  // The big sentence centred above the game: the level's rule, or the
+  // current rule on a rule switch level.
+  function showRuleBanner() {
+    var el = $("rule-banner");
+    var r = activeRule();
+    var text = (r && (r.rule || "Sort by " + r.name.toLowerCase())) || level.rule || "";
+    el.textContent = text;
+    el.hidden = !text;
+    fitScene();
+  }
+
   function renderRule(switching) {
+    showRuleBanner();
     var r = activeRule();
     if (!r) { $("sr-directions").textContent = level.directions || ""; return; }
     $("sr-directions").textContent = (level.directions || "") + " " + ruleDirections(r);
@@ -418,6 +430,10 @@
       ruleBox.classList.remove("is-switching");
       void ruleBox.offsetWidth;
       ruleBox.classList.add("is-switching");
+      var banner = $("rule-banner");
+      banner.classList.remove("is-switching");
+      void banner.offsetWidth;
+      banner.classList.add("is-switching");
       setTimeout(function () { if (ruleBox) ruleBox.classList.remove("is-switching"); }, 1400);
     }
   }
@@ -484,7 +500,7 @@
       return piece;
     });
     pieces.forEach(function (p) { labelPiece(p); });
-    if (level.rules) renderRule(false);
+    if (level.rules) renderRule(false); else showRuleBanner();
     layoutScene();
     updateStatus();
     if (!isFirst) announce("Shapes scrambled. " + pieces.length + " shapes to sort. " + (level.directions || ""));
@@ -600,6 +616,8 @@
   function fitScene() {
     var hint = $("scan-hint");
     var hintH = hint.hidden ? 0 : hint.offsetHeight + 8;
+    var banner = $("rule-banner");
+    if (!banner.hidden) hintH += banner.offsetHeight + 8;
     var exitBtn = $("btn-exit-fs");
     stage.style.setProperty("--fs-room", "0px");
     var w = stage.clientWidth;

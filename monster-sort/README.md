@@ -42,6 +42,9 @@ Scramble shapes and Next level keep the score going. Screen readers hear the sco
 
 ## Levels
 
+Each level shows its rule in a big gold banner centred at the top (it stays in full screen). Change
+the words with `rule:` in each level in `js/config.js` (on Level 4, each rule has its own `rule:`).
+
 1. **Curvy or straight**: pink circles go to the round monster, pink squares to the square monster.
 2. **Red or blue**: 2 red squares and 2 red triangles go to the red monster, 2 blue rectangles and
    2 blue circles go to the blue monster. There are no gray shapes on this level, so
