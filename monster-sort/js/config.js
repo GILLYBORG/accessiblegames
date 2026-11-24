@@ -217,20 +217,18 @@ window.GAME_CONFIG = {
       ],
       rules: [
         {
-          badge: "A",
           name: "Colour",
+          spotlight: "Sort by colour",   // the words in the Rule Spotlight
           rule: "Sort by colour: red or blue",
-          detail: "Red or blue",
           sides: [
             { label: "Red", chip: { shape: "circle", color: "red" }, accepts: ["red"] },
             { label: "Blue", chip: { shape: "circle", color: "blue" }, accepts: ["blue"] }
           ]
         },
         {
-          badge: "B",
           name: "Corners",
+          spotlight: "Sort by the number of corners",
           rule: "New rule! Sort by corners: 3 or 4",
-          detail: "3 or 4 corners",
           say: "New rule! Sort by corners.",
           sides: [
             { label: "3 corners", chip: { shape: "triangle", color: "#555555" },
