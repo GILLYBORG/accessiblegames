@@ -185,12 +185,10 @@ window.GAME_CONFIG = {
         { shape: "right-triangle", count: 1 },
         { shape: "tall-triangle", count: 1 },
         { shape: "wide-triangle", count: 1 },
-        { shape: "slanted-triangle", count: 1 },
         { shape: "square", count: 1 },
         { shape: "rectangle", count: 1 },
         { shape: "diamond", count: 1 },
-        { shape: "trapezoid", count: 1 },
-        { shape: "parallelogram", count: 1 }
+        { shape: "trapezoid", count: 1 }
       ]
     },
     {
