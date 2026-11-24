@@ -929,6 +929,7 @@
   function showWin() {
     root.classList.add("won");
     $("win-title").textContent = cfg.phrases.finish;
+    $("win-score-value").textContent = String(score);
     $("btn-next").hidden = settings.level >= cfg.levels.length - 1;
     $("btn-win-start-over").hidden = settings.level === 0;
     showPanel("panel-win", null, $("btn-again"));

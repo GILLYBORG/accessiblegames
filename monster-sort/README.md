@@ -6,7 +6,7 @@ monster on the gray circle, squares (straight) go to the square monster on the g
 
 - A correct shape flies into the monster's mouth and a voice says "That's right!"
 - A wrong shape goes back to the black bar and the voice says "Try again".
-- When all 8 shapes are sorted, the voice says "Woo hoo, you did it!" and a
+- When all 8 shapes are sorted, the voice says "Woo hoo, you did it!" and a big gold message shows the score and a
   **Play again** button appears. Every new game shuffles the shapes.
 
 ## Change the monsters, words and colours
