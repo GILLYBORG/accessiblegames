@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
-<link rel="stylesheet" href="css/style.css?v=20261124g">
+<link rel="stylesheet" href="css/style.css?v=20261124i">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -104,7 +104,10 @@
     </svg>
     <p class="champion-kicker">Certificate</p>
     <h2 id="champion-title" tabindex="-1">Monster Sorting Champion!</h2>
-    <p class="champion-name">This certificate is awarded to <span class="champion-line"></span></p>
+    <p class="champion-name">
+      <label for="champion-name-input">This certificate is awarded to</label>
+      <input type="text" id="champion-name-input" maxlength="40" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" placeholder="Type a name here">
+    </p>
     <p class="champion-sub" id="champion-desc">You finished all <span id="champion-count">4</span> levels! Final score: <strong id="champion-score">0</strong></p>
     <ul class="champion-levels" id="champion-levels" aria-hidden="true"></ul>
     <p class="champion-date" id="champion-date"></p>
@@ -196,7 +199,7 @@
   </div>
 </div>
 
-<script src="js/config.js?v=20261124g"></script>
-<script src="js/game.js?v=20261124g"></script>
+<script src="js/config.js?v=20261124i"></script>
+<script src="js/game.js?v=20261124i"></script>
 </body>
 </html>

@@ -618,11 +618,12 @@
     var wide = layout === LAYOUTS.wide;
     var q = function (sel) { return ruleBox.querySelector(sel); };
     // The score sits in the top-left corner, so keep the headings below it.
-    var headY = 170;
+    // Big colour circles (or shape pictures) so the sorting rule is easy to see.
+    var headY = 185;
     targets.forEach(function (t, i) {
-      placeEl(q('.rule-head[data-side="' + i + '"]'), spacing * (i + 0.5), headY, spacing * 0.8, 80);
+      placeEl(q('.rule-head[data-side="' + i + '"]'), spacing * (i + 0.5), headY, spacing * 0.9, 130);
     });
-    var lineY = headY + 50;
+    var lineY = headY + 78;
     placeEl(q(".tchart-h"), W / 2, lineY, W - 60, 8);
     placeEl(q(".tchart-v"), W / 2, (headY - 40 + areaH - 10) / 2, 8, areaH - 10 - (headY - 40));
     return lineY + 6;
@@ -988,6 +989,7 @@
      and SG's "Woo hoo" followed by the champion line. With Animation off,
      nothing moves: the sparkles stay still and everything shows at once. */
   var party = { timers: [], raf: 0 };
+  var championName = "";
   function later(fn, ms) { party.timers.push(setTimeout(fn, ms)); }
   function allMonsters() {
     var seen = {}, list = [];
@@ -1005,6 +1007,8 @@
     var anim = settings.animation;
     var n = cfg.levels.length;
     $("champion-count").textContent = String(n);
+    // The name stays only while the page is open; it is never saved or sent anywhere.
+    $("champion-name-input").value = championName;
     $("champion-score").textContent = String(score);
     try {
       $("champion-date").textContent = new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
@@ -1408,6 +1412,10 @@
   $("btn-win-start-over").addEventListener("click", startOver);
   $("btn-champ-again").addEventListener("click", function () { hidePanel(); });
   $("btn-champ-start-over").addEventListener("click", startOver);
+  $("champion-name-input").addEventListener("input", function (e) { championName = e.target.value; });
+  $("champion-name-input").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); $("btn-champ-print").focus(); } // done typing
+  });
   $("btn-champ-print").addEventListener("click", function () { try { window.print(); } catch (e) { /* ignore */ } });
   $("btn-next").addEventListener("click", function () {
     hidePanel(true);
