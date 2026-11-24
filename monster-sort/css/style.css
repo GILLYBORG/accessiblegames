@@ -593,3 +593,49 @@ h1 {
   #champion-name-input { background: none; border-radius: 0; width: 60%; }
   #champion-name-input::placeholder { color: transparent; }
 }
+
+/* ---------- Level picker ---------- */
+.panel.panel-levels { width: min(900px, 100%); }
+.level-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
+  gap: 14px;
+  padding: 18px;
+}
+.level-btn {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px;
+  min-height: 190px;
+  padding: 14px 10px;
+  font: inherit;
+  color: var(--fg);
+  background: var(--surface);
+  border: 4px solid var(--fg);
+  border-radius: 22px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.level-btn:hover { background: #fff6cc; color: #000; }
+.level-btn:focus-visible { outline: 5px solid var(--accent); outline-offset: 3px; }
+.level-btn.is-current { border-color: #e0a800; border-width: 6px; background: #fff6cc; color: #000; }
+.level-pics { display: flex; justify-content: center; gap: 4px; }
+.level-pics img { width: 72px; height: 72px; object-fit: contain; }
+.level-num { font-size: 1.8rem; font-weight: 700; line-height: 1.1; }
+.level-name { font-size: 1.05rem; line-height: 1.2; text-align: center; }
+.level-now {
+  position: absolute; top: -12px; right: 10px;
+  padding: 2px 10px;
+  background: #000; color: #fff;
+  border-radius: 999px;
+  font-size: 0.85rem; font-weight: 700;
+}
+@media (max-width: 600px) {
+  .level-grid { gap: 12px; padding: 14px; }
+  .level-btn { min-height: 150px; padding: 12px 6px; border-radius: 18px; }
+  .level-pics img { width: 52px; height: 52px; }
+  .level-num { font-size: 1.45rem; }
+  .level-name { font-size: 0.95rem; }
+  .level-now { font-size: 0.8rem; right: 6px; }
+}
+.hc .level-btn.is-current { border-color: #000; background: #fff; }

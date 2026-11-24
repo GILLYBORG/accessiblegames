@@ -37,7 +37,7 @@ put MP3s in `sounds` and add them to `sillyVoiceFiles` or `growlyVoiceFiles` in 
 ## Score
 
 A star score in the top-left corner of the game adds 100 points for each correct answer
-(change `pointsPerCorrect` in `js/config.js`). Play again and Start over set it to 0;
+(change `pointsPerCorrect` in `js/config.js`). Play again and picking a level set it to 0;
 Scramble shapes and Next level keep the score going. Screen readers hear the score after each correct answer.
 
 ## Levels
@@ -65,8 +65,9 @@ Moving between levels:
 - After finishing a level, a **Next level** button appears next to **Play again**.
 - Settings has a **Level** menu.
 - A link can open a level directly: `.../monster-sort/?level=2`.
-- Each device remembers the last level played. **Start over** (top bar, and on the win message
-  after Level 2) goes back to Level 1 with the score at 0.
+- Each device remembers the last level played. **Levels** (top bar) and **Pick a level** (on the
+  win message) open big buttons for every level, with their monsters. Picking one starts that
+  level with the score at 0; picking Level 1 is the same as starting over. **Keep playing** closes it.
 
 To add a level, copy a whole level block in `js/config.js` and change the monsters, what each
 one `accepts` (shapes like `"circle"` or colours like `"red"`), and the `pieces` (shape, colour,
