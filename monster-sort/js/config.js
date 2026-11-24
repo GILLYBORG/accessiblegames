@@ -218,7 +218,6 @@ window.GAME_CONFIG = {
       rules: [
         {
           name: "Colour",
-          spotlight: "Sort by colour",   // the words in the Rule Spotlight
           rule: "Sort by colour: red or blue",
           sides: [
             { label: "Red", chip: { shape: "circle", color: "red" }, accepts: ["red"] },
@@ -227,7 +226,6 @@ window.GAME_CONFIG = {
         },
         {
           name: "Corners",
-          spotlight: "Sort by the number of corners",
           rule: "New rule! Sort by corners: 3 or 4",
           say: "New rule! Sort by corners.",
           sides: [

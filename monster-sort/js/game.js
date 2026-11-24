@@ -384,8 +384,7 @@
     ruleBox = document.createElement("div");
     ruleBox.className = "rulebox";
     ruleBox.setAttribute("aria-hidden", "true"); // the rule is read out in the status and announcements
-    var html = '<div class="rule-spotlight"><span class="rule-kicker">Rule Spotlight</span>' +
-      '<span class="rule-main"><span class="rule-icons"></span><span class="rule-name"></span></span></div>';
+    var html = "";
     targets.forEach(function (t) { html += '<div class="rule-head" data-side="' + t.index + '"></div>'; });
     html += '<div class="tchart-h"></div><div class="tchart-v"></div>';
     ruleBox.innerHTML = html;
@@ -408,9 +407,6 @@
     var r = activeRule();
     if (!r) { $("sr-directions").textContent = level.directions || ""; return; }
     $("sr-directions").textContent = (level.directions || "") + " " + ruleDirections(r);
-    var spot = ruleBox.querySelector(".rule-spotlight");
-    spot.querySelector(".rule-name").textContent = r.spotlight || ("Sort by " + r.name.toLowerCase());
-    spot.querySelector(".rule-icons").innerHTML = r.sides.map(function (s) { return chipSvg(s.chip); }).join("");
     targets.forEach(function (t) {
       var s = r.sides[t.index];
       ruleBox.querySelector('.rule-head[data-side="' + t.index + '"]').innerHTML =
@@ -571,16 +567,13 @@
     });
   }
 
-  // Rule Spotlight, badges, column headings and T-chart lines. Returns where
+  // Column headings and T-chart lines. Returns where
   // the columns start (scene units from the top).
   function layoutRuleBox(W, areaH, spacing) {
     var wide = layout === LAYOUTS.wide;
     var q = function (sel) { return ruleBox.querySelector(sel); };
-    // The score sits in the top-left corner, so keep clear of it.
-    var spotY = wide ? 90 : 85, spotW = wide ? 900 : 680;
-    var spotX = wide ? W / 2 : W - 30 - spotW / 2;
-    placeEl(q(".rule-spotlight"), spotX, spotY, spotW, wide ? 140 : 140);
-    var headY = wide ? 225 : 220;
+    // The score sits in the top-left corner, so keep the headings below it.
+    var headY = 170;
     targets.forEach(function (t, i) {
       placeEl(q('.rule-head[data-side="' + i + '"]'), spacing * (i + 0.5), headY, spacing * 0.8, 80);
     });
