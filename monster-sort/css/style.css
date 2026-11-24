@@ -492,3 +492,88 @@ h1 {
 /* Keep the banner at the top; the game stays centred in the space below it. */
 .stage { justify-content: flex-start; }
 .scene { margin-top: auto; margin-bottom: auto; }
+
+/* ---------- Champion party (after the last level) ---------- */
+.overlay-champion {
+  background: radial-gradient(ellipse at 50% 35%, #2b4ea8 0%, #14234f 70%);
+  overflow: hidden;
+  padding-bottom: calc(min(17vh, 15vw) + 12px);
+}
+.confetti { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.party-monsters {
+  position: absolute; left: 0; right: 0; bottom: max(8px, env(safe-area-inset-bottom, 0px));
+  display: flex; justify-content: center; align-items: flex-end;
+  gap: 1vw; pointer-events: none; z-index: 1;
+  transition: bottom 700ms ease, transform 700ms ease;
+}
+.party-monsters img {
+  width: min(17vh, 15vw); height: min(17vh, 15vw); object-fit: contain;
+  animation: party-dance 700ms ease-in-out infinite alternate, party-enter 900ms cubic-bezier(.2, 1.4, .4, 1) both;
+  animation-delay: calc(var(--i) * 110ms), calc(var(--i) * 140ms);
+  transform-origin: 50% 100%;
+}
+.party-monsters img:nth-child(even) { animation-direction: alternate-reverse, normal; }
+@keyframes party-dance {
+  0% { transform: translateY(0) rotate(-8deg); }
+  100% { transform: translateY(-18%) rotate(8deg); }
+}
+@keyframes party-enter {
+  0% { opacity: 0; translate: 0 120%; }
+  100% { opacity: 1; translate: 0 0; }
+}
+/* First the monsters dance big in the middle, then they move down for the certificate. */
+.overlay-champion.is-intro .party-monsters { bottom: 50%; transform: translateY(50%); }
+.overlay-champion.is-intro .party-monsters img { width: min(30vh, 15.5vw); height: min(30vh, 15.5vw); }
+.party-monsters img { transition: width 700ms ease, height 700ms ease; }
+.overlay-champion.is-intro .panel-champion { opacity: 0; transform: scale(0.3); visibility: hidden; animation: none; }
+.panel-champion {
+  position: relative; z-index: 2;
+  width: min(820px, 100%);
+  padding: clamp(14px, 3vmin, 32px) clamp(16px, 4vmin, 44px);
+  text-align: center;
+  background: #fffaf0;
+  color: #000;
+  border: 8px double #b8860b;
+  outline: 6px solid #ffbf00; outline-offset: -20px;
+  border-radius: 28px;
+  box-shadow: 0 0 0 6px #ffbf00, 0 24px 70px rgba(0, 0, 0, 0.5);
+  animation: win-pop 700ms cubic-bezier(.2, 1.6, .4, 1) both;
+}
+.trophy { width: clamp(64px, 13vmin, 130px); height: auto; display: block; margin: 0 auto; animation: trophy-shine 2s ease-in-out infinite; }
+@keyframes trophy-shine { 0%, 100% { transform: rotate(-5deg) scale(1); } 50% { transform: rotate(5deg) scale(1.08); } }
+.champion-kicker { margin: 4px 0 0; font-size: clamp(0.9rem, 1.4vmin + 0.5rem, 1.3rem); font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #7a5200; }
+.panel-champion h2 { margin: 2px 0 6px; font-size: clamp(2rem, 5.5vmin + 0.8rem, 4rem); line-height: 1.05; color: #000; }
+.champion-name { display: none; }
+.champion-sub { margin: 0 0 10px; font-size: clamp(1.2rem, 2.2vmin + 0.7rem, 2rem); font-weight: 700; }
+.champion-sub strong { display: inline-block; padding: 0 16px; background: #fff; border: 4px solid #000; border-radius: 999px; }
+.champion-levels { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(8px, 2vmin, 22px); margin: 0 0 8px; padding: 0; }
+.champion-levels li { display: flex; flex-direction: column; align-items: center; font-weight: 700; font-size: clamp(0.95rem, 1.5vmin + 0.6rem, 1.4rem); opacity: 0.25; transform: scale(0.6); transition: opacity 250ms, transform 450ms cubic-bezier(.2, 1.8, .4, 1); }
+.champion-levels li.is-on { opacity: 1; transform: scale(1); }
+.champion-levels svg { width: clamp(44px, 9vmin, 90px); height: auto; fill: #ffbf00; stroke: #8a5a00; stroke-width: 1.2; stroke-linejoin: round; }
+.champion-date { margin: 0 0 14px; color: #333; font-size: clamp(0.9rem, 1.2vmin + 0.6rem, 1.2rem); }
+.panel-champion .btn-big { min-height: 72px; padding: 0 28px; font-size: clamp(1.15rem, 2vmin + 0.7rem, 1.7rem); border-width: 3px; }
+.no-motion .party-monsters img, .no-motion .trophy, .no-motion .panel-champion { animation: none; }
+.no-motion .party-monsters { transition: none; }
+.no-motion .champion-levels li { transition: none; }
+@media (max-width: 600px), (max-height: 600px) {
+  .panel-champion { padding: 12px 14px; outline-offset: -16px; }
+  .trophy { width: 52px; }
+  .panel-champion h2 { font-size: clamp(1.7rem, 7vw, 2.4rem); }
+  .champion-sub { font-size: 1.1rem; }
+  .champion-levels svg { width: 40px; }
+  .champion-date { margin-bottom: 10px; }
+  .champion-actions { gap: 8px; }
+  .panel-champion .btn-big { min-height: 54px; padding: 0 16px; font-size: 1.1rem; }
+}
+.hc .panel-champion { background: #fff; border-color: #000; outline-color: #000; box-shadow: 0 0 0 6px #000; }
+
+@media print {
+  body * { visibility: hidden !important; }
+  #panel-champion, #panel-champion .panel-champion, #panel-champion .panel-champion * { visibility: visible !important; }
+  #panel-champion { position: absolute; inset: 0; background: none !important; padding: 0; display: block; }
+  #panel-champion .confetti, #panel-champion .party-monsters, .champion-actions { display: none !important; }
+  .panel-champion { width: 100%; max-height: none; overflow: visible; box-shadow: none; animation: none; opacity: 1 !important; transform: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .champion-levels li { opacity: 1 !important; transform: none !important; }
+  .champion-name { display: block; margin: 10px 0 16px; font-size: 1.4rem; }
+  .champion-line { display: inline-block; width: 50%; border-bottom: 2px solid #000; height: 1.2em; vertical-align: bottom; }
+}
