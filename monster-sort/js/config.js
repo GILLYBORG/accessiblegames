@@ -21,7 +21,9 @@ window.GAME_CONFIG = {
   phrases: {
     correct: "That's right!",
     wrong: "Try again",
-    finish: "Woo hoo, you did it!"
+    finish: "Woo hoo, you did it!",
+    // Said after "Woo hoo" when the LAST level is finished.
+    champion: "You sorted them all! You're a Monster Sort champion!"
   },
 
   // Your own recordings. Leave as "" to use the computer voice.
@@ -29,7 +31,8 @@ window.GAME_CONFIG = {
   voiceFiles: {
     correct: "sounds/thats-right.mp3",
     wrong: "sounds/try-again.mp3",
-    finish: "sounds/woo-hoo.mp3"
+    finish: "sounds/woo-hoo.mp3",
+    champion: ""   // your recording of the champion line, for example "sounds/champion.mp3"
   },
 
   // Points added to the score (top-left corner) for each correct answer.

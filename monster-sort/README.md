@@ -74,6 +74,17 @@ count). Built-in shapes: circle, square, rectangle, triangle, oval, semicircle, 
 heart, diamond, trapezoid, parallelogram, kite, right-triangle, tall-triangle, wide-triangle,
 slanted-triangle (or use a picture with `image:`). Colours live in `colors`.
 
+
+### Finishing the last level
+
+Finishing the last level starts a champion party instead of the usual win message.
+1. Every monster from every level dances in with confetti and a short fanfare.
+2. A "Monster Sorting Champion!" certificate pops up with the final score, today's date, and a star for each level. The stars pop in one at a time, each with a chime.
+3. The voice plays "Woo hoo" and then the champion line (`phrases.champion`). To use your own recording, put it in `sounds/` and set `voiceFiles.champion`.
+4. **Print certificate** prints just the certificate, with a line to write the student's name.
+
+With Animation off, nothing moves: the sparkles stay still and everything shows at once. The fanfare and chimes follow the Voice and Volume settings.
+
 ## Choices made where the spec was open
 
 - A shape counts as sorted when it is dropped anywhere on the monster or its gray

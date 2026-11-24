@@ -15,13 +15,13 @@
   var userCfg = window.GAME_CONFIG || {};
   var cfg = {
     title: userCfg.title || "Monster Sort",
-    phrases: Object.assign({ correct: "That's right!", wrong: "Try again", finish: "Woo hoo, you did it!" }, userCfg.phrases || {}),
-    voiceFiles: Object.assign({ correct: "", wrong: "", finish: "" }, userCfg.voiceFiles || {}),
+    phrases: Object.assign({ correct: "That's right!", wrong: "Try again", finish: "Woo hoo, you did it!", champion: "You sorted them all! You're a Monster Sort champion!" }, userCfg.phrases || {}),
+    voiceFiles: Object.assign({ correct: "", wrong: "", finish: "", champion: "" }, userCfg.voiceFiles || {}),
     voiceRate: typeof userCfg.voiceRate === "number" ? userCfg.voiceRate : 0.9,
     sillyVoice: Object.assign({ pitch: 1.9, rate: 1.05 }, userCfg.sillyVoice || {}),
-    sillyVoiceFiles: Object.assign({ correct: "", wrong: "", finish: "" }, userCfg.sillyVoiceFiles || {}),
+    sillyVoiceFiles: Object.assign({ correct: "", wrong: "", finish: "", champion: "" }, userCfg.sillyVoiceFiles || {}),
     growlyVoice: Object.assign({ pitch: 0.4, rate: 0.8 }, userCfg.growlyVoice || {}),
-    growlyVoiceFiles: Object.assign({ correct: "", wrong: "", finish: "" }, userCfg.growlyVoiceFiles || {}),
+    growlyVoiceFiles: Object.assign({ correct: "", wrong: "", finish: "", champion: "" }, userCfg.growlyVoiceFiles || {}),
     voiceName: userCfg.voiceName || "",
     pointsPerCorrect: typeof userCfg.pointsPerCorrect === "number" ? userCfg.pointsPerCorrect : 100,
     pieceColor: userCfg.pieceColor || "#f9c4d8",
@@ -179,6 +179,14 @@
         synth.speak(u);
       } catch (e) { /* ignore */ }
     }
+    // The fanfare and chimes need a sound engine that was started during a tap too.
+    if (strong) {
+      try {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!actx && AC) actx = new AC();
+        if (actx && actx.state === "suspended" && actx.resume) actx.resume();
+      } catch (e) { /* ignore */ }
+    }
     // Play a moment of silence (not muted: muted play does not count) during the tap.
     if (strong && !playerUnlocked && !playerBusy) {
       try {
@@ -217,7 +225,44 @@
       }
       return;
     }
+    // No recording: use the computer voice, after any recording that is playing.
+    if (queue && playerBusy) {
+      playerNext = function () { speak(cfg.phrases[key], false); };
+      return;
+    }
     speak(cfg.phrases[key], queue);
+  }
+
+  /* ---------- Little sounds (fanfare, chimes) made in the browser ---------- */
+  var actx = null;
+  function soundOk() { return settings.voice && settings.volume > 0; }
+  function tone(freq, at, dur, type, gain) {
+    if (!actx) return;
+    try {
+      var t0 = actx.currentTime + at;
+      var o = actx.createOscillator(), g = actx.createGain();
+      o.type = type || "triangle";
+      o.frequency.value = freq;
+      var peak = (gain || 0.25) * Math.max(0, Math.min(100, settings.volume)) / 100;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(peak, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g); g.connect(actx.destination);
+      o.start(t0); o.stop(t0 + dur + 0.05);
+    } catch (e) { /* ignore */ }
+  }
+  function playFanfare() {
+    if (!soundOk() || !actx) return;
+    if (actx.state === "suspended" && actx.resume) actx.resume();
+    // Ta-da-da-DAAA: G4 C5 E5 G5, then a big C major chord.
+    [[392, 0], [523, 0.16], [659, 0.32], [784, 0.48]].forEach(function (n) { tone(n[0], n[1], 0.22, "triangle", 0.3); });
+    [523, 659, 784, 1047].forEach(function (f) { tone(f, 0.68, 1.3, "triangle", 0.22); });
+  }
+  function playChime(i) {
+    if (!soundOk() || !actx) return;
+    var f = [880, 988, 1175, 1319, 1568, 1760][i % 6];
+    tone(f, 0, 0.6, "sine", 0.3);
+    tone(f * 2, 0, 0.35, "sine", 0.08);
   }
 
   /* Pick the most natural-sounding English voice this device has.
@@ -687,8 +732,13 @@
       } else if (all) {
         finished = true;
         stopScan();
-        say("finish", true);
-        setTimeout(showWin, settings.animation ? 1100 : 500);
+        if (settings.level >= cfg.levels.length - 1 && cfg.levels.length > 1) {
+          // The last level: the big champion party.
+          setTimeout(showChampion, settings.animation ? 1100 : 500);
+        } else {
+          say("finish", true);
+          setTimeout(showWin, settings.animation ? 1100 : 500);
+        }
       } else if (hadFocus || how === "key") {
         // Keep keyboard and screen reader users moving: go to the next shape.
         var next = nextRemaining(p.slot);
@@ -929,7 +979,138 @@
     showPanel("panel-win", null, $("btn-again"));
   }
   function hideWin() {
-    if (openPanel && openPanel.id === "panel-win") hidePanel(true);
+    if (openPanel && (openPanel.id === "panel-win" || openPanel.id === "panel-champion")) hidePanel(true);
+  }
+
+  /* ---------- Champion party (after the last level) ----------
+     Every monster from every level dances in with confetti and a fanfare, then
+     a champion certificate pops up with a star for each level, the final score,
+     and SG's "Woo hoo" followed by the champion line. With Animation off,
+     nothing moves: the sparkles stay still and everything shows at once. */
+  var party = { timers: [], raf: 0 };
+  function later(fn, ms) { party.timers.push(setTimeout(fn, ms)); }
+  function allMonsters() {
+    var seen = {}, list = [];
+    cfg.levels.forEach(function (lv) {
+      (lv.targets || []).forEach(function (t) {
+        if (t.monster && !seen[t.monster]) { seen[t.monster] = true; list.push(t.monster); }
+      });
+    });
+    return list;
+  }
+  function showChampion() {
+    stopParty();
+    root.classList.add("won");
+    var ov = $("panel-champion");
+    var anim = settings.animation;
+    var n = cfg.levels.length;
+    $("champion-count").textContent = String(n);
+    $("champion-score").textContent = String(score);
+    try {
+      $("champion-date").textContent = new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+    } catch (e) { $("champion-date").textContent = ""; }
+
+    var row = $("party-monsters");
+    row.innerHTML = "";
+    allMonsters().forEach(function (src, i) {
+      var img = document.createElement("img");
+      img.src = src; img.alt = ""; img.draggable = false;
+      img.style.setProperty("--i", String(i));
+      row.appendChild(img);
+    });
+    var stars = $("champion-levels");
+    stars.innerHTML = "";
+    var starSvg = $("tpl-star").innerHTML;
+    for (var i = 0; i < n; i++) {
+      var li = document.createElement("li");
+      li.innerHTML = starSvg + "<span>Level " + (i + 1) + "</span>";
+      stars.appendChild(li);
+    }
+
+    ov.classList.toggle("is-intro", anim);
+    ov.classList.remove("show-stars");
+    showPanel("panel-champion", null, $("champion-title"));
+    startConfetti(anim);
+    playFanfare();
+    var popAt = anim ? 2300 : 0;
+    later(function () {
+      ov.classList.remove("is-intro");
+      $("champion-title").focus(); // it could not take focus while hidden
+      say("finish", false);
+      say("champion", true);
+    }, popAt);
+    // One star for each level, popping in with a chime.
+    var starsAt = popAt + (anim ? 600 : 900);
+    stars.querySelectorAll("li").forEach(function (li, k) {
+      later(function () { li.classList.add("is-on"); playChime(k); }, starsAt + k * 450);
+    });
+  }
+  function stopParty() {
+    party.timers.forEach(clearTimeout);
+    party.timers = [];
+    if (party.raf) cancelAnimationFrame(party.raf);
+    party.raf = 0;
+  }
+
+  // Confetti in the monsters' colours. Still sparkles when Animation is off.
+  var CONFETTI_COLORS = ["#e0282e", "#1f6fe0", "#f28cb8", "#ffbf00", "#2bb673", "#ff8a00", "#8e5cf0"];
+  function startConfetti(moving) {
+    var cv = $("confetti");
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var w = cv.clientWidth || window.innerWidth, h = cv.clientHeight || window.innerHeight;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    var c = cv.getContext && cv.getContext("2d");
+    if (!c) return;
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var size = Math.max(10, Math.min(w, h) / 45);
+    if (!moving) {
+      c.clearRect(0, 0, w, h);
+      for (var k = 0; k < 70; k++) {
+        drawSparkle(c, Math.random() * w, Math.random() * h, size * (0.6 + Math.random() * 0.8), CONFETTI_COLORS[k % CONFETTI_COLORS.length]);
+      }
+      return;
+    }
+    var bits = [];
+    function burst(x, count) {
+      for (var j = 0; j < count; j++) {
+        var a = -Math.PI / 2 + (Math.random() - 0.5) * 1.6;
+        var sp = h * (0.012 + Math.random() * 0.018);
+        bits.push({ x: x, y: h + 10, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+          r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.3,
+          s: size * (0.6 + Math.random() * 0.7), col: CONFETTI_COLORS[j % CONFETTI_COLORS.length],
+          star: Math.random() < 0.25 });
+      }
+    }
+    burst(w * 0.2, 90); burst(w * 0.8, 90);
+    later(function () { burst(w * 0.5, 110); }, 700);
+    later(function () { burst(w * 0.3, 70); burst(w * 0.7, 70); }, 2400);
+    var start = performance.now();
+    function frame(now) {
+      var t = now - start;
+      c.clearRect(0, 0, w, h);
+      var fade = t > 6500 ? Math.max(0, 1 - (t - 6500) / 1500) : 1;
+      c.globalAlpha = fade;
+      bits.forEach(function (b) {
+        b.vy += h * 0.0004; b.vx *= 0.99; b.vy = Math.min(b.vy, h * 0.006);
+        b.x += b.vx + Math.sin((t + b.r * 300) / 300) * 0.6; b.y += b.vy; b.r += b.vr;
+        if (b.y > h + 40) return;
+        if (b.star) { drawSparkle(c, b.x, b.y, b.s, b.col); return; }
+        c.save(); c.translate(b.x, b.y); c.rotate(b.r);
+        c.fillStyle = b.col; c.fillRect(-b.s / 2, -b.s / 4, b.s, b.s / 2);
+        c.restore();
+      });
+      c.globalAlpha = 1;
+      if (fade > 0) party.raf = requestAnimationFrame(frame); else { party.raf = 0; c.clearRect(0, 0, w, h); }
+    }
+    party.raf = requestAnimationFrame(frame);
+  }
+  function drawSparkle(c, x, y, s, col) {
+    c.save(); c.translate(x, y); c.fillStyle = col; c.beginPath();
+    for (var i = 0; i < 8; i++) {
+      var rad = i % 2 ? s * 0.22 : s * 0.6, a = i * Math.PI / 4;
+      c[i ? "lineTo" : "moveTo"](Math.cos(a) * rad, Math.sin(a) * rad);
+    }
+    c.closePath(); c.fill(); c.restore();
   }
 
   /* ---------- Switch scanning ---------- */
@@ -1031,7 +1212,8 @@
   }
   function hidePanel(silent) {
     if (!openPanel) return;
-    var wasWin = openPanel.id === "panel-win";
+    var wasWin = openPanel.id === "panel-win" || openPanel.id === "panel-champion";
+    if (openPanel.id === "panel-champion") stopParty();
     openPanel.hidden = true;
     openPanel = null;
     $("app").removeAttribute("aria-hidden");
@@ -1053,7 +1235,7 @@
   document.querySelectorAll(".overlay").forEach(function (ov) {
     ov.addEventListener("click", function (e) {
       if (e.target.closest("[data-close]")) { hidePanel(); return; }
-      if (e.target === ov && ov.id !== "panel-win") hidePanel();
+      if (e.target === ov && ov.id !== "panel-win" && ov.id !== "panel-champion") hidePanel();
     });
   });
   document.addEventListener("keydown", function (e) {
@@ -1224,6 +1406,9 @@
   }
   $("btn-start-over").addEventListener("click", startOver);
   $("btn-win-start-over").addEventListener("click", startOver);
+  $("btn-champ-again").addEventListener("click", function () { hidePanel(); });
+  $("btn-champ-start-over").addEventListener("click", startOver);
+  $("btn-champ-print").addEventListener("click", function () { try { window.print(); } catch (e) { /* ignore */ } });
   $("btn-next").addEventListener("click", function () {
     hidePanel(true);
     settings.level = Math.min(cfg.levels.length - 1, settings.level + 1);

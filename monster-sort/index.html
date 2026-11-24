@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
-<link rel="stylesheet" href="css/style.css?v=20261124f">
+<link rel="stylesheet" href="css/style.css?v=20261124g">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -91,6 +91,32 @@
   </div>
 </div>
 
+<div class="overlay overlay-champion" id="panel-champion" role="dialog" aria-modal="true" aria-labelledby="champion-title" aria-describedby="champion-desc" hidden>
+  <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
+  <div class="party-monsters" id="party-monsters" aria-hidden="true"></div>
+  <div class="panel panel-champion" id="champion-cert">
+    <svg class="trophy" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M18 8h28v14c0 9-6 16-14 16s-14-7-14-16z" fill="#ffbf00" stroke="#8a5a00" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M18 12H9c0 9 4 14 11 15M46 12h9c0 9-4 14-11 15" fill="none" stroke="#8a5a00" stroke-width="3" stroke-linecap="round"/>
+      <path d="M28 38h8v8h-8z" fill="#e0a800" stroke="#8a5a00" stroke-width="2.5"/>
+      <path d="M20 46h24l2 9H18z" fill="#ffbf00" stroke="#8a5a00" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M32 14l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z" fill="#fff6cc"/>
+    </svg>
+    <p class="champion-kicker">Certificate</p>
+    <h2 id="champion-title" tabindex="-1">Monster Sorting Champion!</h2>
+    <p class="champion-name">This certificate is awarded to <span class="champion-line"></span></p>
+    <p class="champion-sub" id="champion-desc">You finished all <span id="champion-count">4</span> levels! Final score: <strong id="champion-score">0</strong></p>
+    <ul class="champion-levels" id="champion-levels" aria-hidden="true"></ul>
+    <p class="champion-date" id="champion-date"></p>
+    <div class="win-actions champion-actions">
+      <button type="button" class="btn btn-primary btn-big" id="btn-champ-again">Play again</button>
+      <button type="button" class="btn btn-big" id="btn-champ-start-over">Start over</button>
+      <button type="button" class="btn btn-big" id="btn-champ-print">Print certificate</button>
+    </div>
+  </div>
+</div>
+<template id="tpl-star"><svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/></svg></template>
+
 <div class="overlay" id="panel-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
   <div class="panel">
     <div class="panel-head">
@@ -170,7 +196,7 @@
   </div>
 </div>
 
-<script src="js/config.js?v=20261124f"></script>
-<script src="js/game.js?v=20261124f"></script>
+<script src="js/config.js?v=20261124g"></script>
+<script src="js/game.js?v=20261124g"></script>
 </body>
 </html>
