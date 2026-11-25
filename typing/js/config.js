@@ -66,15 +66,28 @@ window.GAME_CONFIG = {
   // Empty means it says nothing (just the letter, if "Say each key I press" is on).
   yums: [],
 
+  // RECORDINGS: your own voice. Leave a name empty ("") to use the computer voice for it.
+  // letters: one clip per letter, {key} becomes the letter (sounds/letter-a.mp3 ... letter-z.mp3).
+  // numbers: the same for 0 to 9, for example "sounds/number-{key}.mp3".
+  // words: a clip for a word, for example  "cat": "sounds/word-cat.mp3",
+  recordings: {
+    letters: "sounds/letter-{key}.mp3",
+    numbers: "",
+    find: "",       // "Find"
+    tryAgain: "",   // "Try again"
+    type: "",       // "Type" (before a word)
+    full: "",       // "The monster is full!"
+    words: {}
+  },
+
+  // What the computer voice says when there is no recording.
   phrases: {
-    find: "Find {key}.",
-    type: "Type {word}.",
+    find: "Find",
     tryAgain: "Try again.",
-    pressed: "That was {key}.",
-    wordDone: "{word}.",   // said when a word is finished
+    type: "Type",
     full: "The monster is full!"
   },
   voiceRate: 0.8,   // how fast the voice talks at first (teachers can change it in Settings)
 
-  defaults: { voice: true, voiceName: "", rate: 0.8, echo: true, sounds: true, volume: 90, animation: true, highContrast: false, deviceKeyboard: false }
+  defaults: { voice: true, recorded: true, voiceName: "", rate: 0.8, echo: true, sounds: true, volume: 90, animation: true, highContrast: false, deviceKeyboard: false }
 };
