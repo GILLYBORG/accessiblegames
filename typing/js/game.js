@@ -745,6 +745,7 @@
       $("monster-box").classList.add("is-chomp");
       chompTimer = setTimeout(function () {
         monsterEl.src = cfg.monster;
+  preloadClips(["find", "tryAgain", "type", "full"].map(function (k) { return cfg.recordings[k]; }).filter(Boolean));
   if (cfg.recordings.letters) preloadClips("abcdefghijklmnopqrstuvwxyz".split("").map(function (c) { return cfg.recordings.letters.replace("{key}", c); }));
         $("monster-box").classList.remove("is-chomp");
       }, 260);
@@ -1104,6 +1105,7 @@
 
   /* ---------- Start ---------- */
   monsterEl.src = cfg.monster;
+  preloadClips(["find", "tryAgain", "type", "full"].map(function (k) { return cfg.recordings[k]; }).filter(Boolean));
   if (cfg.recordings.letters) preloadClips("abcdefghijklmnopqrstuvwxyz".split("").map(function (c) { return cfg.recordings.letters.replace("{key}", c); }));
   (new Image()).src = cfg.monsterClosed;
   applySettings();

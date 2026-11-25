@@ -73,10 +73,10 @@ window.GAME_CONFIG = {
   recordings: {
     letters: "sounds/letter-{key}.mp3",
     numbers: "",
-    find: "",       // "Find"
-    tryAgain: "",   // "Try again"
-    type: "",       // "Type" (before a word)
-    full: "",       // "The monster is full!"
+    find: "sounds/find.mp3",           // "Find"
+    tryAgain: "sounds/try-again.mp3",  // "Try again"
+    type: "sounds/type.mp3",           // "Type" (before a word)
+    full: "sounds/monster-full.mp3",   // "The monster is full!"
     words: {}
   },
 

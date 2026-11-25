@@ -40,7 +40,8 @@ Links look like this (you can also edit them by hand):
 
 ## Your own voice
 
-`sounds/letter-a.mp3` to `letter-z.mp3` are the teacher's recordings, and the game plays them for each
+`sounds/` holds the teacher's recordings: `letter-a.mp3` to `letter-z.mp3`, `find.mp3`, `try-again.mp3`,
+`type.mp3` and `monster-full.mp3`. The game plays them for each
 letter. To add more, record each clip on its own, put it in `sounds`, and add its name under
 `recordings` in `js/config.js`: `find` ("Find"), `tryAgain` ("Try again"), `type` ("Type"),
 `full` ("The monster is full!"), `numbers` (0 to 9), and `words` (one clip per word).
