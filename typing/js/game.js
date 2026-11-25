@@ -27,8 +27,8 @@
       find: "Find {key}.", type: "Type {word}.", tryAgain: "Try again.", pressed: "That was {key}.",
       wordDone: "You typed {word}!", full: "The monster is full!"
     }, userCfg.phrases || {}),
-    voiceRate: typeof userCfg.voiceRate === "number" ? userCfg.voiceRate : 0.9,
-    defaults: Object.assign({ voice: true, echo: true, sounds: true, volume: 90, animation: true, highContrast: false, deviceKeyboard: false }, userCfg.defaults || {})
+    voiceRate: typeof userCfg.voiceRate === "number" ? userCfg.voiceRate : 0.8,
+    defaults: Object.assign({ voice: true, voiceName: "", rate: userCfg.voiceRate || 0.8, echo: true, sounds: true, volume: 90, animation: true, highContrast: false, deviceKeyboard: false }, userCfg.defaults || {})
   };
   var root = document.documentElement;
 
@@ -201,14 +201,24 @@
     if (v.default) s += 3;
     return s;
   }
+  function englishVoices() {
+    if (!synth || !synth.getVoices) return [];
+    return (synth.getVoices() || []).filter(function (v) { return scoreVoice(v) >= 0; })
+      .sort(function (x, y) { return scoreVoice(y) - scoreVoice(x); });
+  }
+  // The teacher's chosen voice (Settings > Voice), or else the best-sounding one on this device.
   function pickVoice() {
     if (!synth || !synth.getVoices) return null;
     var voices = synth.getVoices() || [];
     if (!voices.length) return null;
     voiceSearched = true;
     var best = null, bestScore = -1;
-    voices.forEach(function (v) { var sc = scoreVoice(v); if (sc > bestScore) { bestScore = sc; best = v; } });
+    voices.forEach(function (v) {
+      if (settings.voiceName && v.name === settings.voiceName && !badVoices[v.voiceURI || v.name]) { best = v; bestScore = 1e9; return; }
+      var sc = scoreVoice(v); if (sc > bestScore) { bestScore = sc; best = v; }
+    });
     chosenVoice = best;
+    fillVoiceList();
     return best;
   }
   if (synth) {
@@ -216,33 +226,77 @@
     if (synth.addEventListener) synth.addEventListener("voiceschanged", pickVoice);
     else synth.onvoiceschanged = pickVoice;
   }
+
+  function fillVoiceList() {
+    var sel = document.getElementById("set-voice-name");
+    if (!sel) return;
+    var list = englishVoices();
+    var keep = settings.voiceName || "";
+    sel.innerHTML = '<option value="">Automatic (the best voice on this device)</option>';
+    list.forEach(function (v) {
+      var o = document.createElement("option");
+      o.value = v.name;
+      o.textContent = v.name + (v.localService === false ? " (needs internet)" : "");
+      sel.appendChild(o);
+    });
+    sel.value = keep;
+    if (sel.value !== keep) sel.value = "";
+  }
+
+  // Speech never cuts itself off: a phrase always finishes before the next one starts.
+  // If several phrases pile up (lots of quick presses), only the newest waiting one is kept.
   var keepAlive = [];
-  function speak(text) {
-    if (!settings.voice || !text || !synth || !window.SpeechSynthesisUtterance) return;
-    var vol = Math.max(0, Math.min(100, settings.volume)) / 100;
-    if (vol === 0) return;
+  var speaking = false, waiting = null;
+  function voiceOn() {
+    return settings.voice && synth && window.SpeechSynthesisUtterance && settings.volume > 0;
+  }
+  function speak(text, done) {
+    if (!text || !voiceOn()) { if (done) setTimeout(done, 0); return; }
+    if (speaking) {
+      var before = waiting && waiting.done;
+      waiting = { text: text, done: before && done ? function () { before(); done(); } : (done || before) };
+      return;
+    }
+    sayNow(text, done);
+  }
+  function sayNow(text, done) {
     if (!voiceSearched) pickVoice();
     var u = new SpeechSynthesisUtterance(text);
     var v = chosenVoice;
     if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = root.lang || "en"; }
-    u.rate = cfg.voiceRate;
-    u.volume = vol;
-    if (v && !v.localService) {
-      u.onerror = function (ev) {
-        if (ev && (ev.error === "interrupted" || ev.error === "canceled")) return;
-        badVoices[v.voiceURI || v.name] = true;
-        pickVoice();
-        speak(text);
-      };
+    u.rate = Math.max(0.5, Math.min(1.3, Number(settings.rate) || cfg.voiceRate));
+    u.volume = Math.max(0, Math.min(100, settings.volume)) / 100;
+    speaking = true;
+    var ended = false, guard = null;
+    function end() {
+      if (ended) return;
+      ended = true;
+      clearTimeout(guard);
+      speaking = false;
+      if (done) done();
+      if (waiting) {
+        var w = waiting; waiting = null;
+        setTimeout(function () { speak(w.text, w.done); }, 150); // a short breath between phrases
+      }
     }
+    u.onend = end;
+    u.onerror = function (ev) {
+      if (v && !v.localService && ev && ev.error !== "interrupted" && ev.error !== "canceled") {
+        badVoices[v.voiceURI || v.name] = true; // an online voice failed: use another next time
+        pickVoice();
+      }
+      end();
+    };
+    // Some browsers forget to say when they finish; move on after a generous guess.
+    guard = setTimeout(end, 1500 + text.length * 120 / u.rate);
     keepAlive.push(u);
     if (keepAlive.length > 6) keepAlive.shift();
-    if (synth.speaking || synth.pending) {
-      synth.cancel();
-      setTimeout(function () { synth.speak(u); }, 80); // Safari drops a phrase spoken right after cancel()
-    } else {
-      synth.speak(u);
-    }
+    try { synth.speak(u); } catch (e) { end(); }
+  }
+  // Stop talking now (new game, closing the game).
+  function hush() {
+    waiting = null;
+    if (synth && (synth.speaking || synth.pending)) { try { synth.cancel(); } catch (e) { /* ignore */ } }
   }
 
   /* ---------- Sound: made in the browser (no files) ---------- */
@@ -408,7 +462,10 @@
     return it;
   }
 
+  var gameId = 0;
   function newGame() {
+    gameId++;
+    hush();
     finished = false;
     busy = false;
     done = 0; lettersDone = 0; firstTry = 0; practise = {};
@@ -430,8 +487,7 @@
     var pic = setup.mode === "words" ? cfg.pictures[item.toLowerCase()] : null;
     $("word-pic").hidden = !pic;
     if (pic) $("word-pic").src = pic;
-    var say = promptWords(true);
-    if (!first) { speak(say); announce(say); }
+    if (!first) { speak(promptWords(true)); announce(srPrompt()); }
   }
   function startLetter() {
     wrongs = 0;
@@ -547,16 +603,19 @@
     } else {
       msg = (settings.echo ? spoken(c) + "! " : "") + yum;
     }
-    speak(msg);
     announce((setup.mode === "words" ? msg : written(c) + ". " + yum));
-    var pause = setup.mode === "words" ? 1900 : 1000;
-    setTimeout(function () {
+    // Move on once the voice has finished AND a short pause has passed.
+    var left = 2, gid = gameId;
+    var go = function () {
+      if (--left > 0 || gid !== gameId) return;
       $("target-card").classList.remove("is-done");
       busy = false;
       if (setup.turns && done >= setup.turns) { finish(); return; }
       if (!openPanel) nextTurn(false);
       else nextTurn(true);
-    }, pause);
+    };
+    speak(msg, go);
+    setTimeout(go, setup.mode === "words" ? 1600 : 800);
   }
   function wrong(c) {
     wrongs++;
@@ -864,6 +923,14 @@
     hc.checked = !!settings.highContrast;
     devkb.checked = !!settings.deviceKeyboard;
     voice.addEventListener("change", function () { settings.voice = voice.checked; saveSettings(); if (voice.checked) speak("Voice on."); });
+    var vname = $("set-voice-name"), rate = $("set-rate");
+    fillVoiceList();
+    rate.value = String(settings.rate);
+    if (!rate.value) rate.value = "0.8";
+    var sample = function () { hush(); speak(fill(cfg.phrases.find, "key", spoken("t")) + " " + cfg.yums[0]); };
+    vname.addEventListener("change", function () { settings.voiceName = vname.value; saveSettings(); pickVoice(); sample(); });
+    rate.addEventListener("change", function () { settings.rate = Number(rate.value); saveSettings(); sample(); });
+    $("btn-hear").addEventListener("click", sample);
     echo.addEventListener("change", function () { settings.echo = echo.checked; saveSettings(); });
     sounds.addEventListener("change", function () { settings.sounds = sounds.checked; saveSettings(); sfxChomp(); });
     vol.addEventListener("input", function () {

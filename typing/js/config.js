@@ -72,7 +72,7 @@ window.GAME_CONFIG = {
     wordDone: "You typed {word}!",
     full: "The monster is full!"
   },
-  voiceRate: 0.9,
+  voiceRate: 0.8,   // how fast the voice talks at first (teachers can change it in Settings)
 
-  defaults: { voice: true, echo: true, sounds: true, volume: 90, animation: true, highContrast: false, deviceKeyboard: false }
+  defaults: { voice: true, voiceName: "", rate: 0.8, echo: true, sounds: true, volume: 90, animation: true, highContrast: false, deviceKeyboard: false }
 };
