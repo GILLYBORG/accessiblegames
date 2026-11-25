@@ -44,7 +44,7 @@ window.GAME_CONFIG = {
     words: ["cat", "dog", "book", "mat", "head"],
     turns: 5,           // words in a game; 0 means all of them
     order: "in",        // words: "in" (in order) or "mix" (mixed up)
-    tiles: "mix",       // letter tiles: "mix" (mixed up) or "in" (in order)
+    tiles: "in",        // letter tiles: "in" (in the word's order) or "mix" (mixed up)
     extra: 0,           // extra letters that are not in the word: 0, 1 or 2
     place: "box",       // "box": tap a letter, then tap the box (or drag it)
                         // "auto": tap the right letter and it goes in the next box by itself

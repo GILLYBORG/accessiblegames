@@ -18,10 +18,14 @@ tiles drop out of the scan, so each step needs as few switch presses as possible
 
 ## Teacher setup
 
+On the game screen, **Mix letters** mixes up the letter tiles (off: they are in the word's order).
+It is remembered on that device. It is hidden for students who open a link with Teacher setup hidden.
+
+
 - **Words**, one per line, plus quick lists (short a, e, i, o, u, s a t p i n, oo and ea).
 - "oo", "ea", "ee", "sh" and "ck" become one tile with one sound. To choose the tiles yourself,
   use dashes: `b-oo-k`, `sh-i-p`, `c-a-t`. Setup shows how each word will split.
-- Words in a game, word order, tiles mixed up or in order, 0 to 2 extra letters,
+- Words in a game, word order, letter tiles in order (default) or mixed up, 0 to 2 extra letters,
   lowercase or UPPERCASE.
 - **Light gray letter in each box** (on by default).
 - **Say the word at the start** (off by default, so the word is the surprise at the end).

@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Nunito:wght@800&display=swap">
 <!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
-<link rel="stylesheet" href="css/style.css?v=20261125a">
+<link rel="stylesheet" href="css/style.css?v=20261125b">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -56,6 +56,10 @@
       <button type="button" class="btn" id="btn-hear-word" hidden>
         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
         <span>Hear the word</span>
+      </button>
+      <button type="button" class="btn btn-toggle" id="btn-mix" aria-pressed="false">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 7h3.5c2 0 3.2 1 4.3 2.6l2.4 4.8c1.1 1.6 2.3 2.6 4.3 2.6H21M3 17h3.5c1.6 0 2.7-.7 3.6-1.8M14 8.8c.9-1.1 2-1.8 3.5-1.8H21M18 4l3 3-3 3M18 14l3 3-3 3" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Mix letters</span>
       </button>
       <button type="button" class="btn" id="btn-directions">
         <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2.3"/><path d="M9.3 9.3a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2 1-1.2 1.9v.4" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/><circle cx="12" cy="17.4" r="1.4" fill="currentColor"/></svg>
@@ -148,10 +152,11 @@
         <div class="field">
           <label for="set-tiles">Letter tiles</label>
           <select id="set-tiles">
-            <option value="mix">Mixed up</option>
             <option value="in">In order</option>
+            <option value="mix">Mixed up</option>
           </select>
         </div>
+        <p class="help">The Mix letters button on the game screen changes this too.</p>
         <div class="field">
           <label for="set-extra">Extra letters that are not in the word</label>
           <select id="set-extra">
@@ -293,7 +298,7 @@
   </div>
 </div>
 
-<script src="js/config.js?v=20261125a"></script>
-<script src="js/game.js?v=20261125a"></script>
+<script src="js/config.js?v=20261125b"></script>
+<script src="js/game.js?v=20261125b"></script>
 </body>
 </html>
