@@ -22,10 +22,10 @@
     letterSets: userCfg.letterSets || [],
     wordLists: userCfg.wordLists || [],
     startSetup: userCfg.startSetup || {},
-    yums: (userCfg.yums && userCfg.yums.length) ? userCfg.yums : ["Yum!"],
+    yums: Array.isArray(userCfg.yums) ? userCfg.yums : [],
     phrases: Object.assign({
       find: "Find {key}.", type: "Type {word}.", tryAgain: "Try again.", pressed: "That was {key}.",
-      wordDone: "You typed {word}!", full: "The monster is full!"
+      wordDone: "{word}.", full: "The monster is full!"
     }, userCfg.phrases || {}),
     voiceRate: typeof userCfg.voiceRate === "number" ? userCfg.voiceRate : 0.8,
     defaults: Object.assign({ voice: true, voiceName: "", rate: userCfg.voiceRate || 0.8, echo: true, sounds: true, volume: 90, animation: true, highContrast: false, deviceKeyboard: false }, userCfg.defaults || {})
@@ -594,16 +594,16 @@
     lightTarget();
     busy = true;
     renderBelly();
-    var yum = cfg.yums[Math.floor(Math.random() * cfg.yums.length)];
+    var yum = cfg.yums.length ? cfg.yums[Math.floor(Math.random() * cfg.yums.length)] : "";
     var msg;
     if (setup.mode === "words") {
       msg = fill(cfg.phrases.wordDone, "word", item);
       sfxWord();
       $("target-card").classList.add("is-done");
     } else {
-      msg = (settings.echo ? spoken(c) + "! " : "") + yum;
+      msg = ((settings.echo ? spoken(c) + ". " : "") + yum).trim();
     }
-    announce((setup.mode === "words" ? msg : written(c) + ". " + yum));
+    announce((setup.mode === "words" ? msg : (written(c) + ". " + yum).trim()));
     // Move on once the voice has finished AND a short pause has passed.
     var left = 2, gid = gameId;
     var go = function () {
@@ -927,7 +927,7 @@
     fillVoiceList();
     rate.value = String(settings.rate);
     if (!rate.value) rate.value = "0.8";
-    var sample = function () { hush(); speak(fill(cfg.phrases.find, "key", spoken("t")) + " " + cfg.yums[0]); };
+    var sample = function () { hush(); speak(fill(cfg.phrases.find, "key", spoken("t"))); };
     vname.addEventListener("change", function () { settings.voiceName = vname.value; saveSettings(); pickVoice(); sample(); });
     rate.addEventListener("change", function () { settings.rate = Number(rate.value); saveSettings(); sample(); });
     $("btn-hear").addEventListener("click", sample);

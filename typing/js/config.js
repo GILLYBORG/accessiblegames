@@ -61,15 +61,17 @@ window.GAME_CONFIG = {
     wait: 0               // ignore extra presses for this many milliseconds (0 = off)
   },
 
-  // The monster says one of these when it eats a letter.
-  yums: ["Yum!", "Crunch!", "Tasty!", "Nom nom!", "Munch!"],
+  // The monster can say one of these when it eats a letter, for example
+  //   yums: ["Yum!", "Crunch!", "Tasty!"],
+  // Empty means it says nothing (just the letter, if "Say each key I press" is on).
+  yums: [],
 
   phrases: {
     find: "Find {key}.",
     type: "Type {word}.",
     tryAgain: "Try again.",
     pressed: "That was {key}.",
-    wordDone: "You typed {word}!",
+    wordDone: "{word}.",   // said when a word is finished
     full: "The monster is full!"
   },
   voiceRate: 0.8,   // how fast the voice talks at first (teachers can change it in Settings)
