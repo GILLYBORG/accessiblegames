@@ -76,7 +76,8 @@
       others: pick(s.others, ["show", "dim", "hide"], "show"),
       letterCase: pick(s.letterCase, ["lower", "upper", "asis"], "upper"),
       keyCase: pick(s.keyCase, ["upper", "match"], "upper"),
-      wait: wait >= 0 && wait <= 5000 ? wait : 0
+      wait: wait >= 0 && wait <= 5000 ? wait : 0,
+      again: [0, 5, 10, 20].indexOf(parseInt(s.again, 10)) >= 0 ? parseInt(s.again, 10) : 5
     };
     if (!out.keys) out.keys = "satpin";
     if (!out.words.length) out.words = ["cat", "dog", "sun"];
@@ -92,7 +93,7 @@
       return cleanSetup({
         mode: q.get("mode"), keys: q.get("keys"), words: q.get("words") || "",
         turns: q.has("n") ? q.get("n") : 10, order: q.get("order"), hint: q.get("hint"),
-        others: q.get("others"), letterCase: q.get("case"), keyCase: q.get("kcase"), wait: q.get("wait")
+        others: q.get("others"), letterCase: q.get("case"), keyCase: q.get("kcase"), wait: q.get("wait"), again: q.get("again")
       });
     } catch (e) { return null; }
   }
@@ -102,7 +103,7 @@
     if (s.mode === "letters") p += "&keys=" + encodeURIComponent(s.keys);
     else p += "&words=" + s.words.map(function (w) { return encodeURIComponent(w); }).join("|");
     p += "&n=" + s.turns + "&order=" + s.order + "&hint=" + s.hint + "&others=" + s.others +
-      "&case=" + s.letterCase + "&kcase=" + s.keyCase + "&wait=" + s.wait + (lock ? "&lock=1" : "");
+      "&case=" + s.letterCase + "&kcase=" + s.keyCase + "&wait=" + s.wait + "&again=" + s.again + (lock ? "&lock=1" : "");
     return base + p;
   }
   var locked = false;
@@ -279,7 +280,7 @@
         if (waiting) {
           var w = waiting; waiting = null;
           setTimeout(function () { speak(w.parts, w.done); }, 150); // a short breath between phrases
-        }
+        } else if (typeof armIdle === "function") armIdle();
         return;
       }
       var x = list[i++];
@@ -574,6 +575,8 @@
   function newGame() {
     gameId++;
     hush();
+    clearTimeout(idleTimer);
+    idleCount = 0;
     finished = false;
     busy = false;
     done = 0; lettersDone = 0; firstTry = 0; practise = {};
@@ -588,6 +591,7 @@
   }
 
   function nextTurn(first) {
+    idleCount = 0;
     item = takeItem();
     pos = 0;
     startLetter();
@@ -603,12 +607,33 @@
     lightTarget();
   }
   // The words for "what to do now". whole: say the whole word first.
+  // In word mode the word is said once ("Type... cat"); single letters are only
+  // said when the student needs help (a wrong key, Where is it?, or a long pause).
   function promptWords(whole) {
     var c = expected();
-    var out = [];
-    if (setup.mode === "words" && whole) out.push(phrase("type"), wordPart(item));
-    out.push(phrase("find"), keyPart(c));
-    return out;
+    if (setup.mode === "words" && whole) return [phrase("type"), wordPart(item)];
+    return [phrase("find"), keyPart(c)];
+  }
+  function promptWithLetter() {
+    return setup.mode === "words" ? [phrase("type"), wordPart(item), phrase("find"), keyPart(expected())] : promptWords(false);
+  }
+
+  // Say the instruction again when nothing is pressed for a while (Teacher setup sets how long).
+  // At most 3 times in a row, so it never nags.
+  var idleTimer = null, idleCount = 0;
+  function armIdle() {
+    clearTimeout(idleTimer);
+    if (!setup.again || finished || busy || openPanel || speaking || idleCount >= 3) return;
+    idleTimer = setTimeout(function () {
+      if (finished || busy || openPanel || speaking) return;
+      idleCount++;
+      var say;
+      if (setup.mode === "words" && pos === 0 && idleCount === 1) say = promptWords(true);
+      else if (setup.mode === "words" && pos === 0) say = promptWithLetter();
+      else say = promptWords(false);
+      speak(say);
+      announce(srPrompt());
+    }, setup.again * 1000);
   }
   function srPrompt() {
     var c = expected();
@@ -681,10 +706,13 @@
     var t = now();
     if (setup.wait && t - lastPressAt < setup.wait) return;
     lastPressAt = t;
+    clearTimeout(idleTimer);
+    idleCount = 0;
     sfxTap();
     flashKey(c);
     if (c === expected()) right(c, fromKey);
     else wrong(c);
+    armIdle();
   }
   function now() { return window.performance && performance.now ? performance.now() : Date.now(); }
   function flashKey(c) {
@@ -707,7 +735,8 @@
       // Next letter of the word.
       startLetter();
       renderTarget();
-      speak((settings.echo ? [keyPart(c)] : []).concat(promptWords(false)));
+      // Word mode: just the click and the letter lighting up, no voice.
+      if (setup.mode !== "words") speak((settings.echo ? [keyPart(c)] : []).concat(promptWords(false)));
       announce(written(c) + ". " + srPrompt());
       return;
     }
@@ -753,7 +782,8 @@
     var help = "";
     if (setup.hint === "wrong" && !helped) { helped = true; lightTarget(); }
     if (wrongs >= 3 && wrongs % 3 === 0) help = " " + whereIs(expected());
-    speak((settings.echo ? [keyPart(c)] : []).concat([phrase("tryAgain")], promptWords(false), help ? [help] : []));
+    var echo = settings.echo && setup.mode !== "words";
+    speak((echo ? [keyPart(c)] : []).concat([phrase("tryAgain")], promptWords(false), help ? [help] : []));
     announce((settings.echo ? "That was " + written(c) + ". " : "") + "Try again. " + srPrompt() + help);
   }
   function showWhere() {
@@ -947,6 +977,7 @@
     $("set-keycase").value = draft.keyCase;
     $("set-hint").value = draft.hint;
     $("set-others").value = draft.others;
+    $("set-again").value = String(draft.again);
     $("set-wait").value = String(draft.wait);
     if (!$("set-wait").value) $("set-wait").value = "0";
     $("set-lock").checked = false;
@@ -1002,6 +1033,7 @@
   $("set-keycase").addEventListener("change", function (e) { draft.keyCase = e.target.value; updateLink(); });
   $("set-hint").addEventListener("change", function (e) { draft.hint = e.target.value; updateLink(); });
   $("set-others").addEventListener("change", function (e) { draft.others = e.target.value; updateLink(); });
+  $("set-again").addEventListener("change", function (e) { draft.again = Number(e.target.value); updateLink(); });
   $("set-wait").addEventListener("change", function (e) { draft.wait = Number(e.target.value); updateLink(); });
   $("set-lock").addEventListener("change", updateLink);
   $("btn-setup-done").addEventListener("click", function () {

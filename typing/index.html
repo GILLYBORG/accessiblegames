@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Nunito:wght@800&display=swap">
 <!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
-<link rel="stylesheet" href="css/style.css?v=20261125k">
+<link rel="stylesheet" href="css/style.css?v=20261125l">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -190,6 +190,16 @@
         </div>
         <p class="help" id="others-desc">Hiding them leaves fewer keys on the screen, which also means fewer steps for switch users.</p>
         <div class="field">
+          <label for="set-again">Say it again when no key is pressed</label>
+          <select id="set-again" aria-describedby="again-desc">
+            <option value="5">After 5 seconds</option>
+            <option value="10">After 10 seconds</option>
+            <option value="20">After 20 seconds</option>
+            <option value="0">Never</option>
+          </select>
+        </div>
+        <p class="help" id="again-desc">Repeats what to type (up to 3 times in a row). In word mode, the second time it also says the next letter.</p>
+        <div class="field">
           <label for="set-wait">Ignore extra presses</label>
           <select id="set-wait" aria-describedby="wait-desc">
             <option value="0">Off</option>
@@ -313,7 +323,7 @@
   </div>
 </div>
 
-<script src="js/config.js?v=20261125k"></script>
-<script src="js/game.js?v=20261125k"></script>
+<script src="js/config.js?v=20261125l"></script>
+<script src="js/game.js?v=20261125l"></script>
 </body>
 </html>
