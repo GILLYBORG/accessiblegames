@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Monster Keys</title>
+<meta name="description" content="An accessible typing game: find the key, feed the monster. For touch, keyboard, pointer, switch and screen reader users.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
+<link rel="stylesheet" href="css/style.css?v=20261125a">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Monster Keys">
+<link rel="apple-touch-icon" href="images/icon-180.png">
+<link rel="icon" href="images/icon.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="app" id="app">
+  <header class="bar">
+    <div class="bar-text">
+      <h1 id="game-title">Monster Keys</h1>
+    </div>
+    <div class="actions" id="actions">
+      <button type="button" class="btn" id="btn-directions">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <span>Directions</span>
+      </button>
+      <button type="button" class="btn" id="btn-setup" aria-haspopup="dialog" aria-controls="panel-setup">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5z" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linejoin="round"/><path d="M7 11.5V16c0 1.5 2.2 3 5 3s5-1.5 5-3v-4.5M21 9v6" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/></svg>
+        <span>Teacher setup</span>
+      </button>
+      <button type="button" class="btn btn-primary" id="btn-new">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v5h5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>New game</span>
+      </button>
+      <button type="button" class="btn" id="btn-settings" aria-haspopup="dialog" aria-controls="panel-settings">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="7" r="2.5" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="10" cy="17" r="2.5" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>
+        <span>Settings</span>
+      </button>
+      <button type="button" class="btn" id="btn-fullscreen">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="fullscreen-label">Full screen</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+    <div class="play" id="play">
+      <div class="target-card" id="target-card">
+        <p class="target-label" id="target-label" aria-hidden="true">Find</p>
+        <div class="target" id="target" aria-hidden="true"></div>
+        <img class="word-pic" id="word-pic" src="" alt="" hidden>
+        <!-- Keys typed on a real keyboard land here. It covers the card, so tapping the card puts the cursor here. -->
+        <input type="text" class="type-box" id="type-box" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="none" enterkeyhint="done" aria-describedby="target-sr">
+        <p class="sr-only" id="target-sr"></p>
+      </div>
+      <div class="side">
+        <div class="monster-box" id="monster-box">
+          <img class="monster" id="monster" src="" alt="" draggable="false">
+        </div>
+        <div class="belly" id="belly" role="img" aria-label=""></div>
+        <button type="button" class="btn btn-hint" id="btn-hint">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+          <span>Where is it?</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="kb-wrap" id="kb-wrap">
+      <div class="kb" id="kb" role="group" aria-label="On-screen keyboard"></div>
+    </div>
+  </main>
+
+  <button type="button" class="btn fs-exit" id="btn-exit-fs" hidden>
+    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Exit full screen</span>
+  </button>
+
+  <div class="sr-only" id="live" aria-live="polite" aria-atomic="true"></div>
+</div>
+
+<div class="overlay overlay-win" id="panel-done" role="dialog" aria-modal="true" aria-labelledby="done-title" aria-describedby="done-desc" hidden>
+  <div class="panel panel-win">
+    <img class="win-monster" id="win-monster" src="" alt="">
+    <h2 id="done-title" tabindex="-1">The monster is full!</h2>
+    <p class="done-desc" id="done-desc"></p>
+    <p class="done-first" id="done-first"></p>
+    <p class="done-practise" id="done-practise" hidden></p>
+    <div class="win-actions">
+      <button type="button" class="btn btn-primary btn-big" id="btn-again">Play again</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="panel-setup" role="dialog" aria-modal="true" aria-labelledby="setup-title" hidden>
+  <div class="panel panel-setup">
+    <div class="panel-head">
+      <h2 id="setup-title" tabindex="-1">Teacher setup</h2>
+      <button type="button" class="btn btn-primary" id="btn-setup-done">Start game</button>
+    </div>
+    <div class="panel-body">
+      <section aria-labelledby="mode-title">
+        <h3 id="mode-title">Practise</h3>
+        <div class="choice" role="radiogroup" aria-labelledby="mode-title">
+          <label class="choice-opt"><input type="radio" name="mode" value="letters"><span>Letters</span></label>
+          <label class="choice-opt"><input type="radio" name="mode" value="words"><span>Words</span></label>
+        </div>
+      </section>
+
+      <section aria-labelledby="letters-title" id="sec-letters">
+        <h3 id="letters-title">Letters</h3>
+        <div class="field">
+          <label for="set-keys">Letters to practise</label>
+          <input type="text" id="set-keys" class="text-in" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-describedby="keys-desc">
+        </div>
+        <p class="help" id="keys-desc">Type the letters, or type a student's name to practise the letters in it. Numbers work too.</p>
+        <div class="presets" id="letter-presets"></div>
+      </section>
+
+      <section aria-labelledby="words-title" id="sec-words">
+        <h3 id="words-title">Words</h3>
+        <div class="field">
+          <label for="set-words">Words to type, one on each line</label>
+          <textarea id="set-words" class="text-in" rows="6" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-describedby="words-desc"></textarea>
+        </div>
+        <p class="help" id="words-desc">A student's name, family words, or a short sentence like "I can go". Capital letters and spaces are fine: students never need the Shift key.</p>
+        <div class="presets" id="word-presets"></div>
+      </section>
+
+      <section aria-labelledby="rules-title">
+        <h3 id="rules-title">The game</h3>
+        <div class="field">
+          <label for="set-turns" id="turns-label">Letters in a game</label>
+          <select id="set-turns">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+            <option value="30">30</option>
+            <option value="0">No limit</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="set-order">Order</label>
+          <select id="set-order">
+            <option value="mix">Mixed up</option>
+            <option value="in">In order</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="set-case">Letters look like</label>
+          <select id="set-case">
+            <option value="lower">lowercase (a b c)</option>
+            <option value="upper">UPPERCASE (A B C)</option>
+            <option value="asis">As written in the word list</option>
+          </select>
+        </div>
+      </section>
+
+      <section aria-labelledby="help-title">
+        <h3 id="help-title">Help with the keyboard</h3>
+        <div class="field">
+          <label for="set-hint">Light up the key to press</label>
+          <select id="set-hint" aria-describedby="hint-desc">
+            <option value="always">Always</option>
+            <option value="wrong">After a wrong try</option>
+            <option value="ask">Only when Where is it? is pressed</option>
+          </select>
+        </div>
+        <p class="help" id="hint-desc">Where is it? always lights up the key and says where it is on the keyboard.</p>
+        <div class="field">
+          <label for="set-others">Keys not in this lesson</label>
+          <select id="set-others" aria-describedby="others-desc">
+            <option value="show">Show</option>
+            <option value="dim">Fade them</option>
+            <option value="hide">Hide them</option>
+          </select>
+        </div>
+        <p class="help" id="others-desc">Hiding them leaves fewer keys on the screen, which also means fewer steps for switch users.</p>
+        <div class="field">
+          <label for="set-wait">Ignore extra presses</label>
+          <select id="set-wait" aria-describedby="wait-desc">
+            <option value="0">Off</option>
+            <option value="300">For 0.3 seconds</option>
+            <option value="600">For 0.6 seconds</option>
+            <option value="1000">For 1 second</option>
+            <option value="2000">For 2 seconds</option>
+          </select>
+        </div>
+        <p class="help" id="wait-desc">For students with tremors: after a key press, other presses are ignored for a moment. Holding a key down never counts as more than one press.</p>
+      </section>
+
+      <section aria-labelledby="share-title" class="share">
+        <h3 id="share-title">Share this setup</h3>
+        <p class="help">Students who open this link get the same lesson.</p>
+        <label class="toggle" for="set-lock">
+          <input type="checkbox" id="set-lock">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">Hide Teacher setup for students who use the link</span>
+        </label>
+        <label class="sr-only" for="share-link">Link to this setup</label>
+        <input type="text" class="share-link" id="share-link" readonly>
+        <div class="share-actions">
+          <button type="button" class="btn btn-primary" id="btn-copy-link">Copy link</button>
+          <button type="button" class="btn" id="btn-share-link" hidden>Share…</button>
+        </div>
+        <p class="copied" id="copied" aria-live="polite"></p>
+      </section>
+      <p class="sr-only" id="setup-live" aria-live="polite"></p>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="panel-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+  <div class="panel">
+    <div class="panel-head">
+      <h2 id="settings-title" tabindex="-1">Settings</h2>
+      <button type="button" class="btn" data-close>Done</button>
+    </div>
+    <div class="panel-body">
+      <label class="toggle" for="set-voice">
+        <input type="checkbox" id="set-voice" aria-describedby="voice-desc">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">Voice</span>
+      </label>
+      <p class="help" id="voice-desc">Says which key to find. Screen reader users hear the same words from VoiceOver or ChromeVox, so you can turn this off for them.</p>
+      <label class="toggle" for="set-echo">
+        <input type="checkbox" id="set-echo">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">Say each key I press</span>
+      </label>
+      <label class="toggle" for="set-sounds">
+        <input type="checkbox" id="set-sounds">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">Sounds</span>
+      </label>
+      <div class="field">
+        <label for="set-volume">Volume</label>
+        <input type="range" id="set-volume" min="0" max="100" step="10">
+      </div>
+      <label class="toggle" for="set-animation">
+        <input type="checkbox" id="set-animation" aria-describedby="anim-desc">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">Movement effects</span>
+      </label>
+      <p class="help" id="anim-desc">Off: calm mode. No glowing, wobbling or flying letters.</p>
+      <label class="toggle" for="set-contrast">
+        <input type="checkbox" id="set-contrast">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">High contrast</span>
+      </label>
+      <label class="toggle" for="set-devkb">
+        <input type="checkbox" id="set-devkb" aria-describedby="devkb-desc">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">Use the iPad's own keyboard</span>
+      </label>
+      <p class="help" id="devkb-desc">On: tapping the big letter opens the iPad or tablet keyboard. Off: use the big keys in the game, or a real keyboard.</p>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="panel-fullscreen" role="dialog" aria-modal="true" aria-labelledby="fs-title" hidden>
+  <div class="panel">
+    <div class="panel-head">
+      <h2 id="fs-title" tabindex="-1">Play full screen</h2>
+      <button type="button" class="btn" data-close>Done</button>
+    </div>
+    <div class="panel-body prose">
+      <p>This browser cannot hide its own address bar, so the game has hidden its buttons instead. Use <strong>Exit full screen</strong> in the corner to get them back.</p>
+      <p>For true full screen on an iPhone or iPad, add the game to the Home Screen once. It then opens full screen every time.</p>
+      <ol>
+        <li>In Safari, tap the Share button (the square with an arrow). On a newer iPhone it may be under the <strong>⋯</strong> button.</li>
+        <li>Tap <strong>Add to Home Screen</strong>, then <strong>Add</strong>.</li>
+        <li>Open <strong>Monster Keys</strong> from the Home Screen.</li>
+      </ol>
+      <p>For a locked-down lesson, turn on <strong>Guided Access</strong> in iPad Settings under Accessibility, then triple-click the top or Home button inside the game.</p>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js?v=20261125a"></script>
+<script src="js/game.js?v=20261125a"></script>
+</body>
+</html>
