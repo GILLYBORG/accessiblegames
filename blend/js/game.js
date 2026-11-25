@@ -41,14 +41,20 @@
   }
 
   /* ---------- Setup: the word list and how the game plays ---------- */
-  // A word is letters, with optional dashes to say where the tiles split (b-oo-k).
+  // For now the game uses 3-letter words only (cat, dog, sun). Other words are left out.
+  var WORD_LEN = 3;
   function cleanWord(w) {
-    return String(w || "").toLowerCase().replace(/[^a-z-]/g, "").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 16);
+    return String(w || "").toLowerCase().replace(/[^a-z]/g, "");
+  }
+  function splitList(list) {
+    if (typeof list === "string") list = list.split(/\r?\n|\||,/);
+    return Array.isArray(list) ? list.map(cleanWord).filter(Boolean) : [];
   }
   function cleanWords(list) {
-    if (typeof list === "string") list = list.split(/\r?\n|\||,/);
-    if (!Array.isArray(list)) return [];
-    return list.map(cleanWord).filter(function (w) { return w.replace(/-/g, "").length > 0; }).slice(0, 60);
+    return splitList(list).filter(function (w) { return w.length === WORD_LEN; }).slice(0, 60);
+  }
+  function skippedWords(list) {
+    return splitList(list).filter(function (w) { return w.length !== WORD_LEN; });
   }
   function pick(v, allowed, dflt) { return allowed.indexOf(v) >= 0 ? v : dflt; }
   function flag(v, dflt) {
@@ -64,7 +70,7 @@
       words: cleanWords(s.words),
       turns: turns >= 0 && turns <= 60 ? turns : 5,
       order: pick(s.order, ["mix", "in"], "in"),
-      tiles: pick(s.tiles, ["mix", "in"], "mix"),
+      tiles: pick(s.tiles, ["mix", "in"], "in"),
       extra: extra >= 0 && extra <= 2 ? extra : 0,
       place: pick(s.place, ["box", "auto"], "box"),
       ghost: flag(s.ghost, true),
@@ -73,7 +79,7 @@
       blend: pick(s.blend, ["word", "fast"], "word"),
       letterCase: pick(s.letterCase, ["lower", "upper"], "lower")
     };
-    if (!out.words.length) out.words = ["cat", "dog", "mat"];
+    if (!out.words.length) out.words = ["cat", "dog", "mat", "sun", "pig"];
     return out;
   }
 
@@ -101,16 +107,18 @@
 
   var setup = setupFromUrl();
   if (setup) {
-    try { localStorage.setItem(SETUP_KEY, JSON.stringify(setup)); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(SETUP_KEY, JSON.stringify(Object.assign({ order2: true }, setup))); } catch (e) { /* ignore */ }
   } else {
     try {
       var savedSetup = JSON.parse(localStorage.getItem(SETUP_KEY) || "null");
+      // Setups saved before "in order" became the default switch to in order once.
+      if (savedSetup && !savedSetup.order2) savedSetup.tiles = "in";
       if (savedSetup) setup = cleanSetup(savedSetup);
     } catch (e) { /* ignore */ }
     if (!setup) setup = cleanSetup(cfg.startSetup);
   }
   function saveSetup() {
-    try { localStorage.setItem(SETUP_KEY, JSON.stringify(setup)); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(SETUP_KEY, JSON.stringify(Object.assign({ order2: true }, setup))); } catch (e) { /* ignore */ }
   }
 
   /* ---------- Words into tiles ---------- */
@@ -451,6 +459,7 @@
     total = setup.turns ? setup.turns : setup.words.length;
     $("btn-setup").hidden = locked;
     $("btn-hear-word").hidden = !setup.sayFirst;
+    updateMixButton();
     nextWord(true);
   }
 
@@ -469,11 +478,8 @@
       var pool = shuffle("abcdefghijklmnoprstuvwz".split("").filter(function (c) { return have.indexOf(c) < 0; }));
       list = list.concat(pool.slice(0, setup.extra));
     }
-    if (setup.tiles === "mix" && list.length > 1) {
-      var orig = list.join("|");
-      for (var tries = 0; tries < 6 && list.join("|") === orig; tries++) shuffle(list);
-    }
-    tiles = list.map(function (u) { return { u: u, used: false, el: null }; });
+    tiles = list.map(function (u, k) { return { u: u, k: k, used: false, el: null }; });
+    arrangeTiles();
     $("after").hidden = true;
     trayEl.hidden = false;
     trayEl.classList.remove("is-waiting");
@@ -491,6 +497,36 @@
     announce(srIntro());
     setHint();
     if (!first) focusFirstTile();
+  }
+  // Letter tiles in the word's order (extra letters at the end), or mixed up.
+  function arrangeTiles() {
+    if (setup.tiles === "mix" && tiles.length > 1) {
+      for (var tries = 0; tries < 6; tries++) {
+        shuffle(tiles);
+        if (tiles.some(function (t, i) { return t.k !== i; })) break;
+      }
+    } else {
+      tiles.sort(function (a, b) { return a.k - b.k; });
+    }
+  }
+  // The Mix letters button on the main screen: changes this word now, and the setup for next time.
+  function updateMixButton() {
+    var b = $("btn-mix");
+    b.setAttribute("aria-pressed", setup.tiles === "mix" ? "true" : "false");
+    b.hidden = locked;
+  }
+  function toggleMix() {
+    setup.tiles = setup.tiles === "mix" ? "in" : "mix";
+    saveSetup();
+    updateMixButton();
+    if (!built && !busy) {
+      selected = null;
+      arrangeTiles();
+      renderTray();
+      renderBoxes();
+      setHint();
+    }
+    announce(setup.tiles === "mix" ? "Letters mixed up." : "Letters in order.");
   }
   function preloadWord() {
     tiles.forEach(function (t) { var p = unitPart(t.u); if (p && p.snd) loadSound(p.snd); });
@@ -831,7 +867,7 @@
     var W = stage.clientWidth, H = stage.clientHeight;
     if (!W || !H) return;
     var boxW = units.reduce(function (a, u) { return a + (u.length > 1 ? 1.5 : 1); }, 0) + 0.14 * (units.length - 1);
-    var tileW = tiles.reduce(function (a, t) { return a + (t.u.length > 1 ? 1.5 : 1); }, 0) + 0.2 * (tiles.length - 1);
+    var tileW = tiles.reduce(function (a, t) { return a + (t.u.length > 1 ? 1.5 : 1); }, 0) + 0.14 * (tiles.length - 1);
     // The boxes stay on one row; the tiles may wrap onto a second row on narrow screens.
     // Take the biggest size where everything fits: progress and hint (about 90px),
     // the picture (1.1 b), the boxes (1.2 b), each row of tiles (1.2 b) and the gaps.
@@ -903,6 +939,7 @@
       b.addEventListener("click", function () {
         $("set-words").value = p.words.join("\n");
         draft.words = cleanWords(p.words);
+        draft.skipped = [];
         updateLink();
       });
       wp.appendChild(b);
@@ -933,7 +970,8 @@
     // Show how each word splits into tiles.
     var pv = $("tiles-preview");
     pv.innerHTML = "";
-    if (!ok) { pv.textContent = "Type at least one word."; return; }
+    var skipped = (draft.skipped || []).length ? " Left out (not 3 letters): " + draft.skipped.join(", ") + "." : "";
+    if (!ok) { pv.textContent = "Type at least one 3-letter word." + skipped; return; }
     pv.appendChild(document.createTextNode("Tiles: "));
     draft.words.slice(0, 12).forEach(function (w, n) {
       if (n) pv.appendChild(document.createTextNode("  "));
@@ -944,6 +982,7 @@
       });
     });
     if (draft.words.length > 12) pv.appendChild(document.createTextNode(" …"));
+    if (skipped) pv.appendChild(document.createTextNode(skipped));
   }
   function applyDraft() {
     if (!draft || !draft.words.length) { draft = null; return; }
@@ -961,7 +1000,7 @@
       play(introParts());
     }
   }
-  $("set-words").addEventListener("input", function (e) { draft.words = cleanWords(e.target.value); updateLink(); });
+  $("set-words").addEventListener("input", function (e) { draft.words = cleanWords(e.target.value); draft.skipped = skippedWords(e.target.value); updateLink(); });
   $("set-turns").addEventListener("change", function (e) { draft.turns = Number(e.target.value); updateLink(); });
   $("set-order").addEventListener("change", function (e) { draft.order = e.target.value; updateLink(); });
   $("set-place").addEventListener("change", function (e) { draft.place = e.target.value; updateLink(); });
@@ -1105,6 +1144,7 @@
   $("btn-setup").addEventListener("click", openSetup);
   $("btn-again").addEventListener("click", function () { hidePanel(); });
   $("btn-replay").addEventListener("click", replay);
+  $("btn-mix").addEventListener("click", toggleMix);
   $("btn-next").addEventListener("click", function () {
     if (busy) return;
     if (done >= total) { finish(); return; }

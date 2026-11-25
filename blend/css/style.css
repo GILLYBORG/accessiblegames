@@ -223,10 +223,11 @@ button.box { cursor: pointer; touch-action: manipulation; }
 
 /* The letter tiles */
 .tray {
+  width: 100%;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: calc(var(--b) * 0.2);
+  gap: calc(var(--b) * 0.14);
   min-height: calc(var(--b) * 1.05);
   max-width: 100%;
 }
@@ -294,7 +295,7 @@ button.box { cursor: pointer; touch-action: manipulation; }
 .hc .box { border-color: #000; }
 .hc .tile[aria-pressed="true"], .hc .box.is-next { box-shadow: 0 0 0 max(5px, calc(var(--b) * 0.06)) #000; }
 
-.bottom { display: flex; justify-content: center; min-height: calc(var(--b) * 1.15); align-items: center; }
+.bottom { width: 100%; display: flex; justify-content: center; min-height: calc(var(--b) * 1.15); align-items: center; }
 .tray.is-waiting { visibility: hidden; }
 .after { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; min-height: calc(var(--b) * 1.05); align-items: center; }
 .btn-big svg { width: 32px; height: 32px; }
@@ -480,3 +481,7 @@ textarea.text-in { resize: vertical; line-height: 1.4; }
 .tiles-preview { margin: 0; font-family: var(--letter-font); font-size: 1.15rem; }
 .tiles-preview .tp { display: inline-block; padding: 0 6px; margin: 2px; border: 2px solid var(--fg); border-radius: 6px; background: var(--tile-bg); color: var(--tile-fg); }
 @media (max-width: 700px) { .is-fullscreen .top { padding-top: 60px; } }
+
+/* Mix letters: an on/off button. On shows a tick and the accent colour. */
+.btn-toggle[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.btn-toggle[aria-pressed="true"] span::after { content: " ✓"; }

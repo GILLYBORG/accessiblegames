@@ -5,10 +5,8 @@
  * Put them in the images folder and add or change a line under "pictures".
  * Words without a picture still work.
  *
- * WORDS: in Teacher setup, one word on each line. Each letter becomes a tile.
- * Letters that make one sound together (like "oo" in book) become one tile by
- * themselves when they are listed under "teams" below. To choose the tiles
- * yourself, put dashes between them: b-oo-k, h-ea-d, sh-i-p.
+ * WORDS: in Teacher setup, one word on each line. For now the game uses
+ * 3-letter words only (cat, dog, sun): each letter becomes a tile.
  */
 window.GAME_CONFIG = {
   title: "Sound It Out",
@@ -17,8 +15,6 @@ window.GAME_CONFIG = {
     "cat": "images/word-cat.svg",
     "dog": "images/word-dog.svg",
     "mat": "images/word-mat.svg",
-    "book": "images/word-book.svg",
-    "head": "images/word-head.svg",
     "hat": "images/word-hat.svg",
     "sun": "images/word-sun.svg",
     "pig": "images/word-pig.svg",
@@ -29,22 +25,21 @@ window.GAME_CONFIG = {
 
   // Quick word lists in Teacher setup.
   wordLists: [
-    { name: "First words", words: ["cat", "dog", "book", "mat", "head"] },
+    { name: "First words", words: ["cat", "dog", "mat", "sun", "pig"] },
     { name: "Short a", words: ["cat", "mat", "hat", "sat", "map", "pan", "bag", "jam"] },
     { name: "Short e", words: ["bed", "hen", "pet", "ten", "leg", "net", "red", "web"] },
     { name: "Short i", words: ["pig", "sit", "pin", "lid", "big", "zip", "fin", "dig"] },
     { name: "Short o", words: ["dog", "pot", "top", "hop", "log", "mop", "fox", "box"] },
     { name: "Short u", words: ["sun", "cup", "bus", "mud", "bug", "rug", "hut", "nut"] },
-    { name: "s a t p i n", words: ["sat", "pin", "tap", "pat", "nap", "tip", "sip", "pan"] },
-    { name: "oo and ea", words: ["book", "look", "cook", "foot", "head", "bread"] }
+    { name: "s a t p i n", words: ["sat", "pin", "tap", "pat", "nap", "tip", "sip", "pan"] }
   ],
 
   // What the game starts with on a device that has no saved setup and no setup link.
   startSetup: {
-    words: ["cat", "dog", "book", "mat", "head"],
+    words: ["cat", "dog", "mat", "sun", "pig"],
     turns: 5,           // words in a game; 0 means all of them
     order: "in",        // words: "in" (in order) or "mix" (mixed up)
-    tiles: "mix",       // letter tiles: "mix" (mixed up) or "in" (in order)
+    tiles: "in",        // letter tiles: "in" (in the word's order) or "mix" (mixed up)
     extra: 0,           // extra letters that are not in the word: 0, 1 or 2
     place: "box",       // "box": tap a letter, then tap the box (or drag it)
                         // "auto": tap the right letter and it goes in the next box by itself
@@ -56,17 +51,9 @@ window.GAME_CONFIG = {
     letterCase: "lower" // "lower" or "upper"
   },
 
-  // Letters that make one sound together. They become one tile.
-  //   clip: plays this letter sound (for example "ea" in head sounds like "e").
-  //   say:  the computer voice says this instead (until there is a recording).
-  //   rec:  your own recording, for example "sounds/team-oo.mp3".
-  teams: {
-    "oo": { say: "oo", rec: "" },
-    "ea": { clip: "e", rec: "" },
-    "ee": { say: "ee", rec: "" },
-    "sh": { say: "shh", rec: "" },
-    "ck": { clip: "k", rec: "" }
-  },
+  // Letters that make one sound together (like "oo" in book) can become one tile.
+  // Turned off for now: the game uses 3-letter words with one letter per sound.
+  teams: {},
 
   // RECORDINGS
   // sounds: one clip per letter sound, {key} becomes the letter. These are the
