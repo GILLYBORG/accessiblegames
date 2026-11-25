@@ -620,7 +620,20 @@
     }
     updateKeyLabels();
   }
+  // The monster grows a little with every letter it eats: from a bit over half size to full size.
+  function growMonster() {
+    var total;
+    if (!setup.turns) total = 30;
+    else if (setup.mode === "letters") total = setup.turns;
+    else {
+      var avg = setup.words.reduce(function (a, w) { return a + w.replace(/ /g, "").length; }, 0) / setup.words.length;
+      total = Math.max(1, Math.round(setup.turns * avg));
+    }
+    var g = 0.55 + 0.45 * Math.min(1, lettersDone / total);
+    root.style.setProperty("--grow", g.toFixed(3));
+  }
   function renderBelly() {
+    growMonster();
     bellyEl.innerHTML = "";
     if (!setup.turns) {
       bellyEl.textContent = String(done);
@@ -666,6 +679,7 @@
     if (wrongs === 0) firstTry++;
     flyToMonster(c);
     chomp();
+    growMonster();
     pos++;
     if (pos < item.length) {
       // Next letter of the word.
