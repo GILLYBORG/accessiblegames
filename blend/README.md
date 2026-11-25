@@ -22,9 +22,8 @@ On the game screen, **Mix letters** mixes up the letter tiles (off: they are in 
 It is remembered on that device. It is hidden for students who open a link with Teacher setup hidden.
 
 
-- **Words**, one per line, plus quick lists (short a, e, i, o, u, s a t p i n, oo and ea).
-- "oo", "ea", "ee", "sh" and "ck" become one tile with one sound. To choose the tiles yourself,
-  use dashes: `b-oo-k`, `sh-i-p`, `c-a-t`. Setup shows how each word will split.
+- **Words**, one per line, plus quick lists (short a, e, i, o, u, s a t p i n). For now the game
+  uses 3-letter words only (one letter, one sound); other words are left out, and setup says which.
 - Words in a game, word order, letter tiles in order (default) or mixed up, 0 to 2 extra letters,
   lowercase or UPPERCASE.
 - **Light gray letter in each box** (on by default).
@@ -34,7 +33,7 @@ It is remembered on that device. It is hidden for students who open a link with 
 - **Copy link**: students who open it get the same setup. Turn on **Hide Teacher setup** first
   if students should not change it.
 
-Example link: `blend/?words=cat|dog|b-oo-k|mat|h-ea-d&n=5&place=box&ghost=1&say=0&pic=end`
+Example link: `blend/?words=cat|dog|mat|sun|pig&n=5&place=box&ghost=1&say=0&pic=end`
 
 ## Sounds
 
@@ -42,9 +41,8 @@ Letter sounds are the **Open Letter Sounds** clips (CC0, no credit needed; see
 `sounds/LICENSE-letter-sounds.txt`), levelled to the same loudness. The whole word uses the
 computer voice until there is a recording.
 
-Two-letter tiles: "ea" plays the short e sound (as in head), "ck" plays k. "oo", "ee" and "sh"
-use the computer voice for now, which is only close. Record them and set `rec` under `teams`
-in `js/config.js`, for example `"oo": { rec: "sounds/team-oo.mp3" }`.
+Two-letter tiles (like "oo" in book) are turned off for now. The code still supports them
+through `teams` in `js/config.js`, for later.
 
 Your own voice for whole words: put `word-cat.mp3` in `sounds` and add `"cat": "sounds/word-cat.mp3"`
 under `recordings.words` in `js/config.js`. Instructions ("Build the word", "Try again",

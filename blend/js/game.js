@@ -41,14 +41,20 @@
   }
 
   /* ---------- Setup: the word list and how the game plays ---------- */
-  // A word is letters, with optional dashes to say where the tiles split (b-oo-k).
+  // For now the game uses 3-letter words only (cat, dog, sun). Other words are left out.
+  var WORD_LEN = 3;
   function cleanWord(w) {
-    return String(w || "").toLowerCase().replace(/[^a-z-]/g, "").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 16);
+    return String(w || "").toLowerCase().replace(/[^a-z]/g, "");
+  }
+  function splitList(list) {
+    if (typeof list === "string") list = list.split(/\r?\n|\||,/);
+    return Array.isArray(list) ? list.map(cleanWord).filter(Boolean) : [];
   }
   function cleanWords(list) {
-    if (typeof list === "string") list = list.split(/\r?\n|\||,/);
-    if (!Array.isArray(list)) return [];
-    return list.map(cleanWord).filter(function (w) { return w.replace(/-/g, "").length > 0; }).slice(0, 60);
+    return splitList(list).filter(function (w) { return w.length === WORD_LEN; }).slice(0, 60);
+  }
+  function skippedWords(list) {
+    return splitList(list).filter(function (w) { return w.length !== WORD_LEN; });
   }
   function pick(v, allowed, dflt) { return allowed.indexOf(v) >= 0 ? v : dflt; }
   function flag(v, dflt) {
@@ -73,7 +79,7 @@
       blend: pick(s.blend, ["word", "fast"], "word"),
       letterCase: pick(s.letterCase, ["lower", "upper"], "lower")
     };
-    if (!out.words.length) out.words = ["cat", "dog", "mat"];
+    if (!out.words.length) out.words = ["cat", "dog", "mat", "sun", "pig"];
     return out;
   }
 
@@ -933,6 +939,7 @@
       b.addEventListener("click", function () {
         $("set-words").value = p.words.join("\n");
         draft.words = cleanWords(p.words);
+        draft.skipped = [];
         updateLink();
       });
       wp.appendChild(b);
@@ -963,7 +970,8 @@
     // Show how each word splits into tiles.
     var pv = $("tiles-preview");
     pv.innerHTML = "";
-    if (!ok) { pv.textContent = "Type at least one word."; return; }
+    var skipped = (draft.skipped || []).length ? " Left out (not 3 letters): " + draft.skipped.join(", ") + "." : "";
+    if (!ok) { pv.textContent = "Type at least one 3-letter word." + skipped; return; }
     pv.appendChild(document.createTextNode("Tiles: "));
     draft.words.slice(0, 12).forEach(function (w, n) {
       if (n) pv.appendChild(document.createTextNode("  "));
@@ -974,6 +982,7 @@
       });
     });
     if (draft.words.length > 12) pv.appendChild(document.createTextNode(" …"));
+    if (skipped) pv.appendChild(document.createTextNode(skipped));
   }
   function applyDraft() {
     if (!draft || !draft.words.length) { draft = null; return; }
@@ -991,7 +1000,7 @@
       play(introParts());
     }
   }
-  $("set-words").addEventListener("input", function (e) { draft.words = cleanWords(e.target.value); updateLink(); });
+  $("set-words").addEventListener("input", function (e) { draft.words = cleanWords(e.target.value); draft.skipped = skippedWords(e.target.value); updateLink(); });
   $("set-turns").addEventListener("change", function (e) { draft.turns = Number(e.target.value); updateLink(); });
   $("set-order").addEventListener("change", function (e) { draft.order = e.target.value; updateLink(); });
   $("set-place").addEventListener("change", function (e) { draft.place = e.target.value; updateLink(); });
