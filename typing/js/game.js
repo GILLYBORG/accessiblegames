@@ -75,6 +75,7 @@
       hint: pick(s.hint, ["always", "wrong", "ask"], "always"),
       others: pick(s.others, ["show", "dim", "hide"], "show"),
       letterCase: pick(s.letterCase, ["lower", "upper", "asis"], "lower"),
+      keyCase: pick(s.keyCase, ["upper", "match"], "upper"),
       wait: wait >= 0 && wait <= 5000 ? wait : 0
     };
     if (!out.keys) out.keys = "satpin";
@@ -91,7 +92,7 @@
       return cleanSetup({
         mode: q.get("mode"), keys: q.get("keys"), words: q.get("words") || "",
         turns: q.has("n") ? q.get("n") : 10, order: q.get("order"), hint: q.get("hint"),
-        others: q.get("others"), letterCase: q.get("case"), wait: q.get("wait")
+        others: q.get("others"), letterCase: q.get("case"), keyCase: q.get("kcase"), wait: q.get("wait")
       });
     } catch (e) { return null; }
   }
@@ -101,7 +102,7 @@
     if (s.mode === "letters") p += "&keys=" + encodeURIComponent(s.keys);
     else p += "&words=" + s.words.map(function (w) { return encodeURIComponent(w); }).join("|");
     p += "&n=" + s.turns + "&order=" + s.order + "&hint=" + s.hint + "&others=" + s.others +
-      "&case=" + s.letterCase + "&wait=" + s.wait + (lock ? "&lock=1" : "");
+      "&case=" + s.letterCase + "&kcase=" + s.keyCase + "&wait=" + s.wait + (lock ? "&lock=1" : "");
     return base + p;
   }
   var locked = false;
@@ -483,7 +484,7 @@
   function updateKeyLabels() {
     Object.keys(keyEls).forEach(function (c) {
       var b = keyEls[c];
-      b.querySelector(".key-label").textContent = c === " " ? "space" : shown(c, false);
+      b.querySelector(".key-label").textContent = c === " " ? "space" : (setup.keyCase === "match" ? shown(c, false) : c.toUpperCase());
       var isTarget = b.classList.contains("is-target");
       b.setAttribute("aria-label", written(c) + (isTarget ? ", this one" : ""));
     });
@@ -922,6 +923,7 @@
     if (!$("set-turns").value) $("set-turns").value = "10";
     $("set-order").value = draft.order;
     $("set-case").value = draft.letterCase;
+    $("set-keycase").value = draft.keyCase;
     $("set-hint").value = draft.hint;
     $("set-others").value = draft.others;
     $("set-wait").value = String(draft.wait);
@@ -976,6 +978,7 @@
   $("set-turns").addEventListener("change", function (e) { draft.turns = Number(e.target.value); updateLink(); });
   $("set-order").addEventListener("change", function (e) { draft.order = e.target.value; updateLink(); });
   $("set-case").addEventListener("change", function (e) { draft.letterCase = e.target.value; updateLink(); });
+  $("set-keycase").addEventListener("change", function (e) { draft.keyCase = e.target.value; updateLink(); });
   $("set-hint").addEventListener("change", function (e) { draft.hint = e.target.value; updateLink(); });
   $("set-others").addEventListener("change", function (e) { draft.others = e.target.value; updateLink(); });
   $("set-wait").addEventListener("change", function (e) { draft.wait = Number(e.target.value); updateLink(); });
