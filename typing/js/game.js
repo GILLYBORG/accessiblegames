@@ -22,13 +22,11 @@
     letterSets: userCfg.letterSets || [],
     wordLists: userCfg.wordLists || [],
     startSetup: userCfg.startSetup || {},
-    yums: (userCfg.yums && userCfg.yums.length) ? userCfg.yums : ["Yum!"],
-    phrases: Object.assign({
-      find: "Find {key}.", type: "Type {word}.", tryAgain: "Try again.", pressed: "That was {key}.",
-      wordDone: "You typed {word}!", full: "The monster is full!"
-    }, userCfg.phrases || {}),
+    yums: Array.isArray(userCfg.yums) ? userCfg.yums : [],
+    phrases: Object.assign({ find: "Find", tryAgain: "Try again.", type: "Type", full: "The monster is full!" }, userCfg.phrases || {}),
+    recordings: Object.assign({ letters: "", numbers: "", find: "", tryAgain: "", type: "", full: "", words: {} }, userCfg.recordings || {}),
     voiceRate: typeof userCfg.voiceRate === "number" ? userCfg.voiceRate : 0.8,
-    defaults: Object.assign({ voice: true, voiceName: "", rate: userCfg.voiceRate || 0.8, echo: true, sounds: true, volume: 90, animation: true, highContrast: false, deviceKeyboard: false }, userCfg.defaults || {})
+    defaults: Object.assign({ voice: true, recorded: true, voiceName: "", rate: userCfg.voiceRate || 0.8, echo: true, sounds: true, volume: 90, animation: true, highContrast: false, deviceKeyboard: false }, userCfg.defaults || {})
   };
   var root = document.documentElement;
 
@@ -246,38 +244,108 @@
   // Speech never cuts itself off: a phrase always finishes before the next one starts.
   // If several phrases pile up (lots of quick presses), only the newest waiting one is kept.
   var keepAlive = [];
-  var speaking = false, waiting = null;
-  function voiceOn() {
-    return settings.voice && synth && window.SpeechSynthesisUtterance && settings.volume > 0;
-  }
-  function speak(text, done) {
-    if (!text || !voiceOn()) { if (done) setTimeout(done, 0); return; }
+  var speaking = false, waiting = null, speakGen = 0;
+  function voiceOn() { return settings.voice && settings.volume > 0; }
+  function speechOk() { return synth && window.SpeechSynthesisUtterance; }
+
+  // What to say is a list of parts. A part is text for the computer voice, or
+  // { clip: "sounds/....mp3", text: "what to say if the clip won't play" }.
+  // speak() also takes plain text.
+  function speak(parts, done) {
+    if (!Array.isArray(parts)) parts = [parts];
+    parts = parts.filter(function (x) { return x && (typeof x === "string" ? x.trim() : true); });
+    if (!parts.length || !voiceOn()) { if (done) setTimeout(done, 0); return; }
     if (speaking) {
       var before = waiting && waiting.done;
-      waiting = { text: text, done: before && done ? function () { before(); done(); } : (done || before) };
+      waiting = { parts: parts, done: before && done ? function () { before(); done(); } : (done || before) };
       return;
     }
-    sayNow(text, done);
+    speaking = true;
+    // Join text that sits side by side into one phrase, so it flows.
+    var list = [];
+    parts.forEach(function (x) {
+      if (typeof x === "string" && typeof list[list.length - 1] === "string") list[list.length - 1] += " " + x;
+      else list.push(x);
+    });
+    var i = 0, gen = speakGen;
+    (function next() {
+      if (gen !== speakGen) i = list.length; // hushed: skip the rest
+      if (i >= list.length) {
+        speaking = false;
+        if (done) done();
+        if (waiting) {
+          var w = waiting; waiting = null;
+          setTimeout(function () { speak(w.parts, w.done); }, 150); // a short breath between phrases
+        }
+        return;
+      }
+      var x = list[i++];
+      if (typeof x === "string") sayNow(x, next);
+      else playClip(x, next);
+    })();
   }
+
+  // Recorded clips (the teacher's own voice).
+  var player = new Audio();
+  player.preload = "auto";
+  var playerUnlocked = false;
+  var SILENT = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
+  function unlockPlayer() {
+    if (playerUnlocked) return;
+    playerUnlocked = true;
+    try { player.src = SILENT; var pr = player.play(); if (pr && pr.catch) pr.catch(function () {}); } catch (e) { /* ignore */ }
+  }
+  ["touchend", "click", "keydown"].forEach(function (type) {
+    document.addEventListener(type, unlockPlayer, true);
+  });
+  var badClips = {};
+  function playClip(x, done) {
+    var ended = false, guard = null;
+    function end() {
+      if (ended) return;
+      ended = true;
+      clearTimeout(guard);
+      player.onended = player.onerror = null;
+      done();
+    }
+    function fallback() {
+      if (ended) return;
+      ended = true;
+      clearTimeout(guard);
+      player.onended = player.onerror = null;
+      badClips[x.clip] = true;
+      if (x.text && speechOk()) sayNow(x.text, done); else done();
+    }
+    if (badClips[x.clip]) { ended = true; if (x.text && speechOk()) sayNow(x.text, done); else done(); return; }
+    try {
+      player.onended = end;
+      player.onerror = fallback;
+      player.src = x.clip;
+      player.volume = Math.max(0, Math.min(100, settings.volume)) / 100;
+      var pr = player.play();
+      if (pr && pr.catch) pr.catch(function () { fallback(); });
+      guard = setTimeout(end, 4000);
+    } catch (e) { fallback(); }
+  }
+  // Warm up the clips so the first one doesn't lag.
+  function preloadClips(urls) {
+    urls.forEach(function (u) { try { var a = new Audio(); a.preload = "auto"; a.src = u; } catch (e) { /* ignore */ } });
+  }
+
   function sayNow(text, done) {
+    if (!speechOk()) { done(); return; }
     if (!voiceSearched) pickVoice();
     var u = new SpeechSynthesisUtterance(text);
     var v = chosenVoice;
     if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = root.lang || "en"; }
     u.rate = Math.max(0.5, Math.min(1.3, Number(settings.rate) || cfg.voiceRate));
     u.volume = Math.max(0, Math.min(100, settings.volume)) / 100;
-    speaking = true;
     var ended = false, guard = null;
     function end() {
       if (ended) return;
       ended = true;
       clearTimeout(guard);
-      speaking = false;
-      if (done) done();
-      if (waiting) {
-        var w = waiting; waiting = null;
-        setTimeout(function () { speak(w.text, w.done); }, 150); // a short breath between phrases
-      }
+      done();
     }
     u.onend = end;
     u.onerror = function (ev) {
@@ -293,9 +361,28 @@
     if (keepAlive.length > 6) keepAlive.shift();
     try { synth.speak(u); } catch (e) { end(); }
   }
+
+  /* ---------- What the voice says, as parts (recorded clip or computer voice) ---------- */
+  function useRec() { return settings.recorded !== false; }
+  function phrase(key) {
+    var text = cfg.phrases[key] || "";
+    var clip = useRec() && cfg.recordings[key];
+    return clip ? { clip: clip, text: text } : text;
+  }
+  function keyPart(c) {
+    var text = spoken(c) + ".";
+    var pat = /[a-z]/.test(c) ? cfg.recordings.letters : (/[0-9]/.test(c) ? cfg.recordings.numbers : "");
+    return useRec() && pat ? { clip: pat.replace("{key}", c), text: text } : text;
+  }
+  function wordPart(w) {
+    var clip = useRec() && cfg.recordings.words && cfg.recordings.words[w.toLowerCase()];
+    return clip ? { clip: clip, text: w + "." } : w + ".";
+  }
   // Stop talking now (new game, closing the game).
   function hush() {
     waiting = null;
+    speakGen++;
+    try { player.pause(); if (player.onended) player.onended(); } catch (e) { /* ignore */ }
     if (synth && (synth.speaking || synth.pending)) { try { synth.cancel(); } catch (e) { /* ignore */ } }
   }
 
@@ -497,9 +584,10 @@
   // The words for "what to do now". whole: say the whole word first.
   function promptWords(whole) {
     var c = expected();
-    if (setup.mode === "letters") return fill(cfg.phrases.find, "key", spoken(c));
-    if (whole) return fill(cfg.phrases.type, "word", item) + " " + fill(cfg.phrases.find, "key", spoken(c));
-    return fill(cfg.phrases.find, "key", spoken(c));
+    var out = [];
+    if (setup.mode === "words" && whole) out.push(phrase("type"), wordPart(item));
+    out.push(phrase("find"), keyPart(c));
+    return out;
   }
   function srPrompt() {
     var c = expected();
@@ -583,8 +671,7 @@
       // Next letter of the word.
       startLetter();
       renderTarget();
-      var say = (settings.echo ? spoken(c) + ". " : "") + fill(cfg.phrases.find, "key", spoken(expected()));
-      speak(say);
+      speak((settings.echo ? [keyPart(c)] : []).concat(promptWords(false)));
       announce(written(c) + ". " + srPrompt());
       return;
     }
@@ -594,16 +681,16 @@
     lightTarget();
     busy = true;
     renderBelly();
-    var yum = cfg.yums[Math.floor(Math.random() * cfg.yums.length)];
+    var yum = cfg.yums.length ? cfg.yums[Math.floor(Math.random() * cfg.yums.length)] : "";
     var msg;
     if (setup.mode === "words") {
-      msg = fill(cfg.phrases.wordDone, "word", item);
+      msg = [wordPart(item)];
       sfxWord();
       $("target-card").classList.add("is-done");
     } else {
-      msg = (settings.echo ? spoken(c) + "! " : "") + yum;
+      msg = (settings.echo ? [keyPart(c)] : []).concat(yum ? [yum] : []);
     }
-    announce((setup.mode === "words" ? msg : written(c) + ". " + yum));
+    announce((setup.mode === "words" ? item + "." : (written(c) + ". " + yum).trim()));
     // Move on once the voice has finished AND a short pause has passed.
     var left = 2, gid = gameId;
     var go = function () {
@@ -630,8 +717,7 @@
     var help = "";
     if (setup.hint === "wrong" && !helped) { helped = true; lightTarget(); }
     if (wrongs >= 3 && wrongs % 3 === 0) help = " " + whereIs(expected());
-    var say = (settings.echo ? fill(cfg.phrases.pressed, "key", spoken(c)) + " " : "") + cfg.phrases.tryAgain + " " + fill(cfg.phrases.find, "key", spoken(expected())) + help;
-    speak(say);
+    speak((settings.echo ? [keyPart(c)] : []).concat([phrase("tryAgain")], promptWords(false), help ? [help] : []));
     announce((settings.echo ? "That was " + written(c) + ". " : "") + "Try again. " + srPrompt() + help);
   }
   function showWhere() {
@@ -659,6 +745,8 @@
       $("monster-box").classList.add("is-chomp");
       chompTimer = setTimeout(function () {
         monsterEl.src = cfg.monster;
+  preloadClips(["find", "tryAgain", "type", "full"].map(function (k) { return cfg.recordings[k]; }).filter(Boolean));
+  if (cfg.recordings.letters) preloadClips("abcdefghijklmnopqrstuvwxyz".split("").map(function (c) { return cfg.recordings.letters.replace("{key}", c); }));
         $("monster-box").classList.remove("is-chomp");
       }, 260);
     }, settings.animation ? 300 : 0);
@@ -699,7 +787,7 @@
     $("done-practise").hidden = !keys.length;
     $("done-practise").textContent = keys.length ? "Keys to practise: " + keys.map(written).join(", ") : "";
     $("win-monster").src = cfg.monster;
-    speak(cfg.phrases.full + " " + $("done-desc").textContent);
+    speak([phrase("full")]);
     showPanel("panel-done", null, $("done-title"));
   }
 
@@ -923,11 +1011,14 @@
     hc.checked = !!settings.highContrast;
     devkb.checked = !!settings.deviceKeyboard;
     voice.addEventListener("change", function () { settings.voice = voice.checked; saveSettings(); if (voice.checked) speak("Voice on."); });
+    var rec = $("set-recorded");
+    rec.checked = settings.recorded !== false;
+    rec.addEventListener("change", function () { settings.recorded = rec.checked; saveSettings(); hush(); speak([phrase("find"), keyPart("t")]); });
     var vname = $("set-voice-name"), rate = $("set-rate");
     fillVoiceList();
     rate.value = String(settings.rate);
     if (!rate.value) rate.value = "0.8";
-    var sample = function () { hush(); speak(fill(cfg.phrases.find, "key", spoken("t")) + " " + cfg.yums[0]); };
+    var sample = function () { hush(); speak([phrase("find"), keyPart("t")]); };
     vname.addEventListener("change", function () { settings.voiceName = vname.value; saveSettings(); pickVoice(); sample(); });
     rate.addEventListener("change", function () { settings.rate = Number(rate.value); saveSettings(); sample(); });
     $("btn-hear").addEventListener("click", sample);
@@ -1008,13 +1099,14 @@
     return t;
   }
   function startSpeech(prefix) {
-    var t = (prefix || "") + promptWords(true);
-    speak(t);
+    speak(promptWords(true));
     announce((prefix || "") + srPrompt());
   }
 
   /* ---------- Start ---------- */
   monsterEl.src = cfg.monster;
+  preloadClips(["find", "tryAgain", "type", "full"].map(function (k) { return cfg.recordings[k]; }).filter(Boolean));
+  if (cfg.recordings.letters) preloadClips("abcdefghijklmnopqrstuvwxyz".split("").map(function (c) { return cfg.recordings.letters.replace("{key}", c); }));
   (new Image()).src = cfg.monsterClosed;
   applySettings();
   bindSettings();
@@ -1024,9 +1116,8 @@
 
   $("btn-new").addEventListener("click", function () { newGame(); startSpeech("New game. "); });
   $("btn-directions").addEventListener("click", function () {
-    var text = directionsText() + promptWords(true);
     announce(directionsText() + srPrompt());
-    speak(text);
+    speak([directionsText()].concat(promptWords(true)));
   });
   $("btn-hint").addEventListener("click", showWhere);
   $("btn-settings").addEventListener("click", function (e) { showPanel("panel-settings", e.currentTarget); });

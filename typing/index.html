@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
-<link rel="stylesheet" href="css/style.css?v=20261125b">
+<link rel="stylesheet" href="css/style.css?v=20261125e">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -229,6 +229,12 @@
         <span class="toggle-text">Voice</span>
       </label>
       <p class="help" id="voice-desc">Says which key to find. Screen reader users hear the same words from VoiceOver or ChromeVox, so you can turn this off for them.</p>
+      <label class="toggle" for="set-recorded">
+        <input type="checkbox" id="set-recorded" aria-describedby="recorded-desc">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">Use the recorded voice</span>
+      </label>
+      <p class="help" id="recorded-desc">Plays the teacher's own recordings (the letters A to Z, Find, Try again, Type and The monster is full!). Anything not recorded uses the computer voice below.</p>
       <div class="field">
         <label for="set-voice-name">Which voice</label>
         <select id="set-voice-name" aria-describedby="voice-name-desc">
@@ -300,7 +306,7 @@
   </div>
 </div>
 
-<script src="js/config.js?v=20261125b"></script>
-<script src="js/game.js?v=20261125b"></script>
+<script src="js/config.js?v=20261125e"></script>
+<script src="js/game.js?v=20261125e"></script>
 </body>
 </html>

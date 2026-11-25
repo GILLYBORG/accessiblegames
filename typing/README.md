@@ -38,6 +38,16 @@ Links look like this (you can also edit them by hand):
 - The end screen shows how many keys were found on the first try, and which keys to practise.
 - Full screen hides everything except an Exit full screen button.
 
+## Your own voice
+
+`sounds/` holds the teacher's recordings: `letter-a.mp3` to `letter-z.mp3`, `find.mp3`, `try-again.mp3`,
+`type.mp3` and `monster-full.mp3`. The game plays them for each
+letter. To add more, record each clip on its own, put it in `sounds`, and add its name under
+`recordings` in `js/config.js`: `find` ("Find"), `tryAgain` ("Try again"), `type` ("Type"),
+`full` ("The monster is full!"), `numbers` (0 to 9), and `words` (one clip per word).
+Anything without a recording uses the computer voice. Settings > **Use the recorded voice** turns
+the recordings off.
+
 ## Swap in your own pictures
 
 All pictures are set in `js/config.js`. Make each in Canva as a **1000 x 1000 PNG with a
