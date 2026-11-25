@@ -61,6 +61,14 @@ window.GAME_CONFIG = {
   // words: your own voice saying a whole word, for example  "cat": "sounds/word-cat.mp3",
   //   Words without a recording use the computer voice.
   // phrases: your own voice for the instructions. Leave "" to use the computer voice.
+  // LETTER SOUND VOICES: teachers pick one in Settings. {key} becomes the letter.
+  //   Open Letter Sounds (CC0, sounds/LICENSE-letter-sounds.txt)
+  //   Feed the Monster by Curious Learning (CC BY, sounds/ftm/LICENSE.txt)
+  soundSets: [
+    { id: "ols", name: "Open Letter Sounds", sounds: "sounds/{key}.wav" },
+    { id: "ftm", name: "Feed the Monster (Curious Learning)", sounds: "sounds/ftm/{key}.mp3" }
+  ],
+
   recordings: {
     sounds: "sounds/{key}.wav",
     words: {},
@@ -78,5 +86,5 @@ window.GAME_CONFIG = {
   },
   voiceRate: 0.8,
 
-  defaults: { voice: true, voiceName: "", rate: 0.8, sounds: true, volume: 90, animation: true, highContrast: false }
+  defaults: { voice: true, voiceName: "", rate: 0.8, soundSet: "ols", sounds: true, volume: 90, animation: true, highContrast: false }
 };

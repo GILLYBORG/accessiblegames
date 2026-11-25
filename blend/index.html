@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Nunito:wght@800&display=swap">
 <!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
-<link rel="stylesheet" href="css/style.css?v=20261125c">
+<link rel="stylesheet" href="css/style.css?v=20261125d">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -255,6 +255,11 @@
       </div>
       <div class="share-actions"><button type="button" class="btn" id="btn-hear">Hear it</button></div>
       <p class="help" id="voice-name-desc">Voices come from the device, so each iPad or Chromebook has its own list. For a more natural voice on an iPad: Settings, Accessibility, Spoken Content, Voices, English, then download a voice marked Enhanced or Premium (for example Ava or Zoe). On a Chromebook, the Google voices sound the most natural.</p>
+      <div class="field">
+        <label for="set-sound-set">Letter sounds voice</label>
+        <select id="set-sound-set" aria-describedby="sound-set-desc"></select>
+        <p class="help" id="sound-set-desc">Two sets of letter sounds to compare. Feed the Monster sounds are by Curious Learning (CC BY).</p>
+      </div>
       <label class="toggle" for="set-sounds">
         <input type="checkbox" id="set-sounds">
         <span class="toggle-track" aria-hidden="true"></span>
@@ -298,7 +303,7 @@
   </div>
 </div>
 
-<script src="js/config.js?v=20261125c"></script>
-<script src="js/game.js?v=20261125c"></script>
+<script src="js/config.js?v=20261125d"></script>
+<script src="js/game.js?v=20261125d"></script>
 </body>
 </html>

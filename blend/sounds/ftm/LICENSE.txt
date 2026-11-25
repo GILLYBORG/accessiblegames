@@ -1,0 +1,4 @@
+Letter sounds in this folder: Feed the Monster (English), by Curious Learning.
+https://github.com/curiouslearning/FeedTheMonsterJS
+Licensed under Creative Commons Attribution (CC BY): https://creativecommons.org/licenses/by/4.0/
+Changes: trimmed silence, set to the same loudness, saved as MP3 (q.mp3 is their "qu").

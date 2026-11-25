@@ -41,6 +41,11 @@ Letter sounds are the **Open Letter Sounds** clips (CC0, no credit needed; see
 `sounds/LICENSE-letter-sounds.txt`), levelled to the same loudness. The whole word uses the
 computer voice until there is a recording.
 
+A second set of letter sounds, from **Feed the Monster** by Curious Learning
+(CC BY, credit required; see `sounds/ftm/LICENSE.txt`), is in `sounds/ftm/`. Pick the set in
+Settings, under "Letter sounds voice". The sets are listed in `soundSets` in `js/config.js`.
+The Feed the Monster folder also has sh, ch, wh, ee and ue for later.
+
 Two-letter tiles (like "oo" in book) are turned off for now. The code still supports them
 through `teams` in `js/config.js`, for later.
 
