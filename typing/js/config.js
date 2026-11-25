@@ -59,7 +59,8 @@ window.GAME_CONFIG = {
     others: "show",       // keys not in the lesson: "show", "dim" or "hide"
     letterCase: "upper",  // letters to find: "lower", "upper" or "asis" (as written in the word list)
     keyCase: "upper",     // on-screen keys: "upper" (like a real keyboard) or "match" (same as letterCase)
-    wait: 0               // ignore extra presses for this many milliseconds (0 = off)
+    wait: 0,              // ignore extra presses for this many milliseconds (0 = off)
+    again: 5              // say the instruction again after this many seconds with no key (0 = never)
   },
 
   // The monster can say one of these when it eats a letter, for example

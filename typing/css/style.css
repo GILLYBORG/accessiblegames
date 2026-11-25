@@ -20,6 +20,8 @@
   --target-ring: #1e47c2;
   --done: #1a7f3c;
   --now: #e83e8c;
+  /* Letters on the keys and in the box: plain sans-serif shapes (no serifs on I or J). */
+  --letter-font: "Nunito", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font: "Atkinson Hyperlegible", "Verdana", "Segoe UI", system-ui, sans-serif;
   --k: 64px;
   color-scheme: light;
@@ -507,3 +509,6 @@ textarea.text-in { resize: vertical; line-height: 1.4; }
 @media (prefers-reduced-motion: reduce) {
   .toggle-track::after { transition: none; }
 }
+
+/* Plain sans-serif letters on the keys, in the box and flying to the monster */
+.key, .target, .flyer { font-family: var(--letter-font); font-weight: 800; }
