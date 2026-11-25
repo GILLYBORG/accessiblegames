@@ -510,6 +510,23 @@
   }
 
   /* ---------- Fit the game to the screen ---------- */
+  // Make the letter (or word) as big as the box allows.
+  function sizeTarget() {
+    var card = $("target-card");
+    var W = card.clientWidth - 32, H = card.clientHeight - 24;
+    if (W <= 0 || H <= 0) return;
+    H -= $("target-label").offsetHeight + 8;
+    var size;
+    if (setup.mode === "letters") {
+      size = Math.min(H * 0.86, W * 0.9);
+    } else {
+      var pic = $("word-pic");
+      if (!pic.hidden) H -= Math.min(160, Math.max(48, window.innerHeight * 0.12)) + 8;
+      var chars = Math.max(1, item.length);
+      size = Math.min(H * 0.8, W / (chars * 0.9));
+    }
+    targetEl.style.fontSize = Math.max(32, Math.floor(size)) + "px";
+  }
   function fitStage() {
     var W = kbEl.parentNode.clientWidth;
     var H = stage.clientHeight;
@@ -521,6 +538,7 @@
     var k = Math.max(26, Math.min(104, byW, byH));
     root.style.setProperty("--k", Math.floor(k) + "px");
     stage.classList.toggle("is-narrow", stage.clientWidth < 640);
+    sizeTarget();
   }
 
   /* ---------- Game state ---------- */
@@ -609,6 +627,7 @@
       s.textContent = c === " " ? "" : shown(c, true);
       targetEl.appendChild(s);
     });
+    sizeTarget();
     $("target-sr").textContent = srPrompt();
     typeBox.setAttribute("aria-label", "Typing box. " + srPrompt());
   }
