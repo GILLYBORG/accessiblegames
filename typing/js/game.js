@@ -74,7 +74,7 @@
       order: pick(s.order, ["mix", "in"], "mix"),
       hint: pick(s.hint, ["always", "wrong", "ask"], "always"),
       others: pick(s.others, ["show", "dim", "hide"], "show"),
-      letterCase: pick(s.letterCase, ["lower", "upper", "asis"], "lower"),
+      letterCase: pick(s.letterCase, ["lower", "upper", "asis"], "upper"),
       keyCase: pick(s.keyCase, ["upper", "match"], "upper"),
       wait: wait >= 0 && wait <= 5000 ? wait : 0
     };
@@ -110,16 +110,18 @@
 
   var setup = setupFromUrl();
   if (setup) {
-    try { localStorage.setItem(SETUP_KEY, JSON.stringify(setup)); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(SETUP_KEY, JSON.stringify(Object.assign({ caps2: true }, setup))); } catch (e) { /* ignore */ }
   } else {
     try {
       var savedSetup = JSON.parse(localStorage.getItem(SETUP_KEY) || "null");
+      // Setups saved before capitals became the default switch to capitals once.
+      if (savedSetup && !savedSetup.caps2 && savedSetup.letterCase === "lower") savedSetup.letterCase = "upper";
       if (savedSetup) setup = cleanSetup(savedSetup);
     } catch (e) { /* ignore */ }
     if (!setup) setup = cleanSetup(cfg.startSetup);
   }
   function saveSetup() {
-    try { localStorage.setItem(SETUP_KEY, JSON.stringify(setup)); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(SETUP_KEY, JSON.stringify(Object.assign({ caps2: true }, setup))); } catch (e) { /* ignore */ }
   }
 
   /* ---------- Elements ---------- */
