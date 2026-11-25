@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
-<link rel="stylesheet" href="css/style.css?v=20261125a">
+<link rel="stylesheet" href="css/style.css?v=20261125b">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -229,6 +229,23 @@
         <span class="toggle-text">Voice</span>
       </label>
       <p class="help" id="voice-desc">Says which key to find. Screen reader users hear the same words from VoiceOver or ChromeVox, so you can turn this off for them.</p>
+      <div class="field">
+        <label for="set-voice-name">Which voice</label>
+        <select id="set-voice-name" aria-describedby="voice-name-desc">
+          <option value="">Automatic (the best voice on this device)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="set-rate">How fast the voice talks</label>
+        <select id="set-rate">
+          <option value="0.65">Very slow</option>
+          <option value="0.8">Slow</option>
+          <option value="0.95">Medium</option>
+          <option value="1.1">Fast</option>
+        </select>
+      </div>
+      <div class="share-actions"><button type="button" class="btn" id="btn-hear">Hear it</button></div>
+      <p class="help" id="voice-name-desc">Voices come from the device, so each iPad or Chromebook has its own list. For a more natural voice on an iPad: Settings, Accessibility, Spoken Content, Voices, English, then download a voice marked Enhanced or Premium (for example Ava or Zoe). Close and reopen the game, and it picks that voice by itself. On a Chromebook, the Google voices sound the most natural and are picked by themselves when the Chromebook is online.</p>
       <label class="toggle" for="set-echo">
         <input type="checkbox" id="set-echo">
         <span class="toggle-track" aria-hidden="true"></span>
@@ -283,7 +300,7 @@
   </div>
 </div>
 
-<script src="js/config.js?v=20261125a"></script>
-<script src="js/game.js?v=20261125a"></script>
+<script src="js/config.js?v=20261125b"></script>
+<script src="js/game.js?v=20261125b"></script>
 </body>
 </html>
