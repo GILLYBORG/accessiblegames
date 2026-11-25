@@ -57,7 +57,8 @@ window.GAME_CONFIG = {
     order: "mix",         // "mix" or "in" (in order)
     hint: "always",       // light up the key: "always", "wrong" (after a wrong try), "ask" (only with Where is it?)
     others: "show",       // keys not in the lesson: "show", "dim" or "hide"
-    letterCase: "lower",  // "lower", "upper" or "asis" (as written in the word list)
+    letterCase: "lower",  // letters to find: "lower", "upper" or "asis" (as written in the word list)
+    keyCase: "upper",     // on-screen keys: "upper" (like a real keyboard) or "match" (same as letterCase)
     wait: 0               // ignore extra presses for this many milliseconds (0 = off)
   },
 

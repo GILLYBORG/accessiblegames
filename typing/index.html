@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
-<link rel="stylesheet" href="css/style.css?v=20261125f">
+<link rel="stylesheet" href="css/style.css?v=20261125g">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -153,11 +153,18 @@
           </select>
         </div>
         <div class="field">
-          <label for="set-case">Letters look like</label>
+          <label for="set-case">Letters to find look like</label>
           <select id="set-case">
             <option value="lower">lowercase (a b c)</option>
             <option value="upper">UPPERCASE (A B C)</option>
             <option value="asis">As written in the word list</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="set-keycase">Keys on the keyboard look like</label>
+          <select id="set-keycase">
+            <option value="upper">UPPERCASE, like a real keyboard</option>
+            <option value="match">The same as the letters to find</option>
           </select>
         </div>
       </section>
@@ -306,7 +313,7 @@
   </div>
 </div>
 
-<script src="js/config.js?v=20261125f"></script>
-<script src="js/game.js?v=20261125f"></script>
+<script src="js/config.js?v=20261125g"></script>
+<script src="js/game.js?v=20261125g"></script>
 </body>
 </html>
