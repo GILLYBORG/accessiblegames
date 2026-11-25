@@ -1,0 +1,13 @@
+{
+  "name": "Sound It Out",
+  "short_name": "Sound It Out",
+  "description": "An accessible blending game: hear each letter sound, build the word.",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    { "src": "images/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "images/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

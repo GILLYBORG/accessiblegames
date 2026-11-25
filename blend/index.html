@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sound It Out</title>
+<meta name="description" content="An accessible blending game: tap each letter to hear its sound, put it in the box, then hear the sounds blend into a word.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Nunito:wght@800&display=swap">
+<!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
+<link rel="stylesheet" href="css/style.css?v=20261125a">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Sound It Out">
+<link rel="apple-touch-icon" href="images/icon-180.png">
+<link rel="icon" href="images/icon.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="app" id="app">
+  <!-- The game comes first in the page, so switches, Tab and screen readers reach
+       the letters straight away. The toolbar is drawn on top but comes after. -->
+  <main class="stage" id="stage">
+    <div class="top">
+      <div class="progress" id="progress" role="img" aria-label=""></div>
+      <p class="hint-line" id="hint-line" aria-hidden="true"></p>
+      <div class="pic-slot" id="pic-slot"><img class="word-pic" id="word-pic" src="" alt="" hidden></div>
+    </div>
+
+    <div class="boxes" id="boxes" role="group" aria-label="Word boxes"></div>
+
+    <div class="bottom">
+    <div class="tray" id="tray" role="group" aria-label="Letters"></div>
+
+    <div class="after" id="after" hidden>
+      <button type="button" class="btn btn-big" id="btn-replay">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <span>Hear it again</span>
+      </button>
+      <button type="button" class="btn btn-primary btn-big" id="btn-next">
+        <span id="next-label">Next word</span>
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    </div>
+  </main>
+
+  <header class="bar">
+    <div class="bar-text">
+      <h1 id="game-title">Sound It Out</h1>
+    </div>
+    <div class="actions" id="actions">
+      <button type="button" class="btn" id="btn-hear-word" hidden>
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <span>Hear the word</span>
+      </button>
+      <button type="button" class="btn" id="btn-directions">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2.3"/><path d="M9.3 9.3a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2 1-1.2 1.9v.4" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/><circle cx="12" cy="17.4" r="1.4" fill="currentColor"/></svg>
+        <span>Directions</span>
+      </button>
+      <button type="button" class="btn" id="btn-setup" aria-haspopup="dialog" aria-controls="panel-setup">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5z" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linejoin="round"/><path d="M7 11.5V16c0 1.5 2.2 3 5 3s5-1.5 5-3v-4.5M21 9v6" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/></svg>
+        <span>Teacher setup</span>
+      </button>
+      <button type="button" class="btn" id="btn-new">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v5h5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>New game</span>
+      </button>
+      <button type="button" class="btn" id="btn-settings" aria-haspopup="dialog" aria-controls="panel-settings">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="7" r="2.5" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="10" cy="17" r="2.5" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>
+        <span>Settings</span>
+      </button>
+      <button type="button" class="btn" id="btn-fullscreen">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="fullscreen-label">Full screen</span>
+      </button>
+    </div>
+  </header>
+
+  <button type="button" class="btn fs-exit" id="btn-exit-fs" hidden>
+    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Exit full screen</span>
+  </button>
+
+  <div class="sr-only" id="live" aria-live="polite" aria-atomic="true"></div>
+</div>
+
+<div class="overlay overlay-win" id="panel-done" role="dialog" aria-modal="true" aria-labelledby="done-title" aria-describedby="done-desc" hidden>
+  <div class="panel panel-win">
+    <div class="win-stars" aria-hidden="true">★ ★ ★</div>
+    <h2 id="done-title" tabindex="-1">You did it!</h2>
+    <p class="done-desc" id="done-desc"></p>
+    <p class="done-words" id="done-words"></p>
+    <div class="win-actions">
+      <button type="button" class="btn btn-primary btn-big" id="btn-again">Play again</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="panel-setup" role="dialog" aria-modal="true" aria-labelledby="setup-title" hidden>
+  <div class="panel panel-setup">
+    <div class="panel-head">
+      <h2 id="setup-title" tabindex="-1">Teacher setup</h2>
+      <button type="button" class="btn btn-primary" id="btn-setup-done">Start game</button>
+    </div>
+    <div class="panel-body">
+      <section aria-labelledby="words-title">
+        <h3 id="words-title">Words</h3>
+        <div class="field">
+          <label for="set-words">Words to build, one on each line</label>
+          <textarea id="set-words" class="text-in" rows="6" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-describedby="words-desc"></textarea>
+        </div>
+        <p class="help" id="words-desc">Each letter becomes a tile. "oo", "ea", "ee", "sh" and "ck" stay together as one tile with one sound. To choose the tiles yourself, use dashes: b-oo-k, sh-i-p.</p>
+        <p class="tiles-preview" id="tiles-preview" aria-live="polite"></p>
+        <div class="presets" id="word-presets"></div>
+      </section>
+
+      <section aria-labelledby="rules-title">
+        <h3 id="rules-title">The game</h3>
+        <div class="field">
+          <label for="set-turns">Words in a game</label>
+          <select id="set-turns">
+            <option value="3">3</option>
+            <option value="5">5</option>
+            <option value="8">8</option>
+            <option value="10">10</option>
+            <option value="0">All the words on the list</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="set-order">Word order</label>
+          <select id="set-order">
+            <option value="in">In order</option>
+            <option value="mix">Mixed up</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="set-place">Putting letters in the boxes</label>
+          <select id="set-place" aria-describedby="place-desc">
+            <option value="box">Tap a letter, then tap the box (or drag it)</option>
+            <option value="auto">Tap the right letter and it goes in by itself</option>
+          </select>
+        </div>
+        <p class="help" id="place-desc">Letters always fill the boxes from left to right. "By itself" takes the fewest taps, which helps switch users. Any letter can be tapped to hear its sound.</p>
+        <div class="field">
+          <label for="set-tiles">Letter tiles</label>
+          <select id="set-tiles">
+            <option value="mix">Mixed up</option>
+            <option value="in">In order</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="set-extra">Extra letters that are not in the word</label>
+          <select id="set-extra">
+            <option value="0">None</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="set-case">Letters look like</label>
+          <select id="set-case">
+            <option value="lower">lowercase (c a t)</option>
+            <option value="upper">UPPERCASE (C A T)</option>
+          </select>
+        </div>
+      </section>
+
+      <section aria-labelledby="help-title">
+        <h3 id="help-title">Help</h3>
+        <label class="toggle" for="set-ghost">
+          <input type="checkbox" id="set-ghost" aria-describedby="ghost-desc">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">Light gray letter in each box</span>
+        </label>
+        <p class="help" id="ghost-desc">Shows which letter goes in each box. Screen readers hear it too.</p>
+        <label class="toggle" for="set-say">
+          <input type="checkbox" id="set-say" aria-describedby="say-desc">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">Say the word at the start</span>
+        </label>
+        <p class="help" id="say-desc">Off: the word is a surprise that students hear at the end, after the sounds. On: they hear it first, and a Hear the word button appears.</p>
+        <div class="field">
+          <label for="set-pic">Show the picture</label>
+          <select id="set-pic">
+            <option value="end">At the end, with the word</option>
+            <option value="start">From the start</option>
+            <option value="never">Never</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="set-blend">When all the boxes are full</label>
+          <select id="set-blend">
+            <option value="word">Say each sound, then the word</option>
+            <option value="fast">Say each sound slowly, then quickly, then the word</option>
+          </select>
+        </div>
+      </section>
+
+      <section aria-labelledby="share-title" class="share">
+        <h3 id="share-title">Share this setup</h3>
+        <p class="help">Students who open this link get the same words and settings.</p>
+        <label class="toggle" for="set-lock">
+          <input type="checkbox" id="set-lock">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">Hide Teacher setup for students who use the link</span>
+        </label>
+        <label class="sr-only" for="share-link">Link to this setup</label>
+        <input type="text" class="share-link" id="share-link" readonly>
+        <div class="share-actions">
+          <button type="button" class="btn btn-primary" id="btn-copy-link">Copy link</button>
+          <button type="button" class="btn" id="btn-share-link" hidden>Share…</button>
+        </div>
+        <p class="copied" id="copied" aria-live="polite"></p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="panel-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+  <div class="panel">
+    <div class="panel-head">
+      <h2 id="settings-title" tabindex="-1">Settings</h2>
+      <button type="button" class="btn" data-close>Done</button>
+    </div>
+    <div class="panel-body">
+      <label class="toggle" for="set-voice">
+        <input type="checkbox" id="set-voice" aria-describedby="voice-desc">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">Voice</span>
+      </label>
+      <p class="help" id="voice-desc">Says the instructions and the whole word. Letter sounds always play.</p>
+      <div class="field">
+        <label for="set-voice-name">Which voice</label>
+        <select id="set-voice-name" aria-describedby="voice-name-desc">
+          <option value="">Automatic (the best voice on this device)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="set-rate">How fast the voice talks</label>
+        <select id="set-rate">
+          <option value="0.65">Very slow</option>
+          <option value="0.8">Slow</option>
+          <option value="0.95">Medium</option>
+          <option value="1.1">Fast</option>
+        </select>
+      </div>
+      <div class="share-actions"><button type="button" class="btn" id="btn-hear">Hear it</button></div>
+      <p class="help" id="voice-name-desc">Voices come from the device, so each iPad or Chromebook has its own list. For a more natural voice on an iPad: Settings, Accessibility, Spoken Content, Voices, English, then download a voice marked Enhanced or Premium (for example Ava or Zoe). On a Chromebook, the Google voices sound the most natural.</p>
+      <label class="toggle" for="set-sounds">
+        <input type="checkbox" id="set-sounds">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">Game sounds</span>
+      </label>
+      <div class="field">
+        <label for="set-volume">Volume</label>
+        <input type="range" id="set-volume" min="0" max="100" step="10">
+      </div>
+      <label class="toggle" for="set-animation">
+        <input type="checkbox" id="set-animation" aria-describedby="anim-desc">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">Movement effects</span>
+      </label>
+      <p class="help" id="anim-desc">Off: calm mode. No sliding, glowing or bouncing.</p>
+      <label class="toggle" for="set-contrast">
+        <input type="checkbox" id="set-contrast">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">High contrast</span>
+      </label>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="panel-fullscreen" role="dialog" aria-modal="true" aria-labelledby="fs-title" hidden>
+  <div class="panel">
+    <div class="panel-head">
+      <h2 id="fs-title" tabindex="-1">Play full screen</h2>
+      <button type="button" class="btn" data-close>Done</button>
+    </div>
+    <div class="panel-body prose">
+      <p>This browser cannot hide its own address bar, so the game has hidden its buttons instead. Use <strong>Exit full screen</strong> in the corner to get them back.</p>
+      <p>For true full screen on an iPhone or iPad, add the game to the Home Screen once. It then opens full screen every time.</p>
+      <ol>
+        <li>In Safari, tap the Share button (the square with an arrow). On a newer iPhone it may be under the <strong>⋯</strong> button.</li>
+        <li>Tap <strong>Add to Home Screen</strong>, then <strong>Add</strong>.</li>
+        <li>Open <strong>Sound It Out</strong> from the Home Screen.</li>
+      </ol>
+      <p>For a locked-down lesson, turn on <strong>Guided Access</strong> in iPad Settings under Accessibility, then triple-click the top or Home button inside the game.</p>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js?v=20261125a"></script>
+<script src="js/game.js?v=20261125a"></script>
+</body>
+</html>
