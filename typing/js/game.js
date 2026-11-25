@@ -607,15 +607,12 @@
     lightTarget();
   }
   // The words for "what to do now". whole: say the whole word first.
-  // In word mode the word is said once ("Type... cat"); single letters are only
-  // said when the student needs help (a wrong key, Where is it?, or a long pause).
+  // In word mode: "Type... cat. Find C", then "Find A" for each next letter.
+  // The letter the student just typed is not said back.
   function promptWords(whole) {
     var c = expected();
-    if (setup.mode === "words" && whole) return [phrase("type"), wordPart(item)];
+    if (setup.mode === "words" && whole) return [phrase("type"), wordPart(item), phrase("find"), keyPart(c)];
     return [phrase("find"), keyPart(c)];
-  }
-  function promptWithLetter() {
-    return setup.mode === "words" ? [phrase("type"), wordPart(item), phrase("find"), keyPart(expected())] : promptWords(false);
   }
 
   // Say the instruction again when nothing is pressed for a while (Teacher setup sets how long).
@@ -628,8 +625,7 @@
       if (finished || busy || openPanel || speaking) return;
       idleCount++;
       var say;
-      if (setup.mode === "words" && pos === 0 && idleCount === 1) say = promptWords(true);
-      else if (setup.mode === "words" && pos === 0) say = promptWithLetter();
+      if (setup.mode === "words" && pos === 0) say = promptWords(true);
       else say = promptWords(false);
       speak(say);
       announce(srPrompt());
@@ -735,8 +731,9 @@
       // Next letter of the word.
       startLetter();
       renderTarget();
-      // Word mode: just the click and the letter lighting up, no voice.
-      if (setup.mode !== "words") speak((settings.echo ? [keyPart(c)] : []).concat(promptWords(false)));
+      // Word mode: the typed letter is not said back, just "Find" and the next letter.
+      var echoed = settings.echo && setup.mode !== "words";
+      speak((echoed ? [keyPart(c)] : []).concat(promptWords(false)));
       announce(written(c) + ". " + srPrompt());
       return;
     }
