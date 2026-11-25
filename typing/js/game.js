@@ -74,7 +74,7 @@
       order: pick(s.order, ["mix", "in"], "mix"),
       hint: pick(s.hint, ["always", "wrong", "ask"], "always"),
       others: pick(s.others, ["show", "dim", "hide"], "show"),
-      letterCase: pick(s.letterCase, ["lower", "upper", "asis"], "lower"),
+      letterCase: pick(s.letterCase, ["lower", "upper", "asis"], "upper"),
       keyCase: pick(s.keyCase, ["upper", "match"], "upper"),
       wait: wait >= 0 && wait <= 5000 ? wait : 0
     };
@@ -110,16 +110,18 @@
 
   var setup = setupFromUrl();
   if (setup) {
-    try { localStorage.setItem(SETUP_KEY, JSON.stringify(setup)); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(SETUP_KEY, JSON.stringify(Object.assign({ caps2: true }, setup))); } catch (e) { /* ignore */ }
   } else {
     try {
       var savedSetup = JSON.parse(localStorage.getItem(SETUP_KEY) || "null");
+      // Setups saved before capitals became the default switch to capitals once.
+      if (savedSetup && !savedSetup.caps2 && savedSetup.letterCase === "lower") savedSetup.letterCase = "upper";
       if (savedSetup) setup = cleanSetup(savedSetup);
     } catch (e) { /* ignore */ }
     if (!setup) setup = cleanSetup(cfg.startSetup);
   }
   function saveSetup() {
-    try { localStorage.setItem(SETUP_KEY, JSON.stringify(setup)); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(SETUP_KEY, JSON.stringify(Object.assign({ caps2: true }, setup))); } catch (e) { /* ignore */ }
   }
 
   /* ---------- Elements ---------- */
@@ -508,6 +510,23 @@
   }
 
   /* ---------- Fit the game to the screen ---------- */
+  // Make the letter (or word) as big as the box allows.
+  function sizeTarget() {
+    var card = $("target-card");
+    var W = card.clientWidth - 32, H = card.clientHeight - 24;
+    if (W <= 0 || H <= 0) return;
+    H -= $("target-label").offsetHeight + 8;
+    var size;
+    if (setup.mode === "letters") {
+      size = Math.min(H * 0.86, W * 0.9);
+    } else {
+      var pic = $("word-pic");
+      if (!pic.hidden) H -= Math.min(160, Math.max(48, window.innerHeight * 0.12)) + 8;
+      var chars = Math.max(1, item.length);
+      size = Math.min(H * 0.8, W / (chars * 0.9));
+    }
+    targetEl.style.fontSize = Math.max(32, Math.floor(size)) + "px";
+  }
   function fitStage() {
     var W = kbEl.parentNode.clientWidth;
     var H = stage.clientHeight;
@@ -519,6 +538,7 @@
     var k = Math.max(26, Math.min(104, byW, byH));
     root.style.setProperty("--k", Math.floor(k) + "px");
     stage.classList.toggle("is-narrow", stage.clientWidth < 640);
+    sizeTarget();
   }
 
   /* ---------- Game state ---------- */
@@ -607,6 +627,7 @@
       s.textContent = c === " " ? "" : shown(c, true);
       targetEl.appendChild(s);
     });
+    sizeTarget();
     $("target-sr").textContent = srPrompt();
     typeBox.setAttribute("aria-label", "Typing box. " + srPrompt());
   }
