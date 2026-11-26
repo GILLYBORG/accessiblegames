@@ -898,6 +898,114 @@
     }
   }
 
+  /* ---------- Big fireworks sounds (regular mode): whistle, bang with echo, crackle ----------
+     Built from noise like real fireworks, so there are no sound files to licence.
+     Your own recordings can be used instead: see fireworksSounds in config.js. */
+  var fwBus = null, fwVerb = null, fwFiles = {};
+  function fireworksBus() {
+    if (fwBus || !actx) return fwBus;
+    // A firm limiter so the bangs are exciting but never painfully loud.
+    var lim = actx.createDynamicsCompressor();
+    lim.threshold.value = -20; lim.knee.value = 6; lim.ratio.value = 12;
+    lim.attack.value = 0.002; lim.release.value = 0.25;
+    var out = actx.createGain();
+    out.gain.value = 1.0;
+    lim.connect(out); out.connect(master);
+    fwBus = lim;
+    // Outdoor echo: a long, dark, decaying tail like a bang rolling round buildings.
+    fwVerb = actx.createConvolver();
+    var len = Math.round(actx.sampleRate * 2.8), ir = actx.createBuffer(2, len, actx.sampleRate);
+    for (var ch = 0; ch < 2; ch++) {
+      var d = ir.getChannelData(ch), lp = 0;
+      for (var i = 0; i < len; i++) {
+        var t = i / actx.sampleRate;
+        lp += ((Math.random() * 2 - 1) - lp) * 0.08; // darker tail
+        var slap = t > 0.32 && t < 0.38 ? 2.2 : 1;   // one clear echo off a wall
+        d[i] = lp * Math.pow(1 - i / len, 3.2) * slap;
+      }
+    }
+    fwVerb.buffer = ir;
+    var vg = actx.createGain();
+    vg.gain.value = 0.55;
+    fwVerb.connect(vg); vg.connect(lim);
+    // Optional recordings from config.js
+    var files = cfg.fireworksSounds || {};
+    Object.keys(files).forEach(function (k) {
+      if (!files[k] || !window.fetch) return;
+      fetch(files[k]).then(function (r) { return r.arrayBuffer(); }).then(function (data) {
+        return new Promise(function (ok, bad) { var p = actx.decodeAudioData(data, ok, bad); if (p && p.then) p.then(ok, bad); });
+      }).then(function (buf) { fwFiles[k] = buf; }).catch(function () { /* use the built-in sound */ });
+    });
+    return fwBus;
+  }
+  function fwNoise(t, dur, filterType, f0, f1, gain, attack, toVerb) {
+    var src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
+    src.buffer = noise();
+    f.type = filterType;
+    f.frequency.setValueAtTime(f0, t);
+    if (f1 !== f0) f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(gain, t + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f); f.connect(g); g.connect(fwBus);
+    if (toVerb) g.connect(fwVerb);
+    src.start(t, Math.random() * 1.5); src.stop(t + dur + 0.05);
+  }
+  function playFile(buf, gain) {
+    var s = actx.createBufferSource(), g = actx.createGain();
+    s.buffer = buf; g.gain.value = gain;
+    s.connect(g); g.connect(fwBus);
+    s.start();
+  }
+  function bigFirework(kind, opts) {
+    if (!audioReady() || !noise() || !fireworksBus()) return;
+    opts = opts || {};
+    var t = actx.currentTime + 0.01;
+    if (fwFiles[kind]) { playFile(fwFiles[kind], 0.9); return; }
+    if (kind === "launch") {
+      // a rising whistle with a rushing hiss
+      var dur = opts.dur || 1.1, o = actx.createOscillator(), og = actx.createGain(), vib = actx.createOscillator(), vg = actx.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(rand(700, 900), t);
+      o.frequency.exponentialRampToValueAtTime(rand(1900, 2500), t + dur);
+      vib.frequency.value = 22; vg.gain.value = 18;
+      vib.connect(vg); vg.connect(o.frequency);
+      og.gain.setValueAtTime(0.0001, t);
+      og.gain.linearRampToValueAtTime(0.05, t + 0.15);
+      og.gain.setValueAtTime(0.05, t + dur * 0.8);
+      og.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(og); og.connect(fwBus);
+      o.start(t); vib.start(t); o.stop(t + dur + 0.05); vib.stop(t + dur + 0.05);
+      fwNoise(t, dur, "bandpass", 1200, 4000, 0.12, dur * 0.6, false);
+      return;
+    }
+    if (kind === "bang") {
+      var big = opts.style === "willow" ? 0.8 : 1;
+      // the crack: very fast, bright, then dark
+      fwNoise(t, 0.6, "lowpass", 7000, 180, 0.9 * big, 0.003, true);
+      // the boom you feel
+      var b = actx.createOscillator(), bg = actx.createGain();
+      b.frequency.setValueAtTime(rand(75, 95), t);
+      b.frequency.exponentialRampToValueAtTime(38, t + 0.6);
+      bg.gain.setValueAtTime(0.0001, t);
+      bg.gain.linearRampToValueAtTime(0.75 * big, t + 0.008);
+      bg.gain.exponentialRampToValueAtTime(0.0001, t + 0.8);
+      b.connect(bg); bg.connect(fwBus); bg.connect(fwVerb);
+      b.start(t); b.stop(t + 0.85);
+      // rumbling tail
+      fwNoise(t + 0.05, 1.8, "lowpass", 400, 120, 0.25 * big, 0.08, true);
+      // crackle: lots of tiny pops as the stars burn
+      var pops = opts.style === "willow" ? 70 : opts.style === "globe" ? 45 : 25;
+      var start = opts.style === "willow" ? 0.5 : 0.35, spread = opts.style === "willow" ? 2.2 : 1.3;
+      if (fwFiles.crackle) { setTimeout(function () { playFile(fwFiles.crackle, 0.7); }, start * 1000); return; }
+      for (var i = 0; i < pops; i++) {
+        var pt = t + start + Math.pow(Math.random(), 0.8) * spread;
+        fwNoise(pt, rand(0.006, 0.02), "highpass", rand(1800, 4500), rand(1800, 4500), rand(0.05, 0.2), 0.001, i % 4 === 0);
+      }
+      if (opts.style === "willow") fwNoise(t + 0.4, 2.4, "highpass", 5000, 3000, 0.05, 0.6, false); // sizzle
+    }
+  }
+
   /* =====================================================================
      Activity 6: Fireworks (soft glowing bursts: no strobing, no screen flashes)
      ===================================================================== */
@@ -911,7 +1019,7 @@
       var x0 = clamp(tx + rand(-80, 80) * unit(), W * 0.05, W * 0.95);
       var dur = calm() ? 1.6 : 1.1;
       rockets.push({ x0: x0, y0: H + 10, x: x0, y: H + 10, tx: tx, ty: ty, t: 0, dur: dur, hue: rand(0, 360), trail: [] });
-      softNoise("whoosh", calm() ? 0.05 : 0.08);
+      if (calm()) softNoise("whoosh", 0.05); else bigFirework("launch", { dur: dur });
     }
     var burstIds = 0, liveBursts = {};
     function countBursts() { return Object.keys(liveBursts).length; }
@@ -931,8 +1039,12 @@
           drag: style === "ring" ? 1.6 : 1.1, id: id, tw: rand(0, TAU)
         });
       }
-      softNoise("thump", calm() ? 0.06 : 0.14);
-      chime(noteFreq(12 - (r.y / H) * 9), { gain: 0.1, decay: 2.2, delay: 0.08 });
+      if (calm()) { // calm mode keeps the soft sounds
+        softNoise("thump", 0.06);
+        chime(noteFreq(12 - (r.y / H) * 9), { gain: 0.1, decay: 2.2, delay: 0.08 });
+      } else {
+        bigFirework("bang", { style: style });
+      }
       announceSometimes("Fireworks!");
     }
     return {

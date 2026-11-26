@@ -21,7 +21,7 @@ Everything is drawn and played by the computer, so no pictures or sound files ar
 
 ## Calm and safe
 
-- Nothing flashes. Fireworks are soft glows with capped brightness, never a full-screen flash, and only a few can be in the sky at once however fast the switch is pressed. Calm mode makes the bangs quieter.
+- Nothing flashes. Fireworks are soft glows with capped brightness, never a full-screen flash, and only a few can be in the sky at once however fast the switch is pressed. In regular mode the fireworks whistle, bang and crackle (built from noise, limited so they are never painfully loud; your own recordings can be set in `fireworksSounds` in config.js). Calm mode keeps soft sounds.
 - Colour changes fade over about 2.5 seconds, however fast the switch is pressed.
 - **Calm mode** (Settings): slower movement, softer colours, quieter sounds, fewer things on screen. It is on automatically when the device is set to reduce motion.
 - Sounds are soft chimes from a pentatonic scale, so every mix of notes sounds pleasant.
