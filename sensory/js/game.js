@@ -211,6 +211,94 @@
     };
   }
 
+  /* ---------- Realistic bubbles (shared by Bubble Float and Fish Tank) ----------
+     Two layers, each drawn once and reused:
+       film: a clear centre, a bright rim and a rainbow soap-film shimmer (this layer slowly turns)
+       light: highlights that always stay on the top-left, where the light comes from */
+  var bubbleFilm = {}, bubbleLight = null, BS = 192;
+  function filmLayer(tint) {
+    var key = Math.round(tint / 30) * 30;
+    if (bubbleFilm[key]) return bubbleFilm[key];
+    var c = document.createElement("canvas");
+    c.width = c.height = BS;
+    var g = c.getContext("2d"), m = BS / 2, R = m - 2;
+    // rainbow shimmer around the edge: many thin wedges of colour
+    for (var i = 0; i < 72; i++) {
+      var a0 = i / 72 * TAU, a1 = (i + 1.3) / 72 * TAU;
+      var h = (key + Math.sin(a0 * 2) * 70 + Math.sin(a0 * 3 + 1) * 50 + 360) % 360;
+      g.fillStyle = "hsl(" + Math.round(h) + ",95%,65%)";
+      g.beginPath(); g.moveTo(m, m); g.arc(m, m, R, a0, a1); g.closePath(); g.fill();
+    }
+    // keep the colour only near the rim: clear in the middle, strongest just inside the edge
+    g.globalCompositeOperation = "destination-in";
+    var mask = g.createRadialGradient(m, m, 0, m, m, R);
+    mask.addColorStop(0, "rgba(0,0,0,0.03)");
+    mask.addColorStop(0.55, "rgba(0,0,0,0.07)");
+    mask.addColorStop(0.82, "rgba(0,0,0,0.32)");
+    mask.addColorStop(0.95, "rgba(0,0,0,0.6)");
+    mask.addColorStop(1, "rgba(0,0,0,0.15)");
+    g.fillStyle = mask;
+    g.fillRect(0, 0, BS, BS);
+    g.globalCompositeOperation = "source-over";
+    // bright, thin outer edge
+    g.lineWidth = 2;
+    g.strokeStyle = "rgba(255,255,255,0.55)";
+    g.beginPath(); g.arc(m, m, R - 1, 0, TAU); g.stroke();
+    g.lineWidth = 3;
+    g.strokeStyle = "rgba(255,255,255,0.12)";
+    g.beginPath(); g.arc(m, m, R - 5, 0, TAU); g.stroke();
+    bubbleFilm[key] = c;
+    return c;
+  }
+  function lightLayer() {
+    if (bubbleLight) return bubbleLight;
+    var c = document.createElement("canvas");
+    c.width = c.height = BS;
+    var g = c.getContext("2d"), m = BS / 2, R = m - 2;
+    // a soft curved window reflection on the top-left
+    g.save();
+    g.translate(m - R * 0.38, m - R * 0.42);
+    g.rotate(-0.75);
+    var w = g.createRadialGradient(0, 0, 0, 0, 0, R * 0.42);
+    w.addColorStop(0, "rgba(255,255,255,0.9)");
+    w.addColorStop(0.45, "rgba(255,255,255,0.45)");
+    w.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = w;
+    g.beginPath(); g.ellipse(0, 0, R * 0.42, R * 0.22, 0, 0, TAU); g.fill();
+    g.restore();
+    // a tiny bright sparkle
+    var d = g.createRadialGradient(m - R * 0.55, m - R * 0.2, 0, m - R * 0.55, m - R * 0.2, R * 0.08);
+    d.addColorStop(0, "rgba(255,255,255,0.95)");
+    d.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = d;
+    g.beginPath(); g.arc(m - R * 0.55, m - R * 0.2, R * 0.08, 0, TAU); g.fill();
+    // a faint second reflection on the opposite side (light passing through)
+    g.save();
+    g.translate(m + R * 0.45, m + R * 0.5);
+    g.rotate(-0.75);
+    var o = g.createRadialGradient(0, 0, 0, 0, 0, R * 0.3);
+    o.addColorStop(0, "rgba(255,255,255,0.35)");
+    o.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = o;
+    g.beginPath(); g.ellipse(0, 0, R * 0.3, R * 0.1, 0, 0, TAU); g.fill();
+    g.restore();
+    bubbleLight = c;
+    return c;
+  }
+  // phase makes the shimmer swirl and the bubble wobble a little as it floats.
+  function drawBubble(g, x, y, r, tint, phase) {
+    var sx = 1 + Math.sin(phase * 1.7) * 0.035, sy = 1 - Math.sin(phase * 1.7) * 0.035;
+    g.save();
+    g.translate(x, y);
+    g.scale(sx, sy);
+    g.save();
+    g.rotate(phase * 0.35);
+    g.drawImage(filmLayer(tint), -r, -r, r * 2, r * 2);
+    g.restore();
+    g.drawImage(lightLayer(), -r, -r, r * 2, r * 2);
+    g.restore();
+  }
+
   /* =====================================================================
      Activity 1: Light Painting
      ===================================================================== */
@@ -440,7 +528,7 @@
             g.drawImage(b.pic, b.x - r * 0.68, b.y - r * 0.68, r * 1.36, r * 1.36);
             g.globalAlpha = 1;
           }
-          g.drawImage(sprite(b.hue), b.x - r, b.y - r, r * 2, r * 2);
+          drawBubble(g, b.x, b.y, r, b.hue, b.ph);
         });
         pops.forEach(function (p) {
           var f = p.age / 0.9;
@@ -964,9 +1052,9 @@
           g.beginPath(); g.arc(fd.x, fd.y, easeOut(f) * 70 * unit() + 6, 0, TAU); g.stroke();
         });
         fish.forEach(function (f) { drawFish(g, f, time); });
-        g.strokeStyle = "rgba(220,245,255,0.7)";
+
         g.lineWidth = 1.5;
-        bubbles.forEach(function (b) { g.beginPath(); g.arc(b.x, b.y, b.r, 0, TAU); g.stroke(); });
+        bubbles.forEach(function (b) { drawBubble(g, b.x, b.y, b.r * 1.3, 190, b.ph); });
       }
     };
   }
