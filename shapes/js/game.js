@@ -135,8 +135,8 @@
     m.curved = true;
     return m;
   }
-  function sphere() {
-    var lat = 22, lon = 40, r = 1.15, v = [], f = [], i, j;
+  function sphere(r0, lat0, lon0) {
+    var lat = lat0 || 22, lon = lon0 || 40, r = r0 || 1.15, v = [], f = [], i, j;
     for (i = 0; i <= lat; i++) {
       var th = Math.PI * i / lat;
       for (j = 0; j < lon; j++) {
@@ -157,7 +157,7 @@
   // The game's shapes. level = the level that unlocks it.
   var SHAPES = {
     cube:       { name: "cube", a: "a", level: 1, color: "#5b8def", make: function () { return box(1, 1, 1); }, faces: 6, edges: 12, vertices: 8, rolls: false, point: false, tri: false, square: true },
-    sphere:     { name: "sphere", a: "a", level: 1, color: "#e8708f", make: sphere, curved: true, rolls: true, point: false, tri: false, square: false },
+    sphere:     { name: "sphere", a: "a", level: 1, color: "#e8708f", make: function () { return sphere(); }, curved: true, rolls: true, point: false, tri: false, square: false },
     cylinder:   { name: "cylinder", a: "a", level: 1, color: "#3fb6a8", make: cylinder, curved: true, rolls: true, point: false, tri: false, square: false },
     cone:       { name: "cone", a: "a", level: 1, color: "#f2a33a", make: cone, curved: true, rolls: true, point: true, tri: false, square: false },
     sqPyramid:  { name: "square pyramid", a: "a", level: 2, color: "#e9c84a", still: 0.2, make: function () { return pyramid(4, 1.25, -0.8, 1.05, Math.PI / 4); }, faces: 5, edges: 8, vertices: 5, rolls: false, point: true, tri: true, square: true },
@@ -186,7 +186,7 @@
 
   /* ---------- Drawing ---------- */
   var canvas = $("canvas"), ctx = canvas.getContext("2d");
-  var view = { key: null, mesh: null, color: "#5b8def", glass: false, spin: true, angle: 0.6, appear: 1, appearStart: 0, hl: null };
+  var view = { key: null, mesh: null, color: "#5b8def", glass: false, spin: true, angle: 0.6, appear: 1, appearStart: 0, hl: null, zoom: 1, target: null, objects: null, dragging: false };
   var dpr = 1, cw = 0, ch = 0;
   function fitCanvas() {
     var r = canvas.getBoundingClientRect();
@@ -212,16 +212,22 @@
     var dt = lastT ? Math.min(0.1, (t - lastT) / 1000) : 0;
     lastT = t;
     var speed = [0, 0.28, 0.6][settings.spin] || 0;
-    if (view.spin && speed) view.angle += dt * speed;
+    if (view.target) { // smooth turns when he says yes to "Turn it left?" etc.
+      var k = Math.min(1, dt * 5);
+      view.angle += (view.target.angle - view.angle) * k;
+      view.tilt += (view.target.tilt - view.tilt) * k;
+      view.zoom += (view.target.zoom - view.zoom) * k;
+    } else if (view.spin && speed && !view.dragging) view.angle += dt * speed;
     draw(t);
     requestAnimationFrame(frame);
   }
   function draw(t) {
     fitCanvas();
     ctx.clearRect(0, 0, cw, ch);
+    var hc = root.classList.contains("hc");
+    if (view.objects) { lab.draw(ctx, cw, ch, dpr, t, view.angle, view.tilt || 0.42, hc); return; }
     var m = view.mesh;
     if (!m) return;
-    var hc = root.classList.contains("hc");
     var a = view.angle, tilt = view.tilt || 0.42;
     var ca = Math.cos(a), sa = Math.sin(a), ct = Math.cos(tilt), st = Math.sin(tilt);
     var ease = 1;
@@ -229,7 +235,7 @@
       view.appear = Math.min(1, (t - view.appearStart) / 450);
       ease = 0.82 + 0.18 * (1 - Math.pow(1 - view.appear, 3));
     }
-    var D = 7, scale = Math.min(cw, ch * 1.05) * 0.33 / m.r * ease;
+    var D = 7, scale = Math.min(cw, ch * 1.05) * 0.33 / m.r * ease * (view.zoom || 1);
     var cx = cw / 2, cy = ch * 0.53;
     var P = m.v.map(function (p) {
       var x = p[0] * ca + p[2] * sa, z = -p[0] * sa + p[2] * ca, y = p[1];
@@ -238,7 +244,7 @@
     });
     var S2 = P.map(function (p) { var s = scale * D / (D - p[2]); return [cx + p[0] * s, cy - p[1] * s]; });
     var base = hexToRgb(hc ? "#ffffff" : view.color);
-    if (m.ball) { // a smooth ball looks better than lots of little faces
+    if (m.ball && !view.glass) { // a smooth ball looks better than lots of little faces
       var br = scale * m.ball * D / Math.sqrt(D * D - m.ball * m.ball);
       var lift = function (k) { return "rgb(" + Math.round(Math.min(255, base[0] * k)) + "," + Math.round(Math.min(255, base[1] * k)) + "," + Math.round(Math.min(255, base[2] * k)) + ")"; };
       var gr = ctx.createRadialGradient(cx - br * 0.38, cy - br * 0.42, br * 0.05, cx, cy, br);
@@ -436,7 +442,8 @@
     { id: "quiz", name: "Shape quiz", about: "Is it a cube? Can it roll?" },
     { id: "count", name: "Count it", about: "Faces, edges and vertices." },
     { id: "build", name: "Build it", about: "Make a shape with code." },
-    { id: "explore", name: "Explore", about: "Pick shapes to look at." }
+    { id: "explore", name: "Explore", about: "Turn, zoom and learn about shapes." },
+    { id: "code", name: "Code lab", about: "Write real JavaScript that builds 3D scenes." }
   ];
   var COLORS = [
     { name: "blue", hex: "#5b8def" }, { name: "green", hex: "#4fbf6a" }, { name: "orange", hex: "#f2a33a" },
@@ -520,7 +527,8 @@
       return { text: head, say: (full || c.first ? head + " " : pre) + "Is it " + n + "?", big: n + "?" };
     }
     if (q === "build") return buildQuestion(full);
-    if (q === "explore") return { text: "Look at " + aName(S.explore.list[S.explore.idx]) + "?" };
+    if (q === "explore") return exploreQuestion(full);
+    if (q === "code") return lab.question(full);
     return { text: "" };
   }
   function ask(full) {
@@ -541,16 +549,22 @@
   // The shape and extra panels for the current screen.
   function renderScreen() {
     el.modes.hidden = S.screen !== "menu";
-    el.code.hidden = S.screen !== "build";
+    el.code.hidden = S.screen !== "build" && S.screen !== "code";
+    $("code-tools").hidden = S.screen !== "code";
+    $("info").hidden = true;
+    if (S.screen !== "code") lab.leave();
     view.hl = null;
     view.glass = false;
     view.tilt = 0.42;
     view.spin = true;
-    if (S.screen === "menu") { markMode(); showShape(["cube", "triPrism", "sqPyramid", "sphere"][S.menu] || "cube", false); }
+    view.target = null;
+    view.zoom = 1;
+    if (S.screen === "menu") { markMode(); showShape(["cube", "triPrism", "sqPyramid", "sphere", "hexPrism"][S.menu] || "cube", false); }
     else if (S.screen === "quiz") showShape(S.quiz.shape, false);
     else if (S.screen === "count") { showShape(S.count.shape, false); view.glass = true; }
     else if (S.screen === "build") renderBuild();
-    else if (S.screen === "explore") showShape(S.explore.list[S.explore.idx], true);
+    else if (S.screen === "explore") renderExplore();
+    else if (S.screen === "code") lab.render();
   }
 
   /* One switch: no press before the wait ends counts as "not yes". */
@@ -595,6 +609,7 @@
     lastPress = now;
     if (!started) { started = true; sound("press"); ask(true); return; }
     if (paused) { silentRun = 0; ask(true); return; }
+    if (S.screen === "code" && lab.isRunning()) { lab.skip(); return; }
     if (S.phase !== "ask") return;
     if (now - askedAt < Math.min(400, settings.gap * 1000)) return;
     silentRun = 0;
@@ -615,6 +630,7 @@
     else if (S.screen === "count") answerCount(yes);
     else if (S.screen === "build") answerBuild(yes);
     else if (S.screen === "explore") answerExplore(yes);
+    else if (S.screen === "code") lab.answer(yes);
   }
   function say(text, next, pauseAfter) {
     S.phase = "busy";
@@ -631,6 +647,7 @@
     $("btn-undo").disabled = !undoStack.length;
     announce("Answer undone.");
     if (S.screen === "build" && S.build.running) S.build.running = false;
+    if (S.screen === "code") lab.stop();
     ask(true);
   }
   function sayAgain() {
@@ -654,7 +671,8 @@
     if (id === "quiz") newQuiz();
     if (id === "count") newCount();
     if (id === "build") newBuild();
-    if (id === "explore") S.explore = { list: unlocked(), idx: 0 };
+    if (id === "explore") S.explore = { list: unlocked(), idx: 0, inspect: false };
+    if (id === "code") lab.init();
     ask(true);
   }
 
@@ -934,19 +952,152 @@
     say(text + levelUpText(un), function () { ask(true); }, 1200);
   }
 
-  /* ---------- Explore ---------- */
+  /* ---------- Explore: turn, tip, zoom and learn about one shape ---------- */
+  // Info cards, pitched at secondary school. f = shown big, say = how it is read aloud.
+  var INFO = {
+    cube: [
+      { h: "Volume", f: "V = s³", say: "Volume equals s cubed: side times side times side." },
+      { h: "Surface area", f: "A = 6s²", say: "Surface area equals 6 s squared, because there are 6 square faces." },
+      { h: "In real life", f: "Dice, sugar cubes, ice cubes", say: "Dice, sugar cubes and ice cubes are cubes." },
+      { h: "Fun fact", f: "A Platonic solid", say: "The cube is one of only 5 Platonic solids: every face is the same regular shape, and the same number of faces meet at every corner." }
+    ],
+    sphere: [
+      { h: "Volume", f: "V = ⁴⁄₃ π r³", say: "Volume equals four thirds pi r cubed." },
+      { h: "Surface area", f: "A = 4 π r²", say: "Surface area equals 4 pi r squared." },
+      { h: "In real life", f: "Balls, planets, bubbles", say: "Balls, planets and bubbles are spheres." },
+      { h: "Fun fact", f: "Least surface for its volume", say: "A sphere holds the most volume for the least surface area. That's why bubbles and water drops pull into spheres." }
+    ],
+    cylinder: [
+      { h: "Volume", f: "V = π r² h", say: "Volume equals pi r squared times h: the area of the circle times the height." },
+      { h: "Surface area", f: "A = 2πr² + 2πrh", say: "Surface area equals 2 pi r squared for the two circles, plus 2 pi r h for the curved side." },
+      { h: "In real life", f: "Cans, pipes, batteries", say: "Cans, pipes and batteries are cylinders." },
+      { h: "Fun fact", f: "The side unrolls to a rectangle", say: "If you unroll the curved side of a cylinder, it becomes a rectangle 2 pi r wide." }
+    ],
+    cone: [
+      { h: "Volume", f: "V = ⅓ π r² h", say: "Volume equals one third pi r squared h." },
+      { h: "Surface area", f: "A = πr² + πrl", say: "Surface area equals pi r squared for the base, plus pi r l for the curved side, where l is the slant height." },
+      { h: "In real life", f: "Ice cream cones, traffic cones", say: "Ice cream cones and traffic cones are cones." },
+      { h: "Fun fact", f: "⅓ of a cylinder", say: "A cone holds exactly one third as much as a cylinder with the same base and height." }
+    ],
+    sqPyramid: [
+      { h: "Volume", f: "V = ⅓ b² h", say: "Volume equals one third times b squared times h, where b is the base side." },
+      { h: "Surface area", f: "A = b² + 2bl", say: "Surface area equals b squared for the base, plus 2 b l for the 4 triangles, where l is the slant height." },
+      { h: "In real life", f: "The pyramids of Giza", say: "The great pyramids of Giza in Egypt are square pyramids." },
+      { h: "Fun fact", f: "Tallest for 3,800 years", say: "The Great Pyramid was the tallest human-made structure in the world for about 3,800 years." }
+    ],
+    triPrism: [
+      { h: "Volume", f: "V = ½ b h × l", say: "Volume equals the triangle's area, one half b h, times the length l." },
+      { h: "Surface area", f: "2 triangles + 3 rectangles", say: "Surface area is the 2 triangle ends plus the 3 rectangle sides added together." },
+      { h: "In real life", f: "Tents, roofs, glass prisms", say: "Tents, roofs and glass prisms are triangular prisms." },
+      { h: "Fun fact", f: "It splits light", say: "A glass triangular prism splits white light into a rainbow." }
+    ],
+    cuboid: [
+      { h: "Volume", f: "V = l × w × h", say: "Volume equals length times width times height." },
+      { h: "Surface area", f: "A = 2(lw + lh + wh)", say: "Surface area equals 2 times, l w plus l h plus w h." },
+      { h: "In real life", f: "Books, bricks, boxes", say: "Books, bricks and cereal boxes are rectangular prisms." },
+      { h: "Fun fact", f: "Also called a cuboid", say: "A rectangular prism is also called a cuboid. A cube is a special cuboid where every side is the same." }
+    ],
+    triPyramid: [
+      { h: "Volume", f: "V = ⅓ × base area × h", say: "Volume equals one third times the base area times the height." },
+      { h: "Regular one", f: "V = a³ ⁄ (6√2)", say: "If every edge is length a, the volume is a cubed over 6 root 2." },
+      { h: "In real life", f: "4-sided dice", say: "4-sided dice are triangular pyramids. It is also called a tetrahedron." },
+      { h: "Fun fact", f: "Fewest faces possible", say: "With 4 faces, it has the fewest faces any shape with flat faces can have." }
+    ],
+    hexPrism: [
+      { h: "Volume", f: "V = (3√3 ⁄ 2) a² h", say: "Volume equals 3 root 3 over 2, times a squared, times h." },
+      { h: "Surface area", f: "2 hexagons + 6 rectangles", say: "Surface area is 2 hexagon ends plus 6 rectangle sides." },
+      { h: "In real life", f: "Pencils, nuts, honeycomb", say: "Pencils, nuts for bolts and honeycomb cells are hexagonal prisms." },
+      { h: "Fun fact", f: "Bees' favourite", say: "Bees build hexagonal cells because hexagons tile with no gaps and use the least wax." }
+    ],
+    pentPrism: [
+      { h: "Volume", f: "V = base area × h", say: "Volume equals the pentagon's area times the height. Every prism works this way." },
+      { h: "Pentagon area", f: "≈ 1.72 a²", say: "A regular pentagon with side a has an area of about 1.72 a squared." },
+      { h: "In real life", f: "Some buildings and boxes", say: "Some buildings, gift boxes and drawing pencils are pentagonal prisms." },
+      { h: "Fun fact", f: "Any polygon makes a prism", say: "Any flat polygon pulled straight up makes a prism. Try it in Code lab." }
+    ],
+    octahedron: [
+      { h: "Volume", f: "V = (√2 ⁄ 3) a³", say: "Volume equals root 2 over 3 times a cubed." },
+      { h: "Surface area", f: "A = 2√3 a²", say: "Surface area equals 2 root 3 a squared, for its 8 triangles." },
+      { h: "In real life", f: "8-sided dice, diamond crystals", say: "8-sided dice are octahedra, and natural diamond crystals often grow in this shape." },
+      { h: "Fun fact", f: "Two pyramids glued together", say: "An octahedron is two square pyramids glued base to base. It is a Platonic solid." }
+    ]
+  };
+  function infoCards(key) {
+    var s = SHAPES[key], vw = settings.vword, first;
+    if (s.curved) {
+      var parts = { sphere: "1 curved surface, no edges, no " + vw, cylinder: "2 flat circles + 1 curved surface", cone: "1 flat circle + 1 curved surface + 1 point" }[key];
+      first = { h: "Faces", f: parts, say: cap(aName(key)) + " has " + parts.replace("+", "and") + ". Euler's formula is only for shapes with flat faces, so it doesn't work here." };
+    } else {
+      first = { h: "Faces, edges, " + vw, f: "F = " + s.faces + " · E = " + s.edges + " · V = " + s.vertices,
+        say: cap(aName(key)) + " has " + s.faces + " faces, " + s.edges + " edges and " + s.vertices + " " + vw + ".",
+        sub: "Euler: V − E + F = " + s.vertices + " − " + s.edges + " + " + s.faces + " = 2" };
+      first.say += " Euler's formula: V minus E plus F equals " + s.vertices + " minus " + s.edges + " plus " + s.faces + ", which is 2. It works for every shape with flat faces.";
+    }
+    return [first].concat(INFO[key] || []);
+  }
+  var ACTIONS = ["info", "left", "right", "up", "down", "zin", "zout", "see", "next"];
+  function exploreQuestion(full) {
+    var x = S.explore, key = x.list[x.idx];
+    if (!x.inspect) return { text: "Look at " + aName(key) + "?" };
+    var a = ACTIONS[x.action];
+    var q = {
+      info: x.info < 0 ? "Tell me about it?" : "Tell me more?",
+      left: "Turn it left?", right: "Turn it right?", up: "Tip it up?", down: "Tip it down?",
+      zin: "Zoom in?", zout: "Zoom out?", see: x.see ? "Make it solid again?" : "See through it?",
+      next: "Look at a different shape?"
+    }[a];
+    return { text: q, say: (full && x.action === 0 && x.info < 0 ? "Here is " + aName(key) + ". " : "") + q };
+  }
+  function renderExplore() {
+    var x = S.explore, key = x.list[x.idx];
+    showShape(key, true);
+    if (!x.inspect) return;
+    view.spin = false;
+    view.glass = !!x.see && !SHAPES[key].curved;
+    view.target = { angle: x.yaw, tilt: x.pitch, zoom: x.zoom };
+    var box = $("info");
+    if (x.info >= 0) {
+      var cards = infoCards(key), c = cards[x.info % cards.length];
+      box.hidden = false;
+      box.innerHTML = '<p class="info-h"></p><p class="info-f"></p>' + '<p class="info-sub"></p>' + '<p class="info-n"></p>';
+      box.querySelector(".info-h").textContent = c.h;
+      box.querySelector(".info-f").textContent = c.f;
+      box.querySelector(".info-sub").textContent = c.sub || c.say;
+      box.querySelector(".info-n").textContent = "Card " + (x.info % cards.length + 1) + " of " + cards.length;
+    }
+  }
   function answerExplore(yes) {
-    var x = S.explore, key = x.list[x.idx], s = SHAPES[key];
-    var next = function () { x.list = unlocked(); x.idx = (x.idx + 1) % x.list.length; ask(false); };
-    if (!yes) { next(); return; }
-    var text;
-    if (key === "sphere") text = "A sphere is round like a ball. It has one curved surface and no edges or " + settings.vword + ". It can roll.";
-    else if (key === "cylinder") text = "A cylinder has 2 flat circle faces and a curved surface. It can roll.";
-    else if (key === "cone") text = "A cone has a flat circle face, a curved surface and a point at the top.";
-    else text = cap(aName(key)) + " has " + s.faces + " faces, " + s.edges + " edges and " + s.vertices + " " + settings.vword + ".";
-    if (!s.curved) { view.glass = true; }
-    sound("good");
-    say(text, function () { view.glass = false; next(); }, 1800);
+    var x = S.explore, key = x.list[x.idx];
+    if (!x.inspect) {
+      if (!yes) { x.list = unlocked(); x.idx = (x.idx + 1) % x.list.length; ask(false); return; }
+      x.inspect = true; x.action = 0; x.info = -1; x.see = false;
+      x.yaw = view.angle; x.pitch = 0.42; x.zoom = 1;
+      sound("good");
+      ask(true);
+      return;
+    }
+    var a = ACTIONS[x.action];
+    if (!yes) { x.action = (x.action + 1) % ACTIONS.length; ask(false); return; }
+    sound("tick");
+    if (a === "info") {
+      x.info += 1;
+      var cards = infoCards(key), c = cards[x.info % cards.length];
+      renderExplore();
+      say(c.say, function () { ask(false); }, 600);
+      return;
+    }
+    if (a === "left") x.yaw -= Math.PI / 4;
+    else if (a === "right") x.yaw += Math.PI / 4;
+    else if (a === "up") x.pitch = Math.min(1.45, x.pitch + 0.35);
+    else if (a === "down") x.pitch = Math.max(-1.45, x.pitch - 0.35);
+    else if (a === "zin") x.zoom = Math.min(2.2, x.zoom * 1.25);
+    else if (a === "zout") x.zoom = Math.max(0.5, x.zoom / 1.25);
+    else if (a === "see") x.see = !x.see;
+    else if (a === "next") {
+      x.inspect = false; x.list = unlocked(); x.idx = (x.idx + 1) % x.list.length;
+      ask(true); return;
+    }
+    ask(false);
   }
 
   /* ---------- Panels ---------- */
@@ -967,6 +1118,7 @@
     $("app").removeAttribute("aria-hidden");
     if (openedByKey && returnFocus && returnFocus.focus && !returnFocus.closest("[hidden]")) returnFocus.focus();
     if (S.build) S.build.running = false;
+    if (S.code) lab.stop();
     if (started && S.phase === "ask") ask(true);
     else if (S.phase === "busy") ask(true);
   }
@@ -1062,7 +1214,7 @@
   // After a tap or mouse click, take focus off toolbar buttons so a switch (Enter / Space) answers
   // the question instead of pressing that button again.
   document.addEventListener("click", function (e) {
-    var b = e.target.closest && e.target.closest(".bar button, .bar a, .mode, .question");
+    var b = e.target.closest && e.target.closest(".bar button, .bar a, .mode, .question, .code-tools button");
     if (b && e.detail > 0) setTimeout(function () { b.blur(); }, 0);
   });
   ["touchend", "click", "keydown"].forEach(function (type) { document.addEventListener(type, unlockAudio, true); });
@@ -1101,12 +1253,50 @@
   $("btn-fullscreen").addEventListener("click", toggleFullscreen);
   $("btn-exit-fs").addEventListener("click", toggleFullscreen);
 
+  /* ---------- Code lab (js/codelab.js) ---------- */
+  var lab = window.ShapeCodeLab({
+    state: function () { return S; },
+    ask: ask, say: say, later: later, sound: sound, addPoint: addPoint, renderScreen: renderScreen,
+    startMode: startMode, setQuestion: setQuestion, setBig: setBig, setFeedback: setFeedback,
+    label: function (t) { $("shape-name").textContent = t; },
+    view: view, el: el,
+    geo: { box: box, prism: prism, pyramid: pyramid, sphere: sphere, finish: finish, newell: newell, centroid: centroid }
+  });
+
+  /* ---------- Drag to turn the shape (adult or student with a pointer) ---------- */
+  var drag = null;
+  canvas.addEventListener("pointerdown", function (e) {
+    drag = { x: e.clientX, y: e.clientY, id: e.pointerId };
+    view.dragging = true;
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  });
+  canvas.addEventListener("pointermove", function (e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    var dx = (e.clientX - drag.x) * 0.01, dy = (e.clientY - drag.y) * 0.01;
+    drag.x = e.clientX; drag.y = e.clientY;
+    var tgt = view.target || view;
+    tgt.angle += dx;
+    tgt.tilt = Math.max(-1.45, Math.min(1.45, (tgt.tilt || 0.42) + dy));
+    if (view.target) { view.angle = tgt.angle; view.tilt = tgt.tilt; }
+    if (S.screen === "explore" && S.explore.inspect) { S.explore.yaw = tgt.angle; S.explore.pitch = tgt.tilt; }
+  });
+  function endDrag() { drag = null; view.dragging = false; }
+  canvas.addEventListener("pointerup", endDrag);
+  canvas.addEventListener("pointercancel", endDrag);
+  canvas.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    var z = Math.max(0.5, Math.min(2.2, ((view.target || view).zoom || 1) * (e.deltaY < 0 ? 1.1 : 0.9)));
+    if (view.target) view.target.zoom = z; else view.zoom = z;
+    if (S.screen === "explore" && S.explore.inspect) S.explore.zoom = z;
+  }, { passive: false });
+
   /* ---------- Start ---------- */
   applySettings();
   bindSettings();
   buildModes();
   renderHud();
   var startId = params.get("mode");
+  if (lab.fromHash()) startId = "code";
   if (MODES.some(function (m) { return m.id === startId; })) startMode(startId, false);
   else ask(true);
   // Until the first tap or key, browsers block speech, so show how to begin.
