@@ -19,10 +19,11 @@
     wordLists: userCfg.wordLists || [],
     startSetup: userCfg.startSetup || {},
     teams: userCfg.teams || {},
+    soundSets: userCfg.soundSets || [],
     phrases: Object.assign({ build: "Build the word", buildSecret: "Build a word", tryAgain: "Try again.", great: "You did it!" }, userCfg.phrases || {}),
     recordings: Object.assign({ sounds: "sounds/{key}.wav", words: {}, build: "", tryAgain: "", great: "" }, userCfg.recordings || {}),
     voiceRate: typeof userCfg.voiceRate === "number" ? userCfg.voiceRate : 0.8,
-    defaults: Object.assign({ voice: true, voiceName: "", rate: userCfg.voiceRate || 0.8, sounds: true, volume: 90, animation: true, highContrast: false }, userCfg.defaults || {})
+    defaults: Object.assign({ voice: true, voiceName: "", rate: userCfg.voiceRate || 0.8, soundSet: "", sounds: true, volume: 90, animation: true, highContrast: false }, userCfg.defaults || {})
   };
   var root = document.documentElement;
 
@@ -160,7 +161,18 @@
     if (AC) actx = new AC();
   } catch (e) { actx = null; }
   var buffers = {}, loading = {};
-  function soundUrl(key) { return cfg.recordings.sounds.replace("{key}", key); }
+  // The letter sounds come from the voice chosen in Settings (or the config default).
+  function soundSet() {
+    for (var i = 0; i < cfg.soundSets.length; i++) if (cfg.soundSets[i].id === settings.soundSet) return cfg.soundSets[i];
+    return null;
+  }
+  function soundUrl(key) {
+    var set = soundSet();
+    return (set ? set.sounds : cfg.recordings.sounds).replace("{key}", key);
+  }
+  function loadAllSounds() {
+    "abcdefghijklmnopqrstuvwxyz".split("").forEach(function (c) { loadSound(soundUrl(c)); });
+  }
   function loadSound(url) {
     if (buffers[url] || loading[url] || !actx || !window.fetch) return;
     loading[url] = true;
@@ -1061,6 +1073,19 @@
     vname.addEventListener("change", function () { settings.voiceName = vname.value; saveSettings(); pickVoice(); hush(); play("cat."); });
     rate.addEventListener("change", function () { settings.rate = Number(rate.value); saveSettings(); hush(); play("cat."); });
     $("btn-hear").addEventListener("click", sample);
+    var setSel = $("set-sound-set");
+    if (setSel) {
+      cfg.soundSets.forEach(function (x) {
+        var o = document.createElement("option"); o.value = x.id; o.textContent = x.name; setSel.appendChild(o);
+      });
+      if (!soundSet() && cfg.soundSets.length) settings.soundSet = cfg.soundSets[0].id;
+      setSel.value = settings.soundSet;
+      setSel.parentNode.hidden = cfg.soundSets.length < 2;
+      setSel.addEventListener("change", function () {
+        settings.soundSet = setSel.value; saveSettings(); loadAllSounds();
+        hush(); play([{ snd: soundUrl("c") }, { snd: soundUrl("a") }, { snd: soundUrl("t") }]);
+      });
+    }
     sounds.addEventListener("change", function () { settings.sounds = sounds.checked; saveSettings(); sfxPlace(); });
     volEl.addEventListener("input", function () {
       settings.volume = Number(volEl.value);
@@ -1132,7 +1157,7 @@
   }
 
   /* ---------- Start ---------- */
-  "abcdefghijklmnopqrstuvwxyz".split("").forEach(function (c) { loadSound(soundUrl(c)); });
+  loadAllSounds();
   applySettings();
   bindSettings();
   newGame();
