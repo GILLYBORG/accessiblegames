@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hot and Cold</title>
+<meta name="description" content="Heat and cool ice, water, chocolate and crayon wax. Watch solids melt, liquids freeze and water boil. A Grade 2 science simulator that works with touch, keyboard, switches and screen readers.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Nunito:wght@800&display=swap">
+<!-- When you change css or js files, change the ?v= number so iPads load the new version. -->
+<link rel="stylesheet" href="../common/sim.css?v=20261126a">
+<link rel="manifest" href="../manifest.webmanifest">
+<meta name="theme-color" content="#101a30">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Science">
+<link rel="apple-touch-icon" href="../images/icon-180.png">
+<link rel="icon" href="../images/icon.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="app">
+  <header class="bar">
+    <h1><span class="grade">Grade 2</span>Hot and Cold</h1>
+    <div class="actions">
+      <a class="btn" id="btn-home" href="../../">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5M5.5 9.5V20h5v-6h3v6h5V9.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Home</span>
+      </a>
+      <a class="btn" id="btn-science" href="../">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5.5 9.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linejoin="round"/><path d="M7.5 15h9" stroke="currentColor" stroke-width="2.3"/></svg>
+        <span>Science</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="sim">
+    <section class="scene" aria-label="The pot and thermometer">
+      <svg id="scene" viewBox="0 0 900 560" role="img" aria-labelledby="scene-desc"></svg>
+      <p class="sr-only" id="scene-desc"></p>
+    </section>
+
+    <section class="controls" aria-label="Change things">
+      <div class="card"><h2>Set up</h2><div id="setup-controls"></div></div>
+      <div class="card"><h2>Time</h2><div id="time-controls"></div></div>
+    </section>
+
+    <section class="notice card" aria-labelledby="notice-title">
+      <h2 id="notice-title">What I notice</h2>
+      <div id="notice"></div>
+      <div class="row" style="margin-top:10px"><button type="button" class="btn" id="btn-describe"></button></div>
+    </section>
+
+    <section class="data card" aria-labelledby="data-title">
+      <h2 id="data-title">Results: temperature over time</h2>
+      <div class="data-body"><div id="chart"></div><div id="table"></div></div>
+      <div class="data-tools"><button type="button" class="btn" id="btn-csv"></button></div>
+    </section>
+  </main>
+</div>
+<script src="../common/sim.js?v=20261126a"></script>
+<script src="hot-cold.js?v=20261126a"></script>
+</body>
+</html>
