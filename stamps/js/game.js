@@ -12,7 +12,16 @@
   var params = new URLSearchParams(location.search);
 
   var SIZES = { s: 0.1, m: 0.14, l: 0.2, xl: 0.27 };
-  var BGS = { white: 1, cream: 1, sky: 1, grass: 1, black: 1 };
+  // Steps for the Bigger and Smaller buttons (part of the page width).
+  var LEVELS = [0.06, 0.08, 0.1, 0.14, 0.2, 0.27, 0.36, 0.46];
+  function levelFor(f) {
+    var best = 0;
+    LEVELS.forEach(function (v, i) { if (Math.abs(v - f) < Math.abs(LEVELS[best] - f)) best = i; });
+    return best;
+  }
+  var BGS = { white: 1, cream: 1, sky: 1, grass: 1, black: 1, farm: 2, sea: 2, beach: 2, road: 2, snow: 2, space: 2 };
+  // A teacher's own background picture lives only in memory (never saved, never in a link).
+  var ownBg = null;
   var ASPECT = 0.75; // paper height / width
 
   /* ---------- Stamps: "m:dog~name" ---------- */
@@ -60,7 +69,7 @@
 
   /* ---------- Teacher setup (from the link, else this device) ---------- */
   function defaultSetup() {
-    return { stamps: parseList(cfg.defaultStamps.join("|")), size: "m", bg: "white", words: false };
+    return { stamps: parseList(cfg.defaultStamps.join("|")), size: "m", bg: "white", words: false, grow: true };
   }
   var setup = defaultSetup();
   var fromLink = params.has("s");
@@ -70,6 +79,7 @@
     if (SIZES[params.get("size")]) setup.size = params.get("size");
     if (BGS[params.get("bg")]) setup.bg = params.get("bg");
     setup.words = params.get("words") === "1";
+    setup.grow = params.get("grow") !== "0";
   } else {
     try {
       var ss = JSON.parse(localStorage.getItem(SETUP_KEY) || "null");
@@ -79,6 +89,7 @@
         if (SIZES[ss.size]) setup.size = ss.size;
         if (BGS[ss.bg]) setup.bg = ss.bg;
         setup.words = !!ss.words;
+        setup.grow = ss.grow !== false;
       }
     } catch (e) { /* ignore */ }
   }
@@ -87,7 +98,7 @@
     try {
       localStorage.setItem(SETUP_KEY, JSON.stringify({
         s: setup.stamps.map(function (s) { return stampCode(s); }).join("|"),
-        size: setup.size, bg: setup.bg, words: setup.words }));
+        size: setup.size, bg: setup.bg, words: setup.words, grow: setup.grow }));
     } catch (e) { /* ignore */ }
   }
   function setupQuery(su, lock) {
@@ -96,6 +107,7 @@
     if (su.size !== "m") q.set("size", su.size);
     if (su.bg !== "white") q.set("bg", su.bg);
     if (su.words) q.set("words", "1");
+    if (!su.grow) q.set("grow", "0");
     if (lock) q.set("lock", "1");
     return q.toString().replace(/%7C/gi, "|").replace(/%3A/gi, ":").replace(/%7E/gi, "~");
   }
@@ -197,13 +209,31 @@
     } catch (e) { /* ignore */ }
   }
 
+  // A short rising or falling "whoop" for Bigger / Smaller.
+  function growSound(dir) {
+    if (!settings.sounds || !actx || settings.volume <= 0) return;
+    try {
+      var vol = settings.volume / 100, t0 = actx.currentTime + 0.01;
+      var o = actx.createOscillator(), g = actx.createGain();
+      o.type = "triangle";
+      o.frequency.setValueAtTime(dir > 0 ? 330 : 660, t0);
+      o.frequency.exponentialRampToValueAtTime(dir > 0 ? 660 : 330, t0 + 0.18);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.25 * vol, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
+      o.connect(g); g.connect(actx.destination);
+      o.start(t0); o.stop(t0 + 0.25);
+    } catch (e) { /* ignore */ }
+  }
+
   /* ---------- Page (paper) ---------- */
   var paper = $("paper"), layer = $("stamps-layer"), spotsLayer = $("spots-layer"), cursorEl = $("cursor");
   var placed = [];          // { st, x, y, el }  x, y are 0..1 of the paper
   var current = 0;          // index of the chosen stamp
   var cursor = { x: 0.5, y: 0.5 };
 
-  function sizeFrac() { return SIZES[setup.size] || SIZES.m; }
+  var level = levelFor(SIZES[setup.size] || SIZES.m);
+  function sizeFrac() { return LEVELS[level]; }
   function plural(word, n) {
     if (n === 1) return word;
     if (/(s|x|z|ch|sh)$/.test(word)) return word + "es";
@@ -233,7 +263,7 @@
   function makeStampEl(p, animate) {
     var el = document.createElement("div");
     el.className = "stamp" + (animate && settings.animation ? " pop" : "");
-    var f = sizeFrac();
+    var f = p.f || sizeFrac();
     el.style.left = (p.x * 100) + "%";
     el.style.top = (p.y * 100) + "%";
     el.style.width = (f * 100) + "%";
@@ -252,7 +282,9 @@
   }
   function redrawPaper() {
     layer.textContent = "";
-    paper.className = "paper bg-" + setup.bg;
+    paper.className = "paper bg-" + setup.bg + (BGS[setup.bg] === 2 || ownBg ? " bg-scene" : "");
+    var pic = ownBg || (BGS[setup.bg] === 2 ? "backgrounds/" + setup.bg + ".svg" : "");
+    paper.style.backgroundImage = pic ? 'url("' + pic + '")' : "";
     placed.forEach(function (p) { p.el = makeStampEl(p, false); layer.appendChild(p.el); });
     updatePaperLabel();
   }
@@ -264,7 +296,7 @@
     var f = sizeFrac(), half = f / 2, halfY = half / ASPECT;
     x = clamp(x, half * 0.6, 1 - half * 0.6);
     y = clamp(y, halfY * 0.6, 1 - halfY * 0.6);
-    var p = { st: st, x: x, y: y };
+    var p = { st: st, x: x, y: y, f: f };
     p.el = makeStampEl(p, true);
     layer.appendChild(p.el);
     placed.push(p);
@@ -283,6 +315,42 @@
     speak("Undo");
     updatePaperLabel();
   }
+  // Bigger / Smaller: the last stamp changes size, and new stamps use the new size.
+  function grow(dir) {
+    var next = Math.max(0, Math.min(LEVELS.length - 1, level + dir));
+    if (next === level) {
+      var w = dir > 0 ? "That's the biggest." : "That's the smallest.";
+      speak(w); announce(w);
+      return;
+    }
+    level = next;
+    var last = placed[placed.length - 1];
+    if (last) {
+      last.f = sizeFrac();
+      var half = last.f / 2, halfY = half / ASPECT;
+      last.x = clamp(last.x, half * 0.6, 1 - half * 0.6);
+      last.y = clamp(last.y, halfY * 0.6, 1 - halfY * 0.6);
+      if (last.el) {
+        last.el.style.width = (last.f * 100) + "%";
+        last.el.style.left = (last.x * 100) + "%";
+        last.el.style.top = (last.y * 100) + "%";
+        if (settings.animation) { last.el.classList.remove("pop"); void last.el.offsetWidth; last.el.classList.add("pop"); }
+      }
+    }
+    if (cursorShown) showCursor();
+    growSound(dir);
+    speak(dir > 0 ? "Bigger" : "Smaller");
+    announce((dir > 0 ? "Bigger" : "Smaller") + (last ? ". " + last.st.label + " is now size " : ". Size ") + (level + 1) + " of " + LEVELS.length + ".");
+    updateGrowTiles();
+  }
+  function updateGrowTiles() {
+    if (!growTiles) return;
+    growTiles[0].setAttribute("aria-label", "Bigger, size " + (level + 1) + " of " + LEVELS.length);
+    growTiles[1].setAttribute("aria-label", "Smaller, size " + (level + 1) + " of " + LEVELS.length);
+    growTiles[0].classList.toggle("is-limit", level === LEVELS.length - 1);
+    growTiles[1].classList.toggle("is-limit", level === 0);
+  }
+
   var clearArmed = null;
   function resetClear() {
     if (clearArmed) { clearTimeout(clearArmed); clearArmed = null; }
@@ -314,8 +382,14 @@
     return { x: (c + 0.5) * g.w, y: (r + 0.5) * g.h - (setup.words ? g.h * 0.06 : 0) };
   }
   function nextSpot() {
-    var g = spotGrid(), n = placed.length % (g.cols * g.rows);
-    return spotCenter(g, Math.floor(n / g.cols), n % g.cols);
+    var g = spotGrid(), total = g.cols * g.rows;
+    for (var n = 0; n < total; n++) {
+      var c = spotCenter(g, Math.floor(n / g.cols), n % g.cols);
+      var taken = placed.some(function (p) { return Math.abs(p.x - c.x) < g.w * 0.5 && Math.abs(p.y - c.y) < g.h * 0.5; });
+      if (!taken) return c;
+    }
+    var m = placed.length % total;
+    return spotCenter(g, Math.floor(m / g.cols), m % g.cols);
   }
   function randomSpot() {
     var f = sizeFrac(), best = null, bestD = -1;
@@ -384,7 +458,18 @@
 
   /* ---------- Tray of stamps ---------- */
   var tray = $("tray");
-  var undoTile = null;
+  var undoTile = null, growTiles = null;
+  function makeToolTile(cls, svg, text, fn) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "tile tile-tool " + cls;
+    b.innerHTML = svg + '<span class="t-name">' + text + "</span>";
+    b.addEventListener("click", function () {
+      if (settings.scan && scan.phase !== "tray") return;
+      fn();
+    });
+    return b;
+  }
   function choose(i, quiet) {
     if (!setup.stamps[i]) return;
     current = i;
@@ -414,9 +499,15 @@
       });
       tray.appendChild(b);
     });
+    growTiles = [
+      makeToolTile("tile-grow", '<svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M12 6.5v11M6.5 12h11" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>', "Bigger", function () { grow(1); }),
+      makeToolTile("tile-shrink", '<svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M6.5 12h11" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>', "Smaller", function () { grow(-1); })
+    ];
+    growTiles.forEach(function (t) { t.hidden = !setup.grow; tray.appendChild(t); });
+    updateGrowTiles();
     undoTile = document.createElement("button");
     undoTile.type = "button";
-    undoTile.className = "tile tile-undo";
+    undoTile.className = "tile tile-tool tile-undo";
     undoTile.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg><span class="t-name">Undo</span>';
     undoTile.addEventListener("click", undo);
     tray.appendChild(undoTile);
@@ -508,7 +599,7 @@
     if (t.scrollIntoView) t.scrollIntoView({ block: "nearest", inline: "nearest" });
     if (sayIt) {
       var i = t.getAttribute("data-i");
-      speak(i === null ? "Undo" : setup.stamps[Number(i)].label);
+      speak(i === null ? t.querySelector(".t-name").textContent : setup.stamps[Number(i)].label);
     }
   }
   function scanStep() {
@@ -566,6 +657,7 @@
       var t = trayItems()[scan.index];
       if (!t) return;
       if (t === undoTile) { undo(); startScan(scan.index, true); return; }
+      if (growTiles && growTiles.indexOf(t) >= 0) { grow(t === growTiles[0] ? 1 : -1); startScan(scan.index, true); return; }
       choose(Number(t.getAttribute("data-i")), true);
       if (settings.spot === "choose") {
         speak(setup.stamps[current].label + ". Where?");
@@ -595,6 +687,8 @@
     if (openPanel || e.ctrlKey || e.metaKey || e.altKey || IGNORE[e.key]) return;
     if (e.target && e.target.closest && e.target.closest(".bar, .fs-exit, .credit")) return;
     if (!settings.scan) {
+      if (setup.grow && (e.key === "+" || e.key === "=")) { e.preventDefault(); grow(1); return; }
+      if (setup.grow && (e.key === "-" || e.key === "_")) { e.preventDefault(); grow(-1); return; }
       // Number keys choose a stamp.
       if (/^[1-9]$/.test(e.key) && setup.stamps[Number(e.key) - 1]) {
         e.preventDefault();
@@ -636,20 +730,27 @@
     var bgCol = getComputedStyle(paper).backgroundColor || "#fff";
     ctx.fillStyle = bgCol; ctx.fillRect(0, 0, W, Hh);
     var cache = {};
-    var jobs = placed.map(function (p) {
+    var bgSrc = ownBg || (BGS[setup.bg] === 2 ? "backgrounds/" + setup.bg + ".svg" : "");
+    var jobs = [bgSrc ? loadImg(bgSrc, false) : Promise.resolve(null)].concat(placed.map(function (p) {
       var src = stampSrc(p.st);
       if (!cache[src]) cache[src] = loadImg(src, p.st.lib === "a");
       return cache[src];
-    });
+    }));
     $("btn-save").setAttribute("aria-busy", "true");
     Promise.all(jobs).then(function (imgs) {
-      var f = sizeFrac() * W, missing = 0;
+      var bgImg = imgs.shift();
+      if (bgImg) { // cover the page, like the screen does
+        var iw = bgImg.naturalWidth || W, ih = bgImg.naturalHeight || Hh;
+        var sc = Math.max(W / iw, Hh / ih);
+        ctx.drawImage(bgImg, (W - iw * sc) / 2, (Hh - ih * sc) / 2, iw * sc, ih * sc);
+      }
+      var missing = 0;
       var fg = setup.bg === "black" ? "#fff" : "#0f1d3a";
       ctx.font = "700 " + Math.round(W * 0.024) + "px 'Atkinson Hyperlegible', Verdana, sans-serif";
       ctx.textAlign = "center"; ctx.textBaseline = "top";
       placed.forEach(function (p, i) {
         var im = imgs[i];
-        var cx = p.x * W, cy = p.y * Hh;
+        var f = (p.f || sizeFrac()) * W, cx = p.x * W, cy = p.y * Hh;
         var top = cy - f / 2 - (setup.words ? W * 0.015 : 0);
         if (!im) { missing++; return; }
         if (setup.bg === "black") { ctx.fillStyle = "#fff"; ctx.fillRect(cx - f / 2, top, f, f); }
@@ -722,7 +823,7 @@
   var draft = null, lib = "m";
   function cloneSetup(su) {
     return { stamps: su.stamps.map(function (s) { return { lib: s.lib, id: s.id, label: s.label }; }),
-             size: su.size, bg: su.bg, words: su.words };
+             size: su.size, bg: su.bg, words: su.words, grow: su.grow };
   }
   function inDraft(libId, id) {
     for (var i = 0; i < draft.stamps.length; i++) if (draft.stamps[i].lib === libId && draft.stamps[i].id === String(id)) return i;
@@ -946,6 +1047,9 @@
     $("set-size").value = draft.size;
     $("set-bg").value = draft.bg;
     $("set-words").checked = draft.words;
+    $("set-grow").checked = draft.grow;
+    draftOwn = ownBg;
+    showOwn();
     renderChosen();
     renderResults([], "");
     updateShare();
@@ -955,11 +1059,39 @@
   $("set-size").addEventListener("change", function () { draft.size = $("set-size").value; updateShare(); });
   $("set-bg").addEventListener("change", function () { draft.bg = $("set-bg").value; updateShare(); });
   $("set-words").addEventListener("change", function () { draft.words = $("set-words").checked; updateShare(); });
+  var draftOwn = null;
+  function showOwn() {
+    $("own-preview").hidden = !draftOwn;
+    if (draftOwn) $("own-preview").src = draftOwn;
+    $("own-remove").hidden = !draftOwn;
+    $("own-pick").textContent = draftOwn ? "Choose another picture…" : "Choose a picture…";
+  }
+  $("own-pick").addEventListener("click", function () { $("own-file").click(); });
+  $("own-file").addEventListener("change", function () {
+    var f = $("own-file").files && $("own-file").files[0];
+    $("own-file").value = "";
+    if (!f || !/^image\//.test(f.type)) return;
+    if (draftOwn && draftOwn !== ownBg) URL.revokeObjectURL(draftOwn);
+    draftOwn = URL.createObjectURL(f);
+    showOwn();
+    setupSay("Background picture chosen. It will not be saved.");
+  });
+  $("own-remove").addEventListener("click", function () {
+    if (draftOwn && draftOwn !== ownBg) URL.revokeObjectURL(draftOwn);
+    draftOwn = null;
+    showOwn();
+    $("own-pick").focus();
+    setupSay("Background picture removed.");
+  });
+  $("set-grow").addEventListener("change", function () { draft.grow = $("set-grow").checked; updateShare(); });
   $("set-lock").addEventListener("change", updateShare);
   function applyDraft() {
     if (!draft || !draft.stamps.length) return;
     var curSt = setup.stamps[current];
+    if (draft.size !== setup.size) level = levelFor(SIZES[draft.size] || SIZES.m);
     setup = cloneSetup(draft);
+    if (ownBg && ownBg !== draftOwn) URL.revokeObjectURL(ownBg);
+    ownBg = draftOwn;
     current = 0;
     if (curSt) setup.stamps.forEach(function (s, i) { if (s.lib === curSt.lib && s.id === curSt.id) current = i; });
     saveSetup();
