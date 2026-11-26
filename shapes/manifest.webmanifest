@@ -1,0 +1,13 @@
+{
+  "name": "Shape Explorer",
+  "short_name": "Shapes",
+  "description": "Explore 3D shapes by answering yes or not yes.",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#101a30",
+  "theme_color": "#101a30",
+  "icons": [
+    { "src": "images/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "images/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

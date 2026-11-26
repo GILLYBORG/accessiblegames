@@ -21,4 +21,4 @@ Example: `https://gillyborg.github.io/accessiblegames/?scan=1&speed=3&talk=1`
 Copy one `<li>` block in `index.html` and change the link, picture, accent colour, name and the short line.
 Pictures are 800 x 600 JPEGs in `home/thumbs/` (screenshots of each game with its toolbar hidden).
 
-`icon.svg` / `icon-*.png` are the Home Screen icon for the whole site. It opens in the browser (not as a full-screen app) on purpose, so the Back button still works: the games do not have their own Home button yet.
+`icon.svg` / `icon-*.png` are the Home Screen icon for the whole site. It opens in the browser (not as a full-screen app) on purpose, so the Back button still works.

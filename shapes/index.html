@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shape Explorer</title>
+<meta name="description" content="Explore 3D shapes by answering yes or not yes. Partner-assisted: an adult presses Yes or Not yes for the student. Works with touch, keyboard and switches.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Nunito:wght@800&display=swap">
+<!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
+<link rel="stylesheet" href="css/style.css?v=20261126a">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#101a30">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Shapes">
+<link rel="apple-touch-icon" href="images/icon-180.png">
+<link rel="icon" href="images/icon.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="app" id="app">
+  <header class="bar">
+    <h1>Shape Explorer</h1>
+    <div class="actions">
+      <a class="btn" id="btn-home" href="../" style="text-decoration:none">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5M5.5 9.5V20h5v-6h3v6h5V9.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Home</span>
+      </a>
+      <button type="button" class="btn" id="btn-menu">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2.3"/><rect x="13" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2.3"/><rect x="4" y="13" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2.3"/><rect x="13" y="13" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2.3"/></svg>
+        <span>Games</span>
+      </button>
+      <button type="button" class="btn" id="btn-again">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 9v6h4l5 4V5L7 9H3z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <span>Say again</span>
+      </button>
+      <button type="button" class="btn" id="btn-undo">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+        <span>Undo answer</span>
+      </button>
+      <button type="button" class="btn" id="btn-settings" aria-haspopup="dialog" aria-controls="panel-settings">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="7" r="2.5" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="10" cy="17" r="2.5" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>
+        <span>Settings</span>
+      </button>
+      <button type="button" class="btn" id="btn-fullscreen">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="fullscreen-label">Full screen</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+    <div class="view" id="view">
+      <canvas id="canvas" role="img" aria-label="A 3D shape"></canvas>
+      <div class="hud" id="hud" aria-hidden="true">
+        <span class="hud-level" id="hud-level">Level 1</span>
+        <span class="pips" id="pips"></span>
+        <span class="hud-points"><svg viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17l-5.4 2.8 1.1-6.1-4.5-4.3 6.1-.8z" fill="currentColor"/></svg><span id="hud-points">0</span></span>
+      </div>
+      <p class="shape-name" id="shape-name" aria-hidden="true"></p>
+    </div>
+
+    <section class="side" id="side" aria-label="Question">
+      <button type="button" class="question" id="question" aria-describedby="question-help"></button>
+      <p class="sr-only" id="question-help">Tap to hear the question again.</p>
+      <div class="big" id="big" aria-hidden="true" hidden></div>
+      <ol class="modes" id="modes" hidden></ol>
+      <ol class="code" id="code" aria-label="Your program" hidden></ol>
+      <p class="feedback" id="feedback" hidden></p>
+      <div class="wait" id="wait" hidden>
+        <div class="wait-track"><div class="wait-fill" id="wait-fill"></div></div>
+        <p class="wait-text" id="wait-text">Waiting for yes</p>
+      </div>
+    </section>
+  </main>
+
+  <div class="answers" id="answers">
+    <button type="button" class="answer yes" id="btn-yes">
+      <svg aria-hidden="true" viewBox="0 0 48 48"><path d="M11 25l9 9 17-19" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Yes</span>
+    </button>
+    <button type="button" class="answer notyes" id="btn-no">
+      <svg aria-hidden="true" viewBox="0 0 48 48"><circle cx="13" cy="24" r="3.5" fill="currentColor"/><circle cx="24" cy="24" r="3.5" fill="currentColor"/><circle cx="35" cy="24" r="3.5" fill="currentColor"/></svg>
+      <span>Not yes</span>
+    </button>
+  </div>
+
+  <button type="button" class="btn fs-exit" id="btn-exit-fs" hidden>
+    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Exit full screen</span>
+  </button>
+
+  <div class="sr-only" id="live" aria-live="polite" aria-atomic="true"></div>
+</div>
+
+<div class="overlay" id="panel-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+  <div class="panel">
+    <div class="panel-head">
+      <h2 id="settings-title" tabindex="-1">Settings</h2>
+      <button type="button" class="btn btn-primary" data-close>Done</button>
+    </div>
+    <div class="panel-body">
+      <section aria-labelledby="ans-title">
+        <h3 id="ans-title">How the answer is given</h3>
+        <p class="help">The student answers in their own way (for example a long blink for yes). The adult watching presses Yes or Not yes for them.</p>
+        <div class="field">
+          <label for="set-answer">Answer with</label>
+          <select id="set-answer" aria-describedby="answer-desc">
+            <option value="two">Yes and Not yes buttons (or two switches)</option>
+            <option value="one">One switch: no press means not yes</option>
+          </select>
+        </div>
+        <p class="help" id="answer-desc">With one switch, any press is Yes. If nobody presses before the wait runs out, it counts as Not yes and the next choice comes.</p>
+        <div class="field" id="field-wait">
+          <label for="set-wait">Wait before "not yes": <span id="wait-out"></span></label>
+          <input type="range" id="set-wait" min="3" max="30" step="1">
+        </div>
+        <div class="field">
+          <label for="set-keys">Two switches or keys</label>
+          <select id="set-keys">
+            <option value="enter-yes">Enter is Yes, Space is Not yes</option>
+            <option value="space-yes">Space is Yes, Enter is Not yes</option>
+          </select>
+        </div>
+        <p class="help">Y and N keys always work too. R says the question again. Backspace undoes the last answer.</p>
+        <div class="field">
+          <label for="set-gap">Ignore extra presses for: <span id="gap-out"></span></label>
+          <input type="range" id="set-gap" min="0" max="2" step="0.25" aria-describedby="gap-desc">
+        </div>
+        <p class="help" id="gap-desc">Stops a double press or a bouncing switch from answering twice.</p>
+      </section>
+
+      <section aria-labelledby="q-title">
+        <h3 id="q-title">Questions</h3>
+        <fieldset class="checks">
+          <legend>Count it asks about</legend>
+          <label class="check"><input type="checkbox" id="set-faces"> <span>Faces</span></label>
+          <label class="check"><input type="checkbox" id="set-edges"> <span>Edges</span></label>
+          <label class="check"><input type="checkbox" id="set-vertices"> <span>Vertices</span></label>
+        </fieldset>
+        <div class="field">
+          <label for="set-vword">Say</label>
+          <select id="set-vword">
+            <option value="vertices">"vertices"</option>
+            <option value="corners">"corners"</option>
+          </select>
+        </div>
+        <label class="toggle" for="set-all">
+          <input type="checkbox" id="set-all" aria-describedby="all-desc">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">Use all shapes now</span>
+        </label>
+        <p class="help" id="all-desc">Off: start with 4 shapes and unlock a new one at each level, like a video game.</p>
+        <button type="button" class="btn" id="btn-reset">Start again from level 1</button>
+        <p class="help" id="reset-msg" aria-live="polite"></p>
+      </section>
+
+      <section aria-labelledby="look-title">
+        <h3 id="look-title">Sound and look</h3>
+        <label class="toggle" for="set-voice">
+          <input type="checkbox" id="set-voice">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">Read questions aloud</span>
+        </label>
+        <div class="field">
+          <label for="set-rate">Talking speed: <span id="rate-out"></span></label>
+          <input type="range" id="set-rate" min="0.5" max="1.2" step="0.05">
+        </div>
+        <label class="toggle" for="set-sounds">
+          <input type="checkbox" id="set-sounds">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">Soft sounds</span>
+        </label>
+        <div class="field">
+          <label for="set-volume">Volume</label>
+          <input type="range" id="set-volume" min="0" max="100" step="10">
+        </div>
+        <div class="field">
+          <label for="set-spin">Shape turning</label>
+          <select id="set-spin">
+            <option value="0">Still</option>
+            <option value="1">Slow</option>
+            <option value="2">Medium</option>
+          </select>
+        </div>
+        <label class="toggle" for="set-contrast">
+          <input type="checkbox" id="set-contrast">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">High contrast</span>
+        </label>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="panel-fullscreen" role="dialog" aria-modal="true" aria-labelledby="fs-title" hidden>
+  <div class="panel">
+    <div class="panel-head">
+      <h2 id="fs-title" tabindex="-1">Play full screen</h2>
+      <button type="button" class="btn btn-primary" data-close>Done</button>
+    </div>
+    <div class="panel-body prose">
+      <p>This browser cannot hide its own address bar, so the game has hidden its buttons instead. Use <strong>Exit full screen</strong> in the corner to get them back.</p>
+      <p>For true full screen on an iPad, add the game to the Home Screen once: tap Share, then <strong>Add to Home Screen</strong>.</p>
+    </div>
+  </div>
+</div>
+
+<script src="js/game.js?v=20261126a"></script>
+</body>
+</html>
