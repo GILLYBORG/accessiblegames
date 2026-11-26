@@ -647,6 +647,11 @@
     var photo = null;
     if (cfg.fishBackground) { photo = new Image(); photo.src = cfg.fishBackground; }
     function usePhoto() { return !calm() && ready(photo); }
+    var sea = (cfg.fishPictures || []).map(function (c) {
+      var img = new Image();
+      img.src = c.src;
+      return { img: img, kind: c.kind || "fish", size: c.size || 1 };
+    });
     var COLOURS = [ [28, 95], [48, 95], [200, 85], [330, 80], [270, 70], [160, 70], [12, 90] ];
     function makeFish(i, pic) {
       var c = COLOURS[i % COLOURS.length];
@@ -658,12 +663,22 @@
       };
     }
     function setup() {
-      var count = calm() ? 5 : 7, pics = pictures();
+      var count = calm() ? 5 : 7, pics = pictures(), i;
       fish = [];
-      for (var i = 0; i < count; i++) fish.push(makeFish(i, pics.length ? pics[i % pics.length] : null));
-      if (pics.length) { // keep a few drawn fish too
+      if (pics.length) { // My pictures swim with a few drawn fish
+        for (i = 0; i < count; i++) fish.push(makeFish(i, pics[i % pics.length]));
         for (i = 0; i < Math.min(3, count); i++) fish[i].pic = null;
         for (i = 0; i < fish.length; i++) if (fish[i].pic) fish[i].len = rand(90, 130) * unit();
+      } else if (sea.length) { // the fish pictures from config.js, one of each
+        sea.forEach(function (c, n) {
+          var f = makeFish(n, c.img);
+          f.len = rand(120, 150) * unit() * (c.size || 1);
+          f.jelly = c.kind === "jelly";
+          if (f.jelly) { f.vx = rand(-6, 6); f.ty = rand(0.2, 0.6) * H; }
+          fish.push(f);
+        });
+      } else {
+        for (i = 0; i < count; i++) fish.push(makeFish(i, null));
       }
       weeds = [];
       for (i = 0; i < 9; i++) weeds.push({ x: rand(0.03, 0.97), h: rand(0.18, 0.42), ph: rand(0, TAU), hue: rand(95, 150), w: rand(10, 18) });
@@ -692,6 +707,16 @@
         g.globalAlpha = 0.45;
         g.drawImage(glow(195, 60, 80), f.x - L * 0.85, f.y - L * 0.6, L * 1.7, L * 1.2);
         g.globalAlpha = 1;
+      }
+      if (f.jelly && ready(f.pic)) { // a jellyfish pulses gently up and down, never flips
+        var pulse = Math.sin(f.tail * 0.5);
+        var jw = L * 0.75 * (1 - pulse * 0.05), jh = L * 0.75 * f.pic.naturalHeight / f.pic.naturalWidth * (1 + pulse * 0.06);
+        g.save();
+        g.translate(f.x, f.y);
+        g.rotate(clamp(f.vx * 0.004, -0.15, 0.15));
+        g.drawImage(f.pic, -jw / 2, -jh * 0.3, jw, jh);
+        g.restore();
+        return;
       }
       g.save();
       g.translate(f.x, f.y);
@@ -786,6 +811,17 @@
       update: function (dt) {
         fish.forEach(function (f) {
           f.excite = Math.max(0, f.excite - dt / 3);
+          if (f.jelly) { // drifts slowly; a touch makes it pulse and push upwards
+            f.tail += dt * (2.2 + f.excite * 6);
+            var push = Math.max(0, Math.sin(f.tail * 0.5)) * (14 + f.excite * 60) * unit();
+            f.vy += (-push + 9 * unit()) * dt;
+            f.vy *= 1 - dt * 0.8;
+            f.vx += ((f.tx - f.x) * 0.02 - f.vx) * dt * 0.5;
+            f.x += f.vx * dt; f.y += f.vy * dt;
+            if (f.y < H * 0.08) f.vy = Math.abs(f.vy) * 0.5;
+            f.y = clamp(f.y, H * 0.06, H * 0.7);
+            return;
+          }
           var dx = f.tx - f.x, dy = f.ty - f.y, d = Math.sqrt(dx * dx + dy * dy) + 0.001;
           if (d < 30 * unit()) {
             f.pause += dt;

@@ -49,4 +49,4 @@ Example: `https://gillyborg.github.io/accessiblegames/sensory/?activity=bloom&dw
 Edit `js/config.js` for names, hints, Colour Lamp colours, starting settings, and built-in pictures.
 After changing css or js files, change the `?v=` number in `index.html` so iPads load the new version.
 
-The Fish Tank coral reef picture (`images/fish-background.jpg`) is SG's own (Canva) and is not covered by the MIT licence; do not copy it to the starter repo.
+The Fish Tank coral reef picture (`images/fish-background.jpg`) and fish pictures (`images/fish/`) are SG's own (Canva) and are not covered by the MIT licence; do not copy them to the starter repo.
