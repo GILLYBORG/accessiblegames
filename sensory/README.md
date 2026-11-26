@@ -5,7 +5,7 @@ Everything is drawn and played by the computer, so no pictures or sound files ar
 
 | Activity | Touch / mouse | Switch (any key, Space, Enter) | Eye gaze (look and wait) |
 | --- | --- | --- | --- |
-| Fish Tank (coral reef picture by SG; drawn tank in calm mode) | Touch the water: every fish wiggles and the nearby ones swim over to look | All the fish wiggle and dart to new spots, bubbles rise | The fish come to where you look |
+| Fish Tank (coral reef picture by SG; drawn tank in calm mode) | Each touch brings a new fish that swims for 12 to 20 seconds, then swims away; the others wiggle and come to look. The shark is rare | A new fish swims in, all the fish wiggle | A new fish appears where you look |
 | Fireworks | Touch the sky to send a firework there | A firework goes up | A firework bursts where you look |
 | Light Painting | Move to paint glowing light, tap for a ripple | A ribbon of light swirls across the screen | Moving paints, resting makes a ripple |
 | Bubble Float | Tap to blow bubbles, tap a bubble to pop it | More bubbles float up | Look at a bubble to pop it |

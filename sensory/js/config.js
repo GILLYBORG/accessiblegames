@@ -19,8 +19,8 @@ window.SENSORY_CONFIG = {
     {
       id: "fish",
       name: "Fish Tank",
-      hint: "Touch the water and the fish wiggle and swim.",
-      label: "Fish tank. Touch the water and the fish wiggle and swim over to look. A switch press makes all the fish wiggle and swim to a new spot.",
+      hint: "Touch the water and a new fish swims in.",
+      label: "Fish tank. Each touch or switch press brings a new fish that swims around for a while and then swims away. The other fish wiggle and swim over to look.",
       // Optional: your own pictures to swim as fish (side view, facing right,
       // with a see-through background). Pictures added with "My pictures" are used too.
       pictures: []
@@ -75,13 +75,14 @@ window.SENSORY_CONFIG = {
 
   // Fish Tank creatures (SG's pictures). Fish should face right. kind "jelly"
   // pulses up and down instead of swimming. size makes one bigger or smaller.
+  // weight sets how often it visits: 1 is normal, 0.1 is rare (one at a time).
   // Write [] to use the drawn fish. Pictures added with "My pictures" win.
   fishPictures: [
     { src: "images/fish/clownfish.webp" },
     { src: "images/fish/bannerfish.webp" },
     { src: "images/fish/discus-orange.webp" },
     { src: "images/fish/discus-spotted.webp" },
-    { src: "images/fish/shark.webp", size: 1.7 },
+    { src: "images/fish/shark.webp", size: 1.7, weight: 0.08 },
     { src: "images/fish/jellyfish.webp", kind: "jelly", size: 1.2 }
   ],
 
