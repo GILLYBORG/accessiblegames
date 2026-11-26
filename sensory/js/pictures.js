@@ -1,6 +1,8 @@
 /*
  * My pictures: a teacher adds their own pictures from the device.
- * - Pictures are kept on this device only (in the browser's storage). Nothing is uploaded.
+ * - Pictures are never uploaded. By default they are kept in memory only, so they are gone
+ *   when the page is refreshed or closed (safer on shared devices). A teacher can choose
+ *   "Keep my pictures on this device" to save them in the browser's storage.
  * - The file picker on a Chromebook or iPad can also open Google Drive.
  * - Optional background remover, also on the device:
  *     "Plain background": instant, for pictures on a plain colour (like most Canva exports).
@@ -41,9 +43,33 @@
       });
     });
   }
-  function getAll() { return tx("readonly", function (s) { return s.getAll(); }).then(function (r) { return r || []; }); }
-  function put(rec) { return tx("readwrite", function (s) { return s.put(rec); }); }
-  function remove(id) { return tx("readwrite", function (s) { return s.delete(id); }); }
+  // Pictures live in memory; they are also written to the browser only when the teacher
+  // has turned on "Keep my pictures on this device".
+  var memory = [], nextId = 1;
+  function keep() { return !!(settingsRef && settingsRef.keepPictures); }
+  function getAll() { return Promise.resolve(memory.slice()); }
+  function put(rec) {
+    if (rec.id == null) rec.id = nextId++;
+    var i = memory.findIndex(function (r) { return r.id === rec.id; });
+    if (i >= 0) memory[i] = rec; else memory.push(rec);
+    return keep() ? tx("readwrite", function (s) { return s.put(rec); }).catch(function () {}) : Promise.resolve();
+  }
+  function remove(id) {
+    memory = memory.filter(function (r) { return r.id !== id; });
+    return keep() ? tx("readwrite", function (s) { return s.delete(id); }).catch(function () {}) : Promise.resolve();
+  }
+  function clearSaved() { return tx("readwrite", function (s) { return s.clear(); }).catch(function () {}); }
+  function saveAll() { return clearSaved().then(function () { return Promise.all(memory.map(function (r) { return tx("readwrite", function (s) { return s.put(r); }); })); }).catch(function () {}); }
+  // At start: bring back saved pictures only if the teacher chose to keep them; otherwise
+  // wipe anything an earlier version saved.
+  function startUp() {
+    if (!window.indexedDB) return Promise.resolve();
+    if (!keep()) return clearSaved();
+    return tx("readonly", function (s) { return s.getAll(); }).then(function (r) {
+      memory = r || [];
+      memory.forEach(function (x) { if (x.id >= nextId) nextId = x.id + 1; });
+    }).catch(function () {});
+  }
 
   /* ---------- Images ---------- */
   function blobToImage(blob) {
@@ -318,7 +344,17 @@
       onChange = opts.onChange || onChange;
       settingsRef = opts.settings;
       save = opts.save || save;
-      var input = $("pics-input"), use = $("set-use-mine");
+      var input = $("pics-input"), use = $("set-use-mine"), keepBox = $("set-keep-pics");
+      keepBox.checked = keep();
+      keepBox.addEventListener("change", function () {
+        settingsRef.keepPictures = keepBox.checked; save();
+        if (keepBox.checked) saveAll().then(function () { say("Pictures will stay on this device until you remove them."); });
+        else clearSaved().then(function () { say("Pictures will be forgotten when the page closes."); });
+      });
+      $("btn-clear-pics").addEventListener("click", function () {
+        memory = [];
+        clearSaved().then(load).then(function () { renderList(); say("All your pictures are removed from this device."); });
+      });
       use.checked = settingsRef.useMine !== false;
       use.addEventListener("change", function () { settingsRef.useMine = use.checked; save(); onChange(); });
       $("btn-add-pics").addEventListener("click", function () { input.value = ""; input.click(); });
@@ -342,7 +378,7 @@
           say("Background removed. You can undo this any time.");
         });
       });
-      return load().then(renderList);
+      return startUp().then(load).then(renderList);
     },
     opened: function () { closeEditor(); renderList(); },
     canEdit: function () { return !!editing; },

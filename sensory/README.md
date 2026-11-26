@@ -29,7 +29,7 @@ Everything is drawn and played by the computer, so no pictures or sound files ar
 ## My pictures
 
 Teachers can add their own pictures from the **My pictures** button on the menu. They swim as fish (side view facing right works best), float inside the bubbles, and grow as flowers.
-The file picker on a Chromebook or iPad can also open Google Drive. Pictures stay on that device only (browser storage); nothing is uploaded.
+The file picker on a Chromebook or iPad can also open Google Drive. Pictures are never uploaded. By default they are forgotten when the page is closed or refreshed (safer on shared devices); "Keep my pictures on this device" saves them in the browser, and "Remove all my pictures" clears them. Peek and Find works the same way.
 
 **Remove background** (optional, also on the device):
 

@@ -113,6 +113,7 @@ window.SENSORY_CONFIG = {
     scan: true,      // switch scanning on the menu (activities light up in turn)
     scanSeconds: 2,  // how long each activity stays lit
     holdSeconds: 3,  // hold a switch this long inside an activity to go back to the menu (0 = off)
-    useMine: true    // use pictures added with "My pictures" when there are any
+    useMine: true,   // use pictures added with "My pictures" when there are any
+    keepPictures: false // false: added pictures are forgotten when the page closes (safer on shared devices)
   }
 };
