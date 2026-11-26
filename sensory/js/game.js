@@ -650,8 +650,55 @@
     var sea = (cfg.fishPictures || []).map(function (c) {
       var img = new Image();
       img.src = c.src;
-      return { img: img, kind: c.kind || "fish", size: c.size || 1 };
+      return { img: img, kind: c.kind || "fish", size: c.size || 1, weight: c.weight == null ? 1 : c.weight };
     });
+    // Which creatures can appear: My pictures first, then the config.js pictures.
+    function creatures() {
+      var pics = pictures();
+      if (pics.length) return pics.map(function (img) { return { img: img, kind: "fish", size: 1, weight: 1 }; });
+      return sea;
+    }
+    // Pick one by weight, so a rare one (like the shark) only turns up now and then.
+    function pickCreature(avoidRare) {
+      var list = creatures().filter(function (c) {
+        if (avoidRare && c.weight < 1) return false;
+        if (c.weight < 1 && fish.some(function (f) { return f.from === c && !f.leaving; })) return false; // one at a time
+        if (c.kind === "jelly" && fish.filter(function (f) { return f.jelly; }).length >= 2) return false;
+        return true;
+      });
+      if (!list.length) return null;
+      var total = list.reduce(function (a, c) { return a + c.weight; }, 0), r = Math.random() * total;
+      for (var i = 0; i < list.length; i++) { r -= list[i].weight; if (r <= 0) return list[i]; }
+      return list[list.length - 1];
+    }
+    function creatureFish(c, n) {
+      var f = makeFish(n, c ? c.img : null);
+      if (c) {
+        f.from = c;
+        f.len = rand(120, 150) * unit() * (c.size || 1) * (creatures() === sea ? 1 : 0.8);
+        f.jelly = c.kind === "jelly";
+        if (f.jelly) { f.vx = rand(-6, 6); f.ty = rand(0.2, 0.6) * H; }
+      }
+      return f;
+    }
+    function maxVisitors() { return calm() ? 5 : 9; }
+    // A touch brings a new fish: it pops in, swims around for a while, then swims away.
+    function spawn(x, y) {
+      var visitors = fish.filter(function (f) { return f.visitor && !f.leaving; });
+      if (visitors.length >= maxVisitors()) leave(visitors[0]); // the one that came first swims off
+      var f = creatureFish(pickCreature(false), fish.length);
+      f.x = x; f.y = clamp(y, H * 0.08, H * 0.8);
+      f.vx = rand(-20, 20); f.vy = 0;
+      f.visitor = true; f.age = 0; f.stay = rand(12, 20); f.grow = 0; f.excite = 1;
+      newTarget(f);
+      fish.push(f);
+      if (f.from && f.from.weight < 1) announce("A shark is visiting!");
+    }
+    function leave(f) {
+      f.leaving = true;
+      f.tx = f.x < W / 2 ? -f.len * 2 : W + f.len * 2;
+      f.ty = f.y + rand(-40, 40) * unit();
+    }
     var COLOURS = [ [28, 95], [48, 95], [200, 85], [330, 80], [270, 70], [160, 70], [12, 90] ];
     function makeFish(i, pic) {
       var c = COLOURS[i % COLOURS.length];
@@ -669,14 +716,8 @@
         for (i = 0; i < count; i++) fish.push(makeFish(i, pics[i % pics.length]));
         for (i = 0; i < Math.min(3, count); i++) fish[i].pic = null;
         for (i = 0; i < fish.length; i++) if (fish[i].pic) fish[i].len = rand(90, 130) * unit();
-      } else if (sea.length) { // the fish pictures from config.js, one of each
-        sea.forEach(function (c, n) {
-          var f = makeFish(n, c.img);
-          f.len = rand(120, 150) * unit() * (c.size || 1);
-          f.jelly = c.kind === "jelly";
-          if (f.jelly) { f.vx = rand(-6, 6); f.ty = rand(0.2, 0.6) * H; }
-          fish.push(f);
-        });
+      } else if (sea.length) { // three fish live in the tank; touches bring visitors
+        for (i = 0; i < 3; i++) fish.push(creatureFish(pickCreature(true), i));
       } else {
         for (i = 0; i < count; i++) fish.push(makeFish(i, null));
       }
@@ -689,6 +730,7 @@
     function stir(x, y, all) {
       // Every fish wiggles. Fish near the touch swim over to look; the rest dart to a new spot.
       fish.forEach(function (f) {
+        if (f.leaving) return;
         var dx = f.x - x, dy = f.y - y, d = Math.sqrt(dx * dx + dy * dy);
         f.excite = 1;
         f.pause = 0;
@@ -701,7 +743,7 @@
       if (bubbles.length > 120) bubbles.splice(0, bubbles.length - 120);
     }
     function drawFish(g, f, time) {
-      var L = f.len, wig = Math.sin(f.tail) * (0.14 + f.excite * 0.16);
+      var L = f.len * (f.grow == null ? 1 : easeOut(f.grow)), wig = Math.sin(f.tail) * (0.14 + f.excite * 0.16);
       var angle = clamp(Math.atan2(f.vy, Math.abs(f.vx) + 1), -0.45, 0.45);
       if (usePhoto()) { // a soft light halo keeps fish easy to see against a busy reef
         g.globalAlpha = 0.45;
@@ -794,21 +836,33 @@
       resize: function () { setup(); },
       down: function (id, x, y) {
         stir(x, y, false);
+        spawn(x, y);
         food.push({ x: x, y: y, age: 0 });
         blowBubbles(x, y, calm() ? 4 : 8);
         chime(noteFreq(rand(4, 10)), { gain: 0.2, bend: 0.6, decay: 1.1 });
-        announceSometimes("The fish wiggle and swim.");
+        announceSometimes("A new fish swims in.");
       },
       move: function () {},
       up: function () {},
       dwell: function (x, y) { this.down(null, x, y); },
       press: function () {
         stir(0, 0, true);
-        blowBubbles(rand(0.2, 0.8) * W, H * 0.9, calm() ? 6 : 12);
+        var sx = rand(0.2, 0.8) * W, sy = rand(0.2, 0.7) * H;
+        spawn(sx, sy);
+        food.push({ x: sx, y: sy, age: 0 });
+        blowBubbles(sx, sy, calm() ? 6 : 12);
         arpeggio(Math.floor(rand(3, 7)), 3, 0.11, { gain: 0.14, bend: 0.7, decay: 1 });
-        announceSometimes("The fish wiggle and swim.");
+        announceSometimes("A new fish swims in.");
       },
       update: function (dt) {
+        for (var v = fish.length - 1; v >= 0; v--) {
+          var vf = fish[v];
+          if (vf.grow != null) vf.grow = Math.min(1, vf.grow + dt * 1.6);
+          if (!vf.visitor) continue;
+          vf.age += dt;
+          if (!vf.leaving && vf.age > vf.stay) leave(vf);
+          if (vf.leaving && (vf.x < -vf.len * 1.2 || vf.x > W + vf.len * 1.2 || vf.y < -vf.len * 1.5)) fish.splice(v, 1);
+        }
         fish.forEach(function (f) {
           f.excite = Math.max(0, f.excite - dt / 3);
           if (f.jelly) { // drifts slowly; a touch makes it pulse and push upwards
@@ -818,17 +872,18 @@
             f.vy *= 1 - dt * 0.8;
             f.vx += ((f.tx - f.x) * 0.02 - f.vx) * dt * 0.5;
             f.x += f.vx * dt; f.y += f.vy * dt;
+            if (f.leaving) { f.vy -= 30 * unit() * dt; return; } // floats away upwards
             if (f.y < H * 0.08) f.vy = Math.abs(f.vy) * 0.5;
             f.y = clamp(f.y, H * 0.06, H * 0.7);
             return;
           }
           var dx = f.tx - f.x, dy = f.ty - f.y, d = Math.sqrt(dx * dx + dy * dy) + 0.001;
-          if (d < 30 * unit()) {
+          if (d < 30 * unit() && !f.leaving) {
             f.pause += dt;
             if (f.pause > rand(1, 4)) { f.pause = 0; newTarget(f); }
           }
           var speed = (40 + f.excite * 170) * unit();
-          var want = d < 30 * unit() ? 0 : speed;
+          var want = d < 30 * unit() && !f.leaving ? 0 : speed;
           var ax = (dx / d * want - f.vx) * (1.2 + f.excite * 2.5);
           var ay = (dy / d * want * 0.6 - f.vy) * (1.2 + f.excite * 2.5);
           f.vx += ax * dt; f.vy += ay * dt;
