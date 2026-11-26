@@ -270,3 +270,27 @@ h1 { margin: 0; font: 800 clamp(1.4rem, 3vmin + 0.6rem, 2.1rem)/1.1 var(--round)
 @media (forced-colors: active) {
   .mode.is-current { outline: 6px solid Highlight; }
 }
+
+/* ---------- Code lab ---------- */
+#canvas { touch-action: none; cursor: grab; }
+.code.is-lab li { white-space: pre-wrap; }
+.code.is-lab { max-height: none; }
+.big-code { font: 800 clamp(2rem, 7vmin, 4rem)/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: #7fd1ff; }
+.hc .big-code { color: #fff; }
+.big-word { font-size: clamp(2.4rem, 8vmin, 4.5rem); }
+.watch {
+  margin: 0; padding: 10px 16px; border-radius: 14px;
+  background: var(--code-bg); border: 3px solid var(--hl);
+  font: 700 clamp(1.1rem, 2.8vmin, 1.6rem)/1.3 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+}
+.code-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.code-msg { margin: 0; color: var(--muted); font-size: 0.95rem; }
+
+/* ---------- Explore info cards ---------- */
+.info { padding: 14px 18px; border-radius: 18px; background: var(--surface-2); border: 3px solid var(--hl); }
+.info p { margin: 0; }
+.info-h { font-weight: 700; color: var(--hl); font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.info-f { font: 800 clamp(1.8rem, 5.5vmin, 3.2rem)/1.15 var(--round); margin-top: 4px !important; }
+.info-sub { font: 700 clamp(1.1rem, 3vmin, 1.6rem)/1.3 var(--font); margin-top: 8px !important; }
+.info-n { color: var(--muted); font-size: 0.95rem; margin-top: 8px !important; }

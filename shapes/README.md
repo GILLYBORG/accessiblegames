@@ -9,7 +9,12 @@ The game cannot see blinks, so it is **partner-assisted**: the question is shown
 - **Shape quiz**: "Is this a cube?", "Can it roll?", "Does it have 6 faces?"
 - **Count it**: "How many edges does a cube have?" Then "Is it 10? Is it 11? Is it 12?" one number at a time, and the student says yes at their number. Afterwards the shape goes see-through and the faces, edges or vertices light up and are counted together, 1, 2, 3...
 - **Build it** (coding): yes / not yes answers write a little program line by line. "Add another side?", "Make it tall, like a prism?", "Paint it blue?", "Make it spin?", then **Run your program** steps through the code and builds the shape.
-- **Explore**: "Look at the cylinder?" Yes hears its faces, edges and vertices.
+- **Explore**: "Look at the cylinder?" Then he drives it himself: "Tell me about it?", "Turn it left?", "Tip it up?", "Zoom in?", "See through it?". A yes repeats the same action (so yes, yes turns it further); not yes moves to the next action. Info cards (shown big and read aloud): faces, edges and vertices with Euler's formula, volume, surface area, real-life examples and a fun fact. The shape can also be turned by dragging it, and zoomed with a mouse wheel.
+- **Code lab** (real JavaScript, for experienced coders): yes / not yes answers write a real program, shown with line numbers and colours, and it really runs (the code text is run in the browser) to build a 3D scene. "Add a shape?" then "Add a prism?", "Sides: is it 7?", "Colour: green?", "Put it in a loop?", "Loop count: is it 4?", "Put them in a circle?", "Make each one bigger than the last?", "Make it spin?". While a number or colour is being offered, the code and the 3D scene change live so he can see what a yes would do.
+  - **Run it step by step** highlights each line as it runs and shows `i` and how many shapes are in the scene (press Yes to skip to the end).
+  - **Change a line**: "Change line 6, the colour?" then pick the new value. He can also change the loop count, take a loop away, change the layout or x position, stop the spin, or delete a shape.
+  - **Save this program** keeps it on this device (up to 20); **Open a saved program** replays one. Adults can **Copy link** (anyone who opens it gets the program) or **Download code** (a .js file).
+  - Shape functions: `box(width, height, depth)`, `prism(sides, radius, height)`, `pyramid(sides, radius, height)`, `cylinder(radius, height)`, `cone(radius, height)`, `sphere(radius)`, with `.color`, `.position.x/y/z`, `.scale`, `.spin` and `scene.add()`.
 
 The games menu itself works by yes / not yes too ("Play Count it?"), or the adult can tap a game.
 
@@ -26,7 +31,7 @@ Video-game feel: 10 points per right answer, 5 dots per level, and each new leve
 
 ## Links for teachers
 
-- `?mode=quiz` / `count` / `build` / `explore` opens that game straight away
+- `?mode=quiz` / `count` / `build` / `explore` / `code` opens that game straight away
 - `&answer=one&wait=8` one switch, 8 second wait
 - `&vword=corners` says corners instead of vertices
 - `&spin=0` shape stays still (`1` slow, `2` medium)
