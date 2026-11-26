@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Symbol Stamps</title>
+<meta name="description" content="Stamp picture symbols onto a page. Works with touch, mouse, keyboard, switches and screen readers.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
+<link rel="stylesheet" href="css/style.css?v=20261126a">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Stamps">
+<link rel="apple-touch-icon" href="images/icon-180.png">
+<link rel="icon" href="images/icon.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="app" id="app">
+  <header class="bar">
+    <div class="bar-text">
+      <h1 id="game-title">Symbol Stamps</h1>
+    </div>
+    <div class="actions" id="actions">
+      <a class="btn" id="btn-home" href="../" style="text-decoration:none">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5M5.5 9.5V20h5v-6h3v6h5V9.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Home</span>
+      </a>
+      <button type="button" class="btn" id="btn-setup" aria-haspopup="dialog" aria-controls="panel-setup">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5z" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linejoin="round"/><path d="M7 11.5V16c0 1.5 2.2 3 5 3s5-1.5 5-3v-4.5M21 9v6" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/></svg>
+        <span>Teacher setup</span>
+      </button>
+      <button type="button" class="btn" id="btn-undo">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+        <span>Undo</span>
+      </button>
+      <button type="button" class="btn" id="btn-clear">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 4h14v16H5z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><path d="M15 4v4h4" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>
+        <span id="clear-label">New page</span>
+      </button>
+      <button type="button" class="btn" id="btn-save">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 19h14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Save picture</span>
+      </button>
+      <button type="button" class="btn" id="btn-settings" aria-haspopup="dialog" aria-controls="panel-settings">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="7" r="2.5" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="10" cy="17" r="2.5" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>
+        <span>Settings</span>
+      </button>
+      <button type="button" class="btn" id="btn-fullscreen">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="fullscreen-label">Full screen</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+    <div class="paper-wrap" id="paper-wrap">
+      <div class="paper" id="paper" tabindex="0" role="button" aria-describedby="paper-help">
+        <div class="stamps-layer" id="stamps-layer" aria-hidden="true"></div>
+        <div class="spots-layer" id="spots-layer" aria-hidden="true"></div>
+        <div class="cursor" id="cursor" aria-hidden="true" hidden></div>
+      </div>
+      <p class="sr-only" id="paper-help">Press Enter to stamp. Arrow keys move where the stamp goes.</p>
+    </div>
+
+    <div class="tray-wrap">
+      <h2 class="sr-only" id="tray-title">Stamps</h2>
+      <div class="tray" id="tray" role="group" aria-labelledby="tray-title"></div>
+    </div>
+  </main>
+
+  <p class="credit" id="credit"></p>
+
+  <button type="button" class="btn fs-exit" id="btn-exit-fs" hidden>
+    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Exit full screen</span>
+  </button>
+
+  <div class="sr-only" id="live" aria-live="polite" aria-atomic="true"></div>
+</div>
+
+<div class="overlay" id="panel-setup" role="dialog" aria-modal="true" aria-labelledby="setup-title" hidden>
+  <div class="panel panel-setup">
+    <div class="panel-head">
+      <h2 id="setup-title" tabindex="-1">Teacher setup</h2>
+      <button type="button" class="btn btn-primary" id="btn-setup-done">Start stamping</button>
+    </div>
+    <div class="panel-body">
+      <section aria-labelledby="chosen-title">
+        <h3 id="chosen-title">Your stamps <span class="count" id="chosen-count"></span></h3>
+        <p class="help">Students see these stamps in this order. Change the word to change what the game says.</p>
+        <ul class="chosen" id="chosen"></ul>
+        <p class="sr-only" id="setup-live" aria-live="polite"></p>
+      </section>
+
+      <section aria-labelledby="find-title">
+        <h3 id="find-title">Find symbols</h3>
+        <fieldset class="lib-pick">
+          <legend>Picture library</legend>
+          <label class="radio"><input type="radio" name="lib" value="m" checked> <span><strong>Mulberry</strong> (built in, always works)</span></label>
+          <label class="radio"><input type="radio" name="lib" value="a"> <span><strong>ARASAAC</strong> (online, over 13,000 symbols)</span></label>
+        </fieldset>
+        <form class="search" id="search-form" role="search">
+          <label class="sr-only" for="search-input">Search for a symbol</label>
+          <input type="search" id="search-input" placeholder="Search, for example dog" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search">
+          <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+        <div class="field" id="browse-field">
+          <label for="browse">Or look through a group</label>
+          <select id="browse"><option value="">Choose a group…</option></select>
+        </div>
+        <div class="presets-row" id="presets-row">
+          <p class="help">Or start from a quick set (this replaces your stamps):</p>
+          <div class="presets" id="presets"></div>
+        </div>
+        <p class="results-msg" id="results-msg" aria-live="polite"></p>
+        <div class="results" id="results"></div>
+      </section>
+
+      <section aria-labelledby="paper-title">
+        <h3 id="paper-title">Paper</h3>
+        <div class="field">
+          <label for="set-size">Stamp size</label>
+          <select id="set-size">
+            <option value="s">Small</option>
+            <option value="m">Medium</option>
+            <option value="l">Large</option>
+            <option value="xl">Very large</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="set-bg">Paper colour</label>
+          <select id="set-bg">
+            <option value="white">White</option>
+            <option value="cream">Cream</option>
+            <option value="sky">Pale blue</option>
+            <option value="grass">Pale green</option>
+            <option value="black">Black (high contrast)</option>
+          </select>
+        </div>
+        <label class="toggle" for="set-words">
+          <input type="checkbox" id="set-words">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">Show the word under each stamp</span>
+        </label>
+      </section>
+
+      <section aria-labelledby="share-title" class="share">
+        <h3 id="share-title">Share this setup</h3>
+        <p class="help">Students who open this link get the same stamps.</p>
+        <label class="toggle" for="set-lock">
+          <input type="checkbox" id="set-lock">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">Hide Teacher setup for students who use the link</span>
+        </label>
+        <label class="sr-only" for="share-link">Link to this setup</label>
+        <input type="text" class="share-link" id="share-link" readonly>
+        <div class="share-actions">
+          <button type="button" class="btn btn-primary" id="btn-copy-link">Copy link</button>
+          <button type="button" class="btn" id="btn-share-link" hidden>Share…</button>
+        </div>
+        <p class="copied" id="copied" aria-live="polite"></p>
+      </section>
+
+      <section aria-labelledby="credits-title" class="prose">
+        <h3 id="credits-title">About the symbols</h3>
+        <p><strong>Mulberry Symbols</strong> by Steve Lee, <a href="https://mulberrysymbols.org" target="_blank" rel="noopener">mulberrysymbols.org</a>, licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA</a>. They are stored with this game.</p>
+        <p><strong>ARASAAC pictograms</strong>: the pictographic symbols used are the property of the Government of Aragón and have been created by Sergio Palao for ARASAAC (<a href="https://arasaac.org" target="_blank" rel="noopener">arasaac.org</a>), which distributes them under a <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">Creative Commons BY-NC-SA</a> licence. Free for school use, not for selling. They load from arasaac.org while you play, so they need the internet, and a school filter could block them.</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="panel-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+  <div class="panel">
+    <div class="panel-head">
+      <h2 id="settings-title" tabindex="-1">Settings</h2>
+      <button type="button" class="btn" data-close>Done</button>
+    </div>
+    <div class="panel-body">
+      <section aria-labelledby="sw-title">
+        <h3 id="sw-title">Switch</h3>
+        <label class="toggle" for="set-scan">
+          <input type="checkbox" id="set-scan" aria-describedby="scan-desc">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">Switch scanning</span>
+        </label>
+        <p class="help" id="scan-desc">The stamps light up one at a time and their names are said. Press the switch (or any key) to stamp the lit one.</p>
+        <div class="field">
+          <label for="set-spot">Where the stamp goes</label>
+          <select id="set-spot" aria-describedby="spot-desc">
+            <option value="next">Next space, in rows</option>
+            <option value="random">Anywhere (surprise)</option>
+            <option value="choose">Student chooses the spot</option>
+          </select>
+        </div>
+        <p class="help" id="spot-desc">"Student chooses" lights up a row, then a spot in that row.</p>
+        <div class="field">
+          <label for="set-scanmode">How scanning moves</label>
+          <select id="set-scanmode">
+            <option value="auto">By itself (one switch)</option>
+            <option value="step">Space moves, Enter picks (two switches)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="set-speed">Scanning speed: <span id="speed-out"></span></label>
+          <input type="range" id="set-speed" min="0.5" max="6" step="0.5">
+        </div>
+        <div class="field">
+          <label for="set-wait">Ignore extra presses for: <span id="wait-out"></span></label>
+          <input type="range" id="set-wait" min="0" max="2" step="0.25" aria-describedby="wait-desc">
+        </div>
+        <p class="help" id="wait-desc">Helps with tremor or a bouncing switch.</p>
+      </section>
+      <section aria-labelledby="snd-title">
+        <h3 id="snd-title">Sound and look</h3>
+        <label class="toggle" for="set-voice">
+          <input type="checkbox" id="set-voice" aria-describedby="voice-desc">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">Say the stamp names</span>
+        </label>
+        <p class="help" id="voice-desc">Screen reader users hear the names from VoiceOver or ChromeVox too, so you can turn this off for them.</p>
+        <label class="toggle" for="set-sounds">
+          <input type="checkbox" id="set-sounds">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">Stamp sound</span>
+        </label>
+        <div class="field">
+          <label for="set-volume">Volume</label>
+          <input type="range" id="set-volume" min="0" max="100" step="10">
+        </div>
+        <label class="toggle" for="set-animation">
+          <input type="checkbox" id="set-animation">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">Movement effects</span>
+        </label>
+        <label class="toggle" for="set-contrast">
+          <input type="checkbox" id="set-contrast">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">High contrast</span>
+        </label>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="panel-fullscreen" role="dialog" aria-modal="true" aria-labelledby="fs-title" hidden>
+  <div class="panel">
+    <div class="panel-head">
+      <h2 id="fs-title" tabindex="-1">Play full screen</h2>
+      <button type="button" class="btn" data-close>Done</button>
+    </div>
+    <div class="panel-body prose">
+      <p>This browser cannot hide its own address bar, so the game has hidden its buttons instead. Use <strong>Exit full screen</strong> in the corner to get them back.</p>
+      <p>For true full screen on an iPad, add the game to the Home Screen once: tap Share, then <strong>Add to Home Screen</strong>. It then opens full screen every time.</p>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js?v=20261126a"></script>
+<script src="js/game.js?v=20261126a"></script>
+</body>
+</html>
