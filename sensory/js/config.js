@@ -17,6 +17,12 @@ window.SENSORY_CONFIG = {
   // and hints freely; keep the "id" words as they are.
   activities: [
     {
+      id: "peek",
+      name: "Peek and Find",
+      hint: "Tap the squares to find the surprise. Teachers can add their own pictures.",
+      href: "peek-and-find/" // opens its own page
+    },
+    {
       id: "fish",
       name: "Fish Tank",
       hint: "Touch the water and a new fish swims in.",
@@ -75,14 +81,15 @@ window.SENSORY_CONFIG = {
 
   // Fish Tank creatures (SG's pictures). Fish should face right. kind "jelly"
   // pulses up and down instead of swimming. size makes one bigger or smaller.
-  // weight sets how often it visits: 1 is normal, 0.1 is rare (one at a time).
+  // weight sets how often it visits (1 is normal). rare: true means it never
+  // lives in the tank and only one visits at a time.
   // Write [] to use the drawn fish. Pictures added with "My pictures" win.
   fishPictures: [
     { src: "images/fish/clownfish.webp" },
     { src: "images/fish/bannerfish.webp" },
     { src: "images/fish/discus-orange.webp" },
     { src: "images/fish/discus-spotted.webp" },
-    { src: "images/fish/shark.webp", size: 1.7, weight: 0.08 },
+    { src: "images/fish/shark.webp", size: 1.7, weight: 1.25, rare: true },
     { src: "images/fish/jellyfish.webp", kind: "jelly", size: 1.2 }
   ],
 

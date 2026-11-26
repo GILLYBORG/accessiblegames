@@ -567,6 +567,20 @@
   document.addEventListener("fullscreenchange", function () { updateFsButton(); fitBoard(); });
   document.addEventListener("webkitfullscreenchange", function () { updateFsButton(); fitBoard(); });
 
+  /* ---------- For teacher pictures (teacher.js) ---------- */
+  window.PeekFind = {
+    showPanel: showPanel,
+    // Show new pictures straight away on the board.
+    refreshPictures: function () {
+      [cfg.coverImage.src, cfg.revealImage.src, cfg.specialImage.src].forEach(preload);
+      tiles.forEach(function (t, i) {
+        t.querySelector(".face-cover img").src = cfg.coverImage.src;
+        if (state.open[i]) t.querySelector(".face-reveal img").src = (i === state.special ? cfg.specialImage : cfg.revealImage).src;
+        t.setAttribute("aria-label", tileLabel(i));
+      });
+    }
+  };
+
   /* ---------- Start ---------- */
   buildBoard();
   applySettings();

@@ -738,7 +738,7 @@
     var sea = (cfg.fishPictures || []).map(function (c) {
       var img = new Image();
       img.src = c.src;
-      return { img: img, kind: c.kind || "fish", size: c.size || 1, weight: c.weight == null ? 1 : c.weight };
+      return { img: img, kind: c.kind || "fish", size: c.size || 1, weight: c.weight == null ? 1 : c.weight, rare: !!c.rare };
     });
     // Which creatures can appear: My pictures first, then the config.js pictures.
     function creatures() {
@@ -749,8 +749,8 @@
     // Pick one by weight, so a rare one (like the shark) only turns up now and then.
     function pickCreature(avoidRare) {
       var list = creatures().filter(function (c) {
-        if (avoidRare && c.weight < 1) return false;
-        if (c.weight < 1 && fish.some(function (f) { return f.from === c && !f.leaving; })) return false; // one at a time
+        if (avoidRare && c.rare) return false;
+        if (c.rare && fish.some(function (f) { return f.from === c && !f.leaving; })) return false; // one at a time
         if (c.kind === "jelly" && fish.filter(function (f) { return f.jelly; }).length >= 2) return false;
         return true;
       });
@@ -763,7 +763,7 @@
       var f = makeFish(n, c ? c.img : null);
       if (c) {
         f.from = c;
-        f.len = rand(120, 150) * unit() * (c.size || 1) * (creatures() === sea ? 1 : 0.8);
+        f.len = rand(80, 100) * unit() * (c.size || 1) * (creatures() === sea ? 1 : 0.8);
         f.jelly = c.kind === "jelly";
         if (f.jelly) { f.vx = rand(-6, 6); f.ty = rand(0.2, 0.6) * H; }
       }
@@ -780,7 +780,7 @@
       f.visitor = true; f.age = 0; f.stay = rand(12, 20); f.grow = 0; f.excite = 1;
       newTarget(f);
       fish.push(f);
-      if (f.from && f.from.weight < 1) announce("A shark is visiting!");
+      if (f.from && f.from.rare) announce("A shark is visiting!");
     }
     function leave(f) {
       f.leaving = true;
@@ -1590,7 +1590,7 @@
       e.preventDefault();
       if (e.repeat) return;
       var card = document.querySelectorAll(".card")[scanIndex];
-      if (card) openActivity(card.dataset.id, true);
+      if (card) card.click();
       return;
     }
     if (t && t !== play && t.closest && t.closest("button, input, select, a")) return; // let buttons work
@@ -1634,6 +1634,7 @@
 
   /* ---------- Menu ---------- */
   var ART = {
+    peek: '<img src="../home/thumbs/peek-and-find.jpg" alt="" style="width:100%;height:100%;object-fit:cover;display:block">',
     fireworks: '<svg viewBox="0 0 160 90" aria-hidden="true"><defs><filter id="a6" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2"/></filter></defs><rect width="160" height="90" fill="#070a22"/><g filter="url(#a6)" stroke-linecap="round" stroke-width="2.5">' +
       [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map(function (a) {
         var r = a * Math.PI / 180;
@@ -1656,7 +1657,7 @@
   function buildMenu() {
     var list = $("cards");
     cfg.activities.forEach(function (a) {
-      if (!MAKERS[a.id]) return;
+      if (!MAKERS[a.id] && !a.href) return;
       var li = document.createElement("li");
       var b = document.createElement("button");
       b.type = "button";
@@ -1666,7 +1667,10 @@
         '<span class="card-text"><span class="card-name"></span><span class="card-hint"></span></span>';
       b.querySelector(".card-name").textContent = a.name;
       b.querySelector(".card-hint").textContent = a.hint;
-      b.addEventListener("click", function () { openActivity(a.id, true); });
+      b.addEventListener("click", function () {
+        if (a.href) { location.href = a.href; return; }
+        openActivity(a.id, true);
+      });
       li.appendChild(b);
       list.appendChild(li);
     });
