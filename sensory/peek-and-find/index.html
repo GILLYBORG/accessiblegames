@@ -121,8 +121,17 @@
       <button type="button" class="btn" data-close>Done</button>
     </div>
     <div class="panel-body" id="pics-main">
-      <p class="help-top">Use your own pictures for the cover, the picture underneath, and the hidden surprise. They stay on this device only and are never uploaded. On a Chromebook or iPad the picker can also open Google Drive. Square pictures look best.</p>
+      <p class="help-top">Use your own pictures for the cover, the picture underneath, and the hidden surprise. Pictures are never uploaded, and they are forgotten when this page is closed or refreshed. On a Chromebook or iPad the picker can also open Google Drive. Square pictures look best.</p>
       <ul class="slots" id="slots"></ul>
+      <label class="toggle" for="set-keep-pics">
+        <input type="checkbox" id="set-keep-pics" aria-describedby="keep-desc">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">Keep my pictures on this device</span>
+      </label>
+      <p class="help" id="keep-desc">Off is safer. Only turn this on for a device that only you use: anyone who opens Peek and Find on it will see the pictures.</p>
+      <div class="row">
+        <button type="button" class="btn" id="btn-clear-pics">Remove all my pictures</button>
+      </div>
     </div>
     <div class="panel-body" id="pics-editor" hidden>
       <h3 id="edit-title" tabindex="-1">Remove background</h3>
@@ -166,8 +175,8 @@
 
 <script src="js/config.js?v=20261126a"></script>
 <script src="js/game.js?v=20261126a"></script>
-<script src="../js/pictures.js?v=20261126j"></script>
-<script src="js/teacher.js?v=20261126a"></script>
+<script src="../js/pictures.js?v=20261126k"></script>
+<script src="js/teacher.js?v=20261126b"></script>
 <!-- ARTIFACT-END -->
 </body>
 </html>
