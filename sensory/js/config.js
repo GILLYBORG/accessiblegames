@@ -73,6 +73,10 @@ window.SENSORY_CONFIG = {
     { name: "Rainbow",      bg: "#0b0b24", colours: ["#ff5f8f", "#ffd65c", "#2ee67a", "#1f8bff"] }
   ],
 
+  // Fish Tank background picture. Write "" to use the drawn tank instead.
+  // Calm mode always uses the plainer drawn tank.
+  fishBackground: "images/fish-background.jpg",
+
   // Fireworks sounds in regular mode are built in (calm mode uses soft sounds).
   // To use your own recordings instead, put them in the "sounds" folder and
   // write their names here, for example bang: "sounds/bang.mp3".
