@@ -17,6 +17,12 @@ window.SENSORY_CONFIG = {
   // and hints freely; keep the "id" words as they are.
   activities: [
     {
+      id: "peek",
+      name: "Peek and Find",
+      hint: "Tap the squares to find the surprise. Teachers can add their own pictures.",
+      href: "peek-and-find/" // opens its own page
+    },
+    {
       id: "fish",
       name: "Fish Tank",
       hint: "Touch the water and a new fish swims in.",

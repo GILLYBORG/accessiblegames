@@ -48,3 +48,10 @@ You can also change the title, the grid size, and the starting settings in the s
 
 Open `index.html` in a browser. Everything works offline except the Atkinson
 Hyperlegible font, which falls back to a system font.
+
+## Moved into the Sensory Room (2026-11-26)
+
+Peek and Find now lives at `sensory/peek-and-find/` and is a card on the Sensory Room menu. The old
+`peek-and-find/` link redirects here. Teachers can press **Pictures** to choose their own cover,
+underneath and surprise pictures, give each a name to read aloud, and remove backgrounds on the device
+(shared with the Sensory Room's My pictures). Pictures stay on that device only.

@@ -1590,7 +1590,7 @@
       e.preventDefault();
       if (e.repeat) return;
       var card = document.querySelectorAll(".card")[scanIndex];
-      if (card) openActivity(card.dataset.id, true);
+      if (card) card.click();
       return;
     }
     if (t && t !== play && t.closest && t.closest("button, input, select, a")) return; // let buttons work
@@ -1634,6 +1634,7 @@
 
   /* ---------- Menu ---------- */
   var ART = {
+    peek: '<img src="../home/thumbs/peek-and-find.jpg" alt="" style="width:100%;height:100%;object-fit:cover;display:block">',
     fireworks: '<svg viewBox="0 0 160 90" aria-hidden="true"><defs><filter id="a6" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2"/></filter></defs><rect width="160" height="90" fill="#070a22"/><g filter="url(#a6)" stroke-linecap="round" stroke-width="2.5">' +
       [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map(function (a) {
         var r = a * Math.PI / 180;
@@ -1656,7 +1657,7 @@
   function buildMenu() {
     var list = $("cards");
     cfg.activities.forEach(function (a) {
-      if (!MAKERS[a.id]) return;
+      if (!MAKERS[a.id] && !a.href) return;
       var li = document.createElement("li");
       var b = document.createElement("button");
       b.type = "button";
@@ -1666,7 +1667,10 @@
         '<span class="card-text"><span class="card-name"></span><span class="card-hint"></span></span>';
       b.querySelector(".card-name").textContent = a.name;
       b.querySelector(".card-hint").textContent = a.hint;
-      b.addEventListener("click", function () { openActivity(a.id, true); });
+      b.addEventListener("click", function () {
+        if (a.href) { location.href = a.href; return; }
+        openActivity(a.id, true);
+      });
       li.appendChild(b);
       list.appendChild(li);
     });

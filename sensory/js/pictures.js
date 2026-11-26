@@ -13,7 +13,9 @@
   var MAX_SIDE = 640;
   var ORT_VERSION = "1.20.1";
   var ORT_BASE = "https://cdn.jsdelivr.net/npm/onnxruntime-web@" + ORT_VERSION + "/dist/";
-  var MODEL_URL = "models/u2netp.onnx";
+  // The model sits next to this script's folder, so other pages (like Peek and Find) can use it too.
+  var SCRIPT_SRC = (document.currentScript && document.currentScript.src) || location.href;
+  var MODEL_URL = new URL("../models/u2netp.onnx", SCRIPT_SRC).href;
 
   /* ---------- Storage (IndexedDB) ---------- */
   var dbPromise = null;
@@ -309,6 +311,8 @@
   }
 
   window.SensoryPictures = {
+    // Shared tools for other pages: shrink a file, and the two background removers.
+    tools: { normalise: normalise, blobToImage: blobToImage, canvasToBlob: canvasToBlob, removePlain: removePlain, removeBusy: removeBusy },
     images: function () { return images; },
     init: function (opts) {
       onChange = opts.onChange || onChange;
