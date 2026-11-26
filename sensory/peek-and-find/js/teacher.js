@@ -1,6 +1,7 @@
 /*
  * Peek and Find: teachers choose their own cover, reveal and surprise pictures.
- * Pictures stay on this device (browser storage) and are never uploaded.
+ * Pictures are never uploaded. By default they are kept in memory only and are gone when
+ * the page is refreshed or closed. "Keep my pictures on this device" saves them in the browser.
  * The background remover is shared with the Sensory Room (../js/pictures.js).
  */
 (function () {
@@ -42,15 +43,35 @@
       });
     });
   }
-  var records = {}; // key -> { key, original, cut, useCut, alt }
-  function load() {
+  var records = {}; // key -> { key, original, cut, useCut, alt }, kept in memory
+  var KEEP_KEY = "peek-and-find-keep-pictures";
+  function keep() { try { return localStorage.getItem(KEEP_KEY) === "1"; } catch (e) { return false; } }
+  function setKeep(on) { try { localStorage.setItem(KEEP_KEY, on ? "1" : "0"); } catch (e) { /* ignore */ } }
+  function load() { return Promise.resolve(); } // memory is the source of truth
+  function save(r) {
+    records[r.key] = r;
+    return keep() ? tx("readwrite", function (s) { return s.put(r); }).catch(function () {}) : Promise.resolve();
+  }
+  function drop(key) {
+    delete records[key];
+    return keep() ? tx("readwrite", function (s) { return s.delete(key); }).catch(function () {}) : Promise.resolve();
+  }
+  function clearSaved() { return window.indexedDB ? tx("readwrite", function (s) { return s.clear(); }).catch(function () {}) : Promise.resolve(); }
+  function saveAll() {
+    return clearSaved().then(function () {
+      return Promise.all(Object.keys(records).map(function (k) { return tx("readwrite", function (s) { return s.put(records[k]); }); }));
+    }).catch(function () {});
+  }
+  // At start: bring back saved pictures only if the teacher chose to keep them;
+  // otherwise wipe anything an earlier version saved.
+  function startUp() {
+    if (!window.indexedDB) return Promise.resolve();
+    if (!keep()) return clearSaved();
     return tx("readonly", function (s) { return s.getAll(); }).then(function (all) {
       records = {};
       (all || []).forEach(function (r) { records[r.key] = r; });
-    }).catch(function () { records = {}; });
+    }).catch(function () {});
   }
-  function save(r) { return tx("readwrite", function (s) { return s.put(r); }); }
-  function drop(key) { return tx("readwrite", function (s) { return s.delete(key); }); }
 
   /* ---------- Put the pictures into the game ---------- */
   var urls = {};
@@ -200,5 +221,17 @@
     window.PeekFind.showPanel("panel-pictures", e.currentTarget);
   });
 
-  load().then(function () { if (Object.keys(records).length) apply(); });
+  var keepBox = $("set-keep-pics");
+  keepBox.checked = keep();
+  keepBox.addEventListener("change", function () {
+    setKeep(keepBox.checked);
+    if (keepBox.checked) saveAll().then(function () { say("Pictures will stay on this device until you remove them."); });
+    else clearSaved().then(function () { say("Pictures will be forgotten when the page closes."); });
+  });
+  $("btn-clear-pics").addEventListener("click", function () {
+    records = {};
+    clearSaved().then(function () { apply(); render(); say("All your pictures are removed. The built-in pictures are back."); });
+  });
+
+  startUp().then(function () { if (Object.keys(records).length) apply(); });
 })();

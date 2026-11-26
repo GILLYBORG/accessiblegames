@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
-<link rel="stylesheet" href="css/style.css?v=20261126j">
+<link rel="stylesheet" href="css/style.css?v=20261126k">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#14213d">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -163,7 +163,7 @@
       <button type="button" class="btn" data-close>Done</button>
     </div>
     <div class="panel-body" id="pics-main">
-      <p class="help-top">Add your own pictures. They swim as fish in Fish Tank, float inside the bubbles in Bubble Float, and grow as flowers in Look and Bloom. Pictures stay on this device only and are never uploaded. On a Chromebook or iPad the picker can also open Google Drive.</p>
+      <p class="help-top">Add your own pictures. They swim as fish in Fish Tank, float inside the bubbles in Bubble Float, and grow as flowers in Look and Bloom. Pictures are never uploaded, and they are forgotten when this page is closed or refreshed. On a Chromebook or iPad the picker can also open Google Drive.</p>
       <div class="row">
         <button type="button" class="btn btn-primary" id="btn-add-pics">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
@@ -178,6 +178,15 @@
       </label>
       <p class="help" id="pics-empty">No pictures yet.</p>
       <ul class="pics" id="pics-list"></ul>
+      <label class="toggle" for="set-keep-pics">
+        <input type="checkbox" id="set-keep-pics" aria-describedby="keep-desc">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">Keep my pictures on this device</span>
+      </label>
+      <p class="help" id="keep-desc">Off is safer. Only turn this on for a device that only you use: anyone who opens the Sensory Room on it will see the pictures.</p>
+      <div class="row">
+        <button type="button" class="btn" id="btn-clear-pics">Remove all my pictures</button>
+      </div>
     </div>
     <div class="panel-body" id="pics-editor" hidden>
       <h3 id="edit-title" tabindex="-1">Remove background</h3>
@@ -218,8 +227,8 @@
   </div>
 </div>
 
-<script src="js/config.js?v=20261126j"></script>
-<script src="js/pictures.js?v=20261126j"></script>
-<script src="js/game.js?v=20261126j"></script>
+<script src="js/config.js?v=20261126k"></script>
+<script src="js/pictures.js?v=20261126k"></script>
+<script src="js/game.js?v=20261126k"></script>
 </body>
 </html>
