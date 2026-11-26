@@ -738,7 +738,7 @@
     var sea = (cfg.fishPictures || []).map(function (c) {
       var img = new Image();
       img.src = c.src;
-      return { img: img, kind: c.kind || "fish", size: c.size || 1, weight: c.weight == null ? 1 : c.weight };
+      return { img: img, kind: c.kind || "fish", size: c.size || 1, weight: c.weight == null ? 1 : c.weight, rare: !!c.rare };
     });
     // Which creatures can appear: My pictures first, then the config.js pictures.
     function creatures() {
@@ -749,8 +749,8 @@
     // Pick one by weight, so a rare one (like the shark) only turns up now and then.
     function pickCreature(avoidRare) {
       var list = creatures().filter(function (c) {
-        if (avoidRare && c.weight < 1) return false;
-        if (c.weight < 1 && fish.some(function (f) { return f.from === c && !f.leaving; })) return false; // one at a time
+        if (avoidRare && c.rare) return false;
+        if (c.rare && fish.some(function (f) { return f.from === c && !f.leaving; })) return false; // one at a time
         if (c.kind === "jelly" && fish.filter(function (f) { return f.jelly; }).length >= 2) return false;
         return true;
       });
@@ -763,7 +763,7 @@
       var f = makeFish(n, c ? c.img : null);
       if (c) {
         f.from = c;
-        f.len = rand(120, 150) * unit() * (c.size || 1) * (creatures() === sea ? 1 : 0.8);
+        f.len = rand(80, 100) * unit() * (c.size || 1) * (creatures() === sea ? 1 : 0.8);
         f.jelly = c.kind === "jelly";
         if (f.jelly) { f.vx = rand(-6, 6); f.ty = rand(0.2, 0.6) * H; }
       }
@@ -780,7 +780,7 @@
       f.visitor = true; f.age = 0; f.stay = rand(12, 20); f.grow = 0; f.excite = 1;
       newTarget(f);
       fish.push(f);
-      if (f.from && f.from.weight < 1) announce("A shark is visiting!");
+      if (f.from && f.from.rare) announce("A shark is visiting!");
     }
     function leave(f) {
       f.leaving = true;
