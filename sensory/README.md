@@ -5,7 +5,7 @@ Everything is drawn and played by the computer, so no pictures or sound files ar
 
 | Activity | Touch / mouse | Switch (any key, Space, Enter) | Eye gaze (look and wait) |
 | --- | --- | --- | --- |
-| Fish Tank | Touch the water: every fish wiggles and the nearby ones swim over to look | All the fish wiggle and dart to new spots, bubbles rise | The fish come to where you look |
+| Fish Tank (coral reef picture by SG; drawn tank in calm mode) | Touch the water: every fish wiggles and the nearby ones swim over to look | All the fish wiggle and dart to new spots, bubbles rise | The fish come to where you look |
 | Fireworks | Touch the sky to send a firework there | A firework goes up | A firework bursts where you look |
 | Light Painting | Move to paint glowing light, tap for a ripple | A ribbon of light swirls across the screen | Moving paints, resting makes a ripple |
 | Bubble Float | Tap to blow bubbles, tap a bubble to pop it | More bubbles float up | Look at a bubble to pop it |
@@ -48,3 +48,5 @@ Example: `https://gillyborg.github.io/accessiblegames/sensory/?activity=bloom&dw
 
 Edit `js/config.js` for names, hints, Colour Lamp colours, starting settings, and built-in pictures.
 After changing css or js files, change the `?v=` number in `index.html` so iPads load the new version.
+
+The Fish Tank coral reef picture (`images/fish-background.jpg`) and fish pictures (`images/fish/`) are SG's own (Canva) and are not covered by the MIT licence; do not copy them to the starter repo.

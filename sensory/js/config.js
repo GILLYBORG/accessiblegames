@@ -73,6 +73,22 @@ window.SENSORY_CONFIG = {
     { name: "Rainbow",      bg: "#0b0b24", colours: ["#ff5f8f", "#ffd65c", "#2ee67a", "#1f8bff"] }
   ],
 
+  // Fish Tank creatures (SG's pictures). Fish should face right. kind "jelly"
+  // pulses up and down instead of swimming. size makes one bigger or smaller.
+  // Write [] to use the drawn fish. Pictures added with "My pictures" win.
+  fishPictures: [
+    { src: "images/fish/clownfish.webp" },
+    { src: "images/fish/bannerfish.webp" },
+    { src: "images/fish/discus-orange.webp" },
+    { src: "images/fish/discus-spotted.webp" },
+    { src: "images/fish/shark.webp", size: 1.7 },
+    { src: "images/fish/jellyfish.webp", kind: "jelly", size: 1.2 }
+  ],
+
+  // Fish Tank background picture. Write "" to use the drawn tank instead.
+  // Calm mode always uses the plainer drawn tank.
+  fishBackground: "images/fish-background.jpg",
+
   // Fireworks sounds in regular mode are built in (calm mode uses soft sounds).
   // To use your own recordings instead, put them in the "sounds" folder and
   // write their names here, for example bang: "sounds/bang.mp3".

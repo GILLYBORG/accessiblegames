@@ -643,6 +643,15 @@
      ===================================================================== */
   function FishTank(activity) {
     var fish = [], weeds = [], bubbles = [], food = [], pebbles = [], pictures = picturesFor(activity);
+    // The background picture (config.js fishBackground). Calm mode uses the plainer drawn tank.
+    var photo = null;
+    if (cfg.fishBackground) { photo = new Image(); photo.src = cfg.fishBackground; }
+    function usePhoto() { return !calm() && ready(photo); }
+    var sea = (cfg.fishPictures || []).map(function (c) {
+      var img = new Image();
+      img.src = c.src;
+      return { img: img, kind: c.kind || "fish", size: c.size || 1 };
+    });
     var COLOURS = [ [28, 95], [48, 95], [200, 85], [330, 80], [270, 70], [160, 70], [12, 90] ];
     function makeFish(i, pic) {
       var c = COLOURS[i % COLOURS.length];
@@ -654,12 +663,22 @@
       };
     }
     function setup() {
-      var count = calm() ? 5 : 7, pics = pictures();
+      var count = calm() ? 5 : 7, pics = pictures(), i;
       fish = [];
-      for (var i = 0; i < count; i++) fish.push(makeFish(i, pics.length ? pics[i % pics.length] : null));
-      if (pics.length) { // keep a few drawn fish too
+      if (pics.length) { // My pictures swim with a few drawn fish
+        for (i = 0; i < count; i++) fish.push(makeFish(i, pics[i % pics.length]));
         for (i = 0; i < Math.min(3, count); i++) fish[i].pic = null;
         for (i = 0; i < fish.length; i++) if (fish[i].pic) fish[i].len = rand(90, 130) * unit();
+      } else if (sea.length) { // the fish pictures from config.js, one of each
+        sea.forEach(function (c, n) {
+          var f = makeFish(n, c.img);
+          f.len = rand(120, 150) * unit() * (c.size || 1);
+          f.jelly = c.kind === "jelly";
+          if (f.jelly) { f.vx = rand(-6, 6); f.ty = rand(0.2, 0.6) * H; }
+          fish.push(f);
+        });
+      } else {
+        for (i = 0; i < count; i++) fish.push(makeFish(i, null));
       }
       weeds = [];
       for (i = 0; i < 9; i++) weeds.push({ x: rand(0.03, 0.97), h: rand(0.18, 0.42), ph: rand(0, TAU), hue: rand(95, 150), w: rand(10, 18) });
@@ -684,6 +703,21 @@
     function drawFish(g, f, time) {
       var L = f.len, wig = Math.sin(f.tail) * (0.14 + f.excite * 0.16);
       var angle = clamp(Math.atan2(f.vy, Math.abs(f.vx) + 1), -0.45, 0.45);
+      if (usePhoto()) { // a soft light halo keeps fish easy to see against a busy reef
+        g.globalAlpha = 0.45;
+        g.drawImage(glow(195, 60, 80), f.x - L * 0.85, f.y - L * 0.6, L * 1.7, L * 1.2);
+        g.globalAlpha = 1;
+      }
+      if (f.jelly && ready(f.pic)) { // a jellyfish pulses gently up and down, never flips
+        var pulse = Math.sin(f.tail * 0.5);
+        var jw = L * 0.75 * (1 - pulse * 0.05), jh = L * 0.75 * f.pic.naturalHeight / f.pic.naturalWidth * (1 + pulse * 0.06);
+        g.save();
+        g.translate(f.x, f.y);
+        g.rotate(clamp(f.vx * 0.004, -0.15, 0.15));
+        g.drawImage(f.pic, -jw / 2, -jh * 0.3, jw, jh);
+        g.restore();
+        return;
+      }
       g.save();
       g.translate(f.x, f.y);
       g.scale(f.face, 1);
@@ -729,6 +763,7 @@
       g.bezierCurveTo(L * 0.36, -L * 0.26, -L * 0.12, -L * 0.28 + midY, -L * 0.34, midY * 1.6);
       g.bezierCurveTo(-L * 0.12, L * 0.26 + midY, L * 0.36, L * 0.24, L * 0.42, 0);
       g.fill();
+      if (usePhoto()) { g.strokeStyle = "rgba(8,20,40,0.75)"; g.lineWidth = Math.max(2, L * 0.025); g.stroke(); }
       if (f.stripes) {
         g.save();
         g.clip();
@@ -776,6 +811,17 @@
       update: function (dt) {
         fish.forEach(function (f) {
           f.excite = Math.max(0, f.excite - dt / 3);
+          if (f.jelly) { // drifts slowly; a touch makes it pulse and push upwards
+            f.tail += dt * (2.2 + f.excite * 6);
+            var push = Math.max(0, Math.sin(f.tail * 0.5)) * (14 + f.excite * 60) * unit();
+            f.vy += (-push + 9 * unit()) * dt;
+            f.vy *= 1 - dt * 0.8;
+            f.vx += ((f.tx - f.x) * 0.02 - f.vx) * dt * 0.5;
+            f.x += f.vx * dt; f.y += f.vy * dt;
+            if (f.y < H * 0.08) f.vy = Math.abs(f.vy) * 0.5;
+            f.y = clamp(f.y, H * 0.06, H * 0.7);
+            return;
+          }
           var dx = f.tx - f.x, dy = f.ty - f.y, d = Math.sqrt(dx * dx + dy * dy) + 0.001;
           if (d < 30 * unit()) {
             f.pause += dt;
@@ -803,44 +849,58 @@
         for (i = food.length - 1; i >= 0; i--) { food[i].age += dt; if (food[i].age > 1.6) food.splice(i, 1); }
       },
       draw: function (g, time) {
-        var bg = g.createLinearGradient(0, 0, 0, H);
-        bg.addColorStop(0, calm() ? "#1a5470" : "#1b6f95");
-        bg.addColorStop(0.6, calm() ? "#0f3a55" : "#0f4a6e");
-        bg.addColorStop(1, "#082338");
-        g.fillStyle = bg;
-        g.fillRect(0, 0, W, H);
-        // soft moving light on the water
-        g.globalCompositeOperation = "lighter";
-        g.fillStyle = "rgba(160,220,255," + (calm() ? 0.03 : 0.05) + ")";
-        for (var k = 0; k < 6; k++) {
+        if (usePhoto()) {
+          // Fill the screen with the picture (cropped, never stretched).
+          var k = Math.max(W / photo.naturalWidth, H / photo.naturalHeight);
+          var pw = photo.naturalWidth * k, ph = photo.naturalHeight * k;
+          g.drawImage(photo, (W - pw) / 2, (H - ph) / 2, pw, ph);
+          // Soften the busy reef with a little water colour so the fish stand out.
+          var veil = g.createLinearGradient(0, 0, 0, H);
+          veil.addColorStop(0, "rgba(10,70,110,0.08)");
+          veil.addColorStop(0.5, "rgba(10,70,110,0.22)");
+          veil.addColorStop(1, "rgba(6,40,70,0.42)");
+          g.fillStyle = veil;
+          g.fillRect(0, 0, W, H);
+        } else {
+          var bg = g.createLinearGradient(0, 0, 0, H);
+          bg.addColorStop(0, calm() ? "#1a5470" : "#1b6f95");
+          bg.addColorStop(0.6, calm() ? "#0f3a55" : "#0f4a6e");
+          bg.addColorStop(1, "#082338");
+          g.fillStyle = bg;
+          g.fillRect(0, 0, W, H);
+          // soft moving light on the water
+          g.globalCompositeOperation = "lighter";
+          g.fillStyle = "rgba(160,220,255," + (calm() ? 0.03 : 0.05) + ")";
+          for (var k = 0; k < 6; k++) {
+            g.beginPath();
+            g.ellipse((k / 6 + Math.sin(time * 0.15 + k) * 0.05) * W, H * (0.08 + 0.05 * Math.sin(time * 0.2 + k * 2)),
+                      W * 0.09, H * 0.025, 0, 0, TAU);
+            g.fill();
+          }
+          g.globalCompositeOperation = "source-over";
+          // sand and pebbles
+          g.fillStyle = "#c8a66b";
           g.beginPath();
-          g.ellipse((k / 6 + Math.sin(time * 0.15 + k) * 0.05) * W, H * (0.08 + 0.05 * Math.sin(time * 0.2 + k * 2)),
-                    W * 0.09, H * 0.025, 0, 0, TAU);
+          g.moveTo(0, H);
+          for (var x = 0; x <= W; x += W / 20) g.lineTo(x, H * 0.91 - Math.sin(x / W * 4) * H * 0.015);
+          g.lineTo(W, H);
           g.fill();
+          pebbles.forEach(function (p) {
+            g.fillStyle = "hsl(30,25%," + p.l + "%)";
+            g.beginPath(); g.ellipse(p.x * W, p.y * H, p.r * unit() + 2, (p.r * unit() + 2) * 0.7, 0, 0, TAU); g.fill();
+          });
+          // swaying water plants
+          weeds.forEach(function (w) {
+            var x0 = w.x * W, y0 = H * 0.93, h = w.h * H, sw2 = Math.sin(time * 0.8 + w.ph) * h * 0.12;
+            g.strokeStyle = "hsl(" + Math.round(w.hue) + "," + (calm() ? 35 : 55) + "%,34%)";
+            g.lineWidth = w.w * unit() + 3;
+            g.lineCap = "round";
+            g.beginPath();
+            g.moveTo(x0, y0);
+            g.bezierCurveTo(x0 + sw2, y0 - h * 0.35, x0 - sw2, y0 - h * 0.7, x0 + sw2 * 1.4, y0 - h);
+            g.stroke();
+          });
         }
-        g.globalCompositeOperation = "source-over";
-        // sand and pebbles
-        g.fillStyle = "#c8a66b";
-        g.beginPath();
-        g.moveTo(0, H);
-        for (var x = 0; x <= W; x += W / 20) g.lineTo(x, H * 0.91 - Math.sin(x / W * 4) * H * 0.015);
-        g.lineTo(W, H);
-        g.fill();
-        pebbles.forEach(function (p) {
-          g.fillStyle = "hsl(30,25%," + p.l + "%)";
-          g.beginPath(); g.ellipse(p.x * W, p.y * H, p.r * unit() + 2, (p.r * unit() + 2) * 0.7, 0, 0, TAU); g.fill();
-        });
-        // swaying water plants
-        weeds.forEach(function (w) {
-          var x0 = w.x * W, y0 = H * 0.93, h = w.h * H, sw2 = Math.sin(time * 0.8 + w.ph) * h * 0.12;
-          g.strokeStyle = "hsl(" + Math.round(w.hue) + "," + (calm() ? 35 : 55) + "%,34%)";
-          g.lineWidth = w.w * unit() + 3;
-          g.lineCap = "round";
-          g.beginPath();
-          g.moveTo(x0, y0);
-          g.bezierCurveTo(x0 + sw2, y0 - h * 0.35, x0 - sw2, y0 - h * 0.7, x0 + sw2 * 1.4, y0 - h);
-          g.stroke();
-        });
         // where the touch was: a gentle ripple
         food.forEach(function (fd) {
           var f = fd.age / 1.6;
