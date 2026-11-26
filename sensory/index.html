@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sensory Room</title>
+<meta name="description" content="Calm, cause-and-effect light and sound activities for touch, switch, keyboard and eye gaze.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
+<link rel="stylesheet" href="css/style.css?v=20261126a">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#14213d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sensory Room">
+<link rel="apple-touch-icon" href="images/icon-180.png">
+<link rel="icon" href="images/icon.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="app" id="app">
+  <header class="bar">
+    <div class="bar-text">
+      <h1 id="title">Sensory Room</h1>
+      <p class="status" id="status">Choose an activity</p>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn btn-primary" id="btn-menu" hidden>
+        <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2.5"/><rect x="13" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2.5"/><rect x="4" y="13" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2.5"/><rect x="13" y="13" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>
+        <span>Activities</span>
+      </button>
+      <button type="button" class="btn" id="btn-settings" aria-haspopup="dialog" aria-controls="panel-settings">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="7" r="2.5" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="10" cy="17" r="2.5" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>
+        <span>Settings</span>
+      </button>
+      <button type="button" class="btn" id="btn-fullscreen">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="fullscreen-label">Full screen</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+    <section class="menu" id="menu" aria-labelledby="menu-title">
+      <h2 class="sr-only" id="menu-title">Choose an activity</h2>
+      <div class="menu-top">
+        <p class="menu-intro">Calm light and sound to explore. There is no right or wrong. Touch, move, look, or press a switch.</p>
+        <button type="button" class="btn" id="btn-pictures" aria-haspopup="dialog" aria-controls="panel-pictures">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="9" cy="10" r="1.8" fill="currentColor"/><path d="M4 18l5-5 4 4 3-3 4 4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/></svg>
+          <span>My pictures</span>
+        </button>
+      </div>
+      <ul class="cards" id="cards"></ul>
+    </section>
+
+    <div class="play" id="play" role="button" tabindex="0" hidden>
+      <canvas id="canvas" aria-hidden="true"></canvas>
+      <p class="hold-hint" id="hold-hint" hidden>Keep holding to go back to the activities</p>
+    </div>
+  </main>
+
+  <button type="button" class="btn fs-exit" id="btn-exit-fs" hidden>
+    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Exit full screen</span>
+  </button>
+
+  <div class="sr-only" id="live" aria-live="polite" aria-atomic="true"></div>
+</div>
+
+<div class="overlay" id="panel-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+  <div class="panel">
+    <div class="panel-head">
+      <h2 id="settings-title" tabindex="-1">Settings</h2>
+      <button type="button" class="btn" data-close>Done</button>
+    </div>
+    <div class="panel-body">
+      <label class="toggle" for="set-sound">
+        <input type="checkbox" id="set-sound">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">Play sounds</span>
+      </label>
+      <div class="field">
+        <label for="set-volume">Volume</label>
+        <input type="range" id="set-volume" min="0" max="100" step="10">
+      </div>
+      <label class="toggle" for="set-calm">
+        <input type="checkbox" id="set-calm" aria-describedby="calm-desc">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">Calm mode</span>
+      </label>
+      <p class="help" id="calm-desc">Slower movement, softer colours, quieter sounds and fewer things on screen. On by default when the device is set to reduce motion.</p>
+      <div class="field">
+        <label for="set-size">Size of the effects</label>
+        <select id="set-size">
+          <option value="1">Normal</option>
+          <option value="1.5">Big</option>
+          <option value="2">Extra big</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="set-dwell">Eye gaze: look and wait</label>
+        <select id="set-dwell" aria-describedby="dwell-desc">
+          <option value="0">Off</option>
+          <option value="0.5">0.5 seconds</option>
+          <option value="1">1 second</option>
+          <option value="1.5">1.5 seconds</option>
+          <option value="2">2 seconds</option>
+          <option value="3">3 seconds</option>
+        </select>
+      </div>
+      <p class="help" id="dwell-desc">For eye gaze or a head mouse. Resting the pointer in one place for this long counts as a tap. A soft circle fills up while you wait.</p>
+      <div class="field">
+        <label for="set-gap">Ignore extra switch presses for</label>
+        <select id="set-gap" aria-describedby="gap-desc">
+          <option value="0">Off</option>
+          <option value="0.3">0.3 seconds</option>
+          <option value="0.6">0.6 seconds</option>
+          <option value="1">1 second</option>
+          <option value="2">2 seconds</option>
+        </select>
+      </div>
+      <p class="help" id="gap-desc">Helps when a hand tremor presses the switch twice by accident.</p>
+      <label class="toggle" for="set-scan">
+        <input type="checkbox" id="set-scan" aria-describedby="scan-desc">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">Switch scanning on the menu</span>
+      </label>
+      <p class="help" id="scan-desc">The activities light up one at a time. Press a switch, Space or Enter to choose the lit one. Inside an activity, every switch press makes something happen.</p>
+      <div class="field">
+        <label for="set-scan-speed">Scanning speed</label>
+        <select id="set-scan-speed">
+          <option value="1">1 second per step</option>
+          <option value="1.5">1.5 seconds per step</option>
+          <option value="2">2 seconds per step</option>
+          <option value="3">3 seconds per step</option>
+          <option value="4">4 seconds per step</option>
+          <option value="6">6 seconds per step</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="set-hold">Hold the switch to go back to the menu</label>
+        <select id="set-hold">
+          <option value="0">Off</option>
+          <option value="2">Hold for 2 seconds</option>
+          <option value="3">Hold for 3 seconds</option>
+          <option value="5">Hold for 5 seconds</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="panel-pictures" role="dialog" aria-modal="true" aria-labelledby="pics-title" hidden>
+  <div class="panel panel-wide">
+    <div class="panel-head">
+      <h2 id="pics-title" tabindex="-1">My pictures</h2>
+      <button type="button" class="btn" data-close>Done</button>
+    </div>
+    <div class="panel-body" id="pics-main">
+      <p class="help-top">Add your own pictures. They float inside the bubbles in Bubble Float and grow as flowers in Look and Bloom. Pictures stay on this device only and are never uploaded. On a Chromebook or iPad the picker can also open Google Drive.</p>
+      <div class="row">
+        <button type="button" class="btn btn-primary" id="btn-add-pics">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+          <span>Add pictures</span>
+        </button>
+        <input type="file" id="pics-input" accept="image/*" multiple hidden>
+      </div>
+      <label class="toggle" for="set-use-mine">
+        <input type="checkbox" id="set-use-mine">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">Use my pictures</span>
+      </label>
+      <p class="help" id="pics-empty">No pictures yet.</p>
+      <ul class="pics" id="pics-list"></ul>
+    </div>
+    <div class="panel-body" id="pics-editor" hidden>
+      <h3 id="edit-title" tabindex="-1">Remove background</h3>
+      <div class="row" role="group" aria-label="Kind of background">
+        <button type="button" class="btn" id="edit-mode-plain" aria-pressed="true">Plain background</button>
+        <button type="button" class="btn" id="edit-mode-ai" aria-pressed="false">Busy photo</button>
+      </div>
+      <div class="field" id="edit-plain-opts">
+        <label for="edit-strength">How much to remove</label>
+        <input type="range" id="edit-strength" min="0" max="100" step="5" value="35">
+      </div>
+      <p class="help" id="edit-ai-note" hidden>Busy photo works on the device. The first time it downloads about 15 MB. It does best with one clear subject, and busy photos may not come out perfectly.</p>
+      <div class="edit-preview" id="edit-preview"></div>
+      <div class="row">
+        <button type="button" class="btn btn-primary" id="btn-edit-keep" disabled>Keep this</button>
+        <button type="button" class="btn" id="btn-edit-cancel">Cancel</button>
+      </div>
+    </div>
+    <p class="sr-only" id="pics-status" aria-live="polite"></p>
+  </div>
+</div>
+
+<div class="overlay" id="panel-fullscreen" role="dialog" aria-modal="true" aria-labelledby="fs-title" hidden>
+  <div class="panel">
+    <div class="panel-head">
+      <h2 id="fs-title" tabindex="-1">Play full screen</h2>
+      <button type="button" class="btn" data-close>Done</button>
+    </div>
+    <div class="panel-body prose">
+      <p>This browser cannot switch to full screen by itself, so the top bar is hidden instead. For true full screen on an iPad, add the Sensory Room to the Home Screen once.</p>
+      <ol>
+        <li>In Safari, tap the Share button (the square with an arrow).</li>
+        <li>Tap <strong>Add to Home Screen</strong>, then <strong>Add</strong>.</li>
+        <li>Open <strong>Sensory Room</strong> from the Home Screen.</li>
+      </ol>
+      <p>For a locked-down session, turn on <strong>Guided Access</strong> in iPad Settings under Accessibility, then triple-click the top or Home button inside an activity.</p>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js?v=20261126a"></script>
+<script src="js/pictures.js?v=20261126a"></script>
+<script src="js/game.js?v=20261126a"></script>
+</body>
+</html>

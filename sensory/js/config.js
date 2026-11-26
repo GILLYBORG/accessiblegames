@@ -1,0 +1,74 @@
+/*
+ * SENSORY ROOM SETTINGS - this is the only file you need to edit.
+ *
+ * Everything you see and hear is drawn and played by the computer, so no
+ * pictures or sound files are needed. You can add your own pictures later:
+ * see "pictures" under Bubbles and Look and Bloom below.
+ *
+ * Link straight to one activity with ?activity=trails, bubbles, lamp or bloom.
+ * Add &calm=1 for calm mode, &dwell=1.5 to turn on eye gaze dwell, or &scan=0
+ * to turn off switch scanning on the menu.
+ * Example: .../sensory/?activity=bloom&dwell=1.5
+ */
+window.SENSORY_CONFIG = {
+  title: "Sensory Room",
+
+  // The activities, in the order they appear on the menu. Change the names
+  // and hints freely; keep the "id" words as they are.
+  activities: [
+    {
+      id: "trails",
+      name: "Light Painting",
+      hint: "Move to paint with glowing light.",
+      label: "Light painting. Touch and move to paint with glowing light. A switch press sends a ribbon of light across the screen."
+    },
+    {
+      id: "bubbles",
+      name: "Bubble Float",
+      hint: "Make bubbles and pop them.",
+      label: "Bubble float. Tap to blow bubbles. Tap or look at a bubble to pop it. A switch press blows more bubbles.",
+      // Optional: your own pictures to float inside the bubbles (square PNGs
+      // with see-through backgrounds look best). Example:
+      // pictures: ["images/star.png", "images/fish.png"]
+      pictures: []
+    },
+    {
+      id: "lamp",
+      name: "Colour Lamp",
+      hint: "Change the colour of the glowing lamp.",
+      label: "Colour lamp. Tap anywhere or press a switch to slowly change the colour."
+    },
+    {
+      id: "bloom",
+      name: "Look and Bloom",
+      hint: "Flowers open where you tap or look.",
+      label: "Look and bloom. Tap, or look and wait, to grow a glowing flower. A switch press grows a flower somewhere new.",
+      // Optional: your own flower pictures, used instead of the drawn flowers.
+      pictures: []
+    }
+  ],
+
+  // Colour Lamp: each press moves to the next colour. "name" is read aloud.
+  lampColours: [
+    { name: "Ocean blue",   bg: "#03122b", colours: ["#1f8bff", "#16c6e8", "#4b5cff", "#2ee6c8"] },
+    { name: "Purple",       bg: "#14072b", colours: ["#9b4dff", "#e05cff", "#6a3dff", "#ff7ad9"] },
+    { name: "Sunset pink",  bg: "#2a0716", colours: ["#ff5f8f", "#ff9a5c", "#ff4fb0", "#ffc36b"] },
+    { name: "Gold",         bg: "#241503", colours: ["#ffb020", "#ffd65c", "#ff8a1f", "#fff08a"] },
+    { name: "Green",        bg: "#03200f", colours: ["#2ee67a", "#a8f060", "#14c9a0", "#62ff9e"] },
+    { name: "Rainbow",      bg: "#0b0b24", colours: ["#ff5f8f", "#ffd65c", "#2ee67a", "#1f8bff"] }
+  ],
+
+  // Starting choices for the Settings panel. Each device remembers changes.
+  defaults: {
+    sound: true,
+    volume: 70,      // 0 to 100
+    calm: false,     // turned on automatically if the device is set to reduce motion
+    size: 1,         // 1 normal, 1.5 big, 2 extra big
+    dwell: 0,        // eye gaze dwell in seconds, 0 = off
+    switchGap: 0.3,  // seconds to ignore repeat switch presses
+    scan: true,      // switch scanning on the menu (activities light up in turn)
+    scanSeconds: 2,  // how long each activity stays lit
+    holdSeconds: 3,  // hold a switch this long inside an activity to go back to the menu (0 = off)
+    useMine: true    // use pictures added with "My pictures" when there are any
+  }
+};
