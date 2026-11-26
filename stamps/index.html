@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
-<link rel="stylesheet" href="css/style.css?v=20261126a">
+<link rel="stylesheet" href="css/style.css?v=20261126b">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -124,7 +124,7 @@
       <section aria-labelledby="paper-title">
         <h3 id="paper-title">Paper</h3>
         <div class="field">
-          <label for="set-size">Stamp size</label>
+          <label for="set-size">Starting stamp size</label>
           <select id="set-size">
             <option value="s">Small</option>
             <option value="m">Medium</option>
@@ -133,20 +133,46 @@
           </select>
         </div>
         <div class="field">
-          <label for="set-bg">Paper colour</label>
+          <label for="set-bg">Background</label>
           <select id="set-bg">
-            <option value="white">White</option>
-            <option value="cream">Cream</option>
-            <option value="sky">Pale blue</option>
-            <option value="grass">Pale green</option>
-            <option value="black">Black (high contrast)</option>
+            <optgroup label="Colours">
+              <option value="white">White</option>
+              <option value="cream">Cream</option>
+              <option value="sky">Pale blue</option>
+              <option value="grass">Pale green</option>
+              <option value="black">Black (high contrast)</option>
+            </optgroup>
+            <optgroup label="Pictures">
+              <option value="farm">Grass and sky</option>
+              <option value="sea">Under the sea</option>
+              <option value="beach">Beach</option>
+              <option value="road">Road</option>
+              <option value="snow">Snow</option>
+              <option value="space">Space</option>
+            </optgroup>
           </select>
+        </div>
+        <div class="own-bg">
+          <p class="field-label">Your own background picture</p>
+          <div class="own-row">
+            <img id="own-preview" alt="" hidden>
+            <button type="button" class="btn" id="own-pick">Choose a picture…</button>
+            <input type="file" id="own-file" accept="image/*" hidden>
+            <button type="button" class="btn" id="own-remove" hidden>Remove picture</button>
+          </div>
+          <p class="help" id="own-help">For privacy, your picture is not saved: it goes away when the page is refreshed or closed, and it is not in the shared link.</p>
         </div>
         <label class="toggle" for="set-words">
           <input type="checkbox" id="set-words">
           <span class="toggle-track" aria-hidden="true"></span>
           <span class="toggle-text">Show the word under each stamp</span>
         </label>
+        <label class="toggle" for="set-grow">
+          <input type="checkbox" id="set-grow" aria-describedby="grow-desc">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">Bigger and Smaller buttons</span>
+        </label>
+        <p class="help" id="grow-desc">Students can make the last stamp grow or shrink. New stamps then come out at that size. Keyboard: + and −.</p>
       </section>
 
       <section aria-labelledby="share-title" class="share">
@@ -261,7 +287,7 @@
   </div>
 </div>
 
-<script src="js/config.js?v=20261126a"></script>
-<script src="js/game.js?v=20261126a"></script>
+<script src="js/config.js?v=20261126b"></script>
+<script src="js/game.js?v=20261126b"></script>
 </body>
 </html>

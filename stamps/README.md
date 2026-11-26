@@ -17,6 +17,8 @@ Students pick a picture symbol and stamp it onto a page. Live at
   (Space moves, Enter picks) and an "ignore extra presses" gap for tremor are in Settings.
 - **Screen readers:** stamps are toggle buttons with their names; the page is one button that says
   what is on it ("On the page: 2 dogs and 1 cat"). Each stamp is announced.
+- **Bigger / Smaller** tiles (keyboard + and −): the last stamp grows or shrinks through 8 sizes, and
+  new stamps come out at that size. They are scanned like the stamps. Teachers can hide them.
 - **Undo**, **New page** (press twice to clear), **Save picture** (a PNG of the page), **Full screen**.
 
 Nothing the student makes is stored: a refresh gives a fresh page. There are no uploads.
@@ -25,15 +27,20 @@ Nothing the student makes is stored: a refresh gives a fresh page. There are no 
 
 Search the **Mulberry** symbols (built in) or **ARASAAC** pictograms (online), browse Mulberry groups,
 or start from a quick set (Pets, Farm, Feelings, Weather...). Up to 12 stamps. Change the word for any
-stamp, set stamp size, paper colour and words under stamps, then copy a link.
+stamp, set the starting stamp size, background and words under stamps, then copy a link.
+
+Backgrounds: plain colours, or simple pictures drawn for this game (`backgrounds/*.svg`: grass and
+sky, under the sea, beach, road, snow, space). A teacher can also choose **their own picture**. For
+privacy it is kept in memory only: it is gone after a refresh and is never put in the shared link.
 
 Link parameters:
 
 | Parameter | Meaning |
 | --- | --- |
 | `s` | stamps, separated by `|`. `m:dog` is Mulberry, `a:2517~dog` is ARASAAC. `~word` sets the word said. |
-| `size` | `s`, `m` (default), `l`, `xl` |
-| `bg` | `white` (default), `cream`, `sky`, `grass`, `black` |
+| `size` | starting size: `s`, `m` (default), `l`, `xl` |
+| `bg` | `white` (default), `cream`, `sky`, `grass`, `black`, or a picture: `farm`, `sea`, `beach`, `road`, `snow`, `space` |
+| `grow=0` | hide the Bigger and Smaller buttons |
 | `words=1` | show the word under each stamp |
 | `lock=1` | hide Teacher setup |
 | `scan=1` | switch scanning on (also `spot=next|random|choose`, `scanmode=auto|step`, `speed=2`) |
