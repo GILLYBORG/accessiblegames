@@ -5,7 +5,7 @@
  * pictures or sound files are needed. You can add your own pictures later:
  * see "pictures" under Bubbles and Look and Bloom below.
  *
- * Link straight to one activity with ?activity=trails, bubbles, lamp or bloom.
+ * Link straight to one activity with ?activity=fish, trails, bubbles, lamp or bloom.
  * Add &calm=1 for calm mode, &dwell=1.5 to turn on eye gaze dwell, or &scan=0
  * to turn off switch scanning on the menu.
  * Example: .../sensory/?activity=bloom&dwell=1.5
@@ -16,6 +16,15 @@ window.SENSORY_CONFIG = {
   // The activities, in the order they appear on the menu. Change the names
   // and hints freely; keep the "id" words as they are.
   activities: [
+    {
+      id: "fish",
+      name: "Fish Tank",
+      hint: "Touch the water and the fish wiggle and swim.",
+      label: "Fish tank. Touch the water and the fish wiggle and swim over to look. A switch press makes all the fish wiggle and swim to a new spot.",
+      // Optional: your own pictures to swim as fish (side view, facing right,
+      // with a see-through background). Pictures added with "My pictures" are used too.
+      pictures: []
+    },
     {
       id: "trails",
       name: "Light Painting",
@@ -35,8 +44,8 @@ window.SENSORY_CONFIG = {
     {
       id: "lamp",
       name: "Colour Lamp",
-      hint: "Change the colour of the glowing lamp.",
-      label: "Colour lamp. Tap anywhere or press a switch to slowly change the colour."
+      hint: "Touch to make glowing blobs rise and mix.",
+      label: "Colour lamp. Touch to make a glowing blob that rises and mixes with the others. A switch press slowly changes the colour of the lamp."
     },
     {
       id: "bloom",

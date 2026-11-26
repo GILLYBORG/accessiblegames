@@ -460,12 +460,14 @@
   }
 
   /* =====================================================================
-     Activity 3: Colour Lamp
+     Activity 3: Colour Lamp (a lava lamp: glowing blobs rise, sink and merge)
      ===================================================================== */
   function ColourLamp() {
     var colours = cfg.lampColours;
     var index = 0, from = null, to = null, mix = 1;
-    var blobs = [], small = document.createElement("canvas"), sg = small.getContext("2d");
+    var blobs = [], sparks = [], rings = [];
+    var small = document.createElement("canvas"), sg = small.getContext("2d"), img = null;
+    var SCALE = 5; // the blobs are worked out on a small grid, then smoothly scaled up
     function hexToRgb(h) {
       var n = parseInt(h.slice(1), 16);
       return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
@@ -473,68 +475,383 @@
     function paletteRgb(p) { return { bg: hexToRgb(p.bg), c: p.colours.map(hexToRgb) }; }
     function lerp(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; }
     function now() {
-      return {
-        bg: lerp(from.bg, to.bg, easeOut(mix)),
-        c: to.c.map(function (c, i) { return lerp(from.c[i % from.c.length], c, easeOut(mix)); })
-      };
+      var t = easeOut(mix);
+      return { bg: lerp(from.bg, to.bg, t), c: to.c.map(function (c, i) { return lerp(from.c[i % from.c.length], c, t); }) };
     }
-    function rgb(c, a) { return "rgba(" + Math.round(c[0]) + "," + Math.round(c[1]) + "," + Math.round(c[2]) + "," + a + ")"; }
-    function next(x, y) {
+    function maxBlobs() { return calm() ? 7 : 11; }
+    function addBlob(x, y, r, rising) {
+      while (blobs.length >= maxBlobs()) {
+        var old = blobs.filter(function (b) { return !b.leaving; })[0];
+        if (!old) break;
+        old.leaving = true;
+        if (blobs.filter(function (b) { return !b.leaving; }).length < maxBlobs()) break;
+      }
+      blobs.push({ x: x, y: y, r: r, size: 0, vx: rand(-12, 12), vy: rising ? -rand(20, 40) : rand(-10, 10),
+                   heat: rising ? 1 : (Math.random() < 0.5 ? 1 : -1), c: Math.floor(rand(0, 4)), leaving: false, wob: rand(0, TAU) });
+    }
+    function changeColour() {
       var cur = now();
       index = (index + 1) % colours.length;
       from = cur;
       to = paletteRgb(colours[index]);
       mix = 0;
-      // A soft chord that changes with the colour.
       var base = [0, 2, 4, 1, 3, 5][index % 6];
       [0, 2, 4].forEach(function (s, i) {
-        chime(noteFreq(base + s + 3), { type: "pad", gain: 0.12, attack: 0.5, decay: 3, delay: 0.001 + i * 0.05 });
+        chime(noteFreq(base + s + 3), { type: "pad", gain: 0.1, attack: 0.5, decay: 3, delay: 0.001 + i * 0.05 });
       });
       announce(colours[index].name);
+    }
+    function touchAt(x, y) {
+      // A new blob of light grows where you touch, the others are gently pushed away,
+      // and a soft ring of colour spreads out.
+      blobs.forEach(function (b) {
+        var dx = b.x - x, dy = b.y - y, d = Math.sqrt(dx * dx + dy * dy) + 1;
+        var push = 160 * unit() * Math.max(0, 1 - d / (Math.min(W, H) * 0.6));
+        b.vx += dx / d * push; b.vy += dy / d * push;
+      });
+      addBlob(x, y, rand(55, 85) * unit(), true);
+      rings.push({ x: x, y: y, age: 0 });
+      for (var i = 0; i < (calm() ? 8 : 16); i++) {
+        var a = rand(0, TAU), v = rand(30, 110) * unit();
+        sparks.push({ x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 20, age: 0, life: rand(1.8, 3.2), c: Math.floor(rand(0, 4)) });
+      }
+      chime(noteFreq(12 - (y / H) * 9), { gain: 0.14, decay: 1.8 });
     }
     return {
       start: function () {
         index = Math.floor(rand(0, colours.length));
         from = to = paletteRgb(colours[index]);
         mix = 1;
-        blobs = [];
-        for (var i = 0; i < 7; i++) {
-          blobs.push({ ax: rand(0.15, 0.35), ay: rand(0.2, 0.4), fx: rand(0.05, 0.12), fy: rand(0.04, 0.1),
-                       px: rand(0, TAU), py: rand(0, TAU), r: rand(0.22, 0.38), c: i });
-        }
+        blobs = []; sparks = []; rings = [];
+        for (var i = 0; i < (calm() ? 5 : 7); i++) addBlob(rand(0.2, 0.8) * W, rand(0.2, 0.9) * H, rand(45, 80) * unit(), false);
+        blobs.forEach(function (b) { b.size = 1; });
         setTimeout(function () { announce(colours[index].name); }, 1200);
       },
-      down: function (id, x, y) { next(x, y); },
-      move: function () {},
-      up: function () {},
-      dwell: function (x, y) { next(x, y); },
-      press: function () { next(); },
-      update: function (dt) { mix = Math.min(1, mix + dt / 2.5); }, // 2.5 s fade, never a flash
-      draw: function (g, time) {
-        var sw = Math.max(40, Math.round(W / 8)), sh = Math.max(30, Math.round(H / 8));
-        if (small.width !== sw || small.height !== sh) { small.width = sw; small.height = sh; }
-        var p = now(), t = time * (calm() ? 0.5 : 1);
-        sg.globalCompositeOperation = "source-over";
-        sg.fillStyle = rgb(p.bg, 1);
-        sg.fillRect(0, 0, sw, sh);
-        sg.globalCompositeOperation = "lighter";
-        var m = Math.min(sw, sh);
-        blobs.forEach(function (b, i) {
-          var x = sw * (0.5 + Math.sin(t * b.fx * TAU * 0.25 + b.px) * b.ax);
-          var y = sh * (0.5 + Math.sin(t * b.fy * TAU * 0.25 + b.py) * b.ay);
-          var r = m * b.r * (1 + 0.12 * Math.sin(t * 0.3 + i));
-          var c = p.c[b.c % p.c.length];
-          var grad = sg.createRadialGradient(x, y, 0, x, y, r);
-          grad.addColorStop(0, rgb(c, calm() ? 0.5 : 0.7));
-          grad.addColorStop(0.5, rgb(c, calm() ? 0.22 : 0.32));
-          grad.addColorStop(1, rgb(c, 0));
-          sg.fillStyle = grad;
-          sg.beginPath(); sg.arc(x, y, r, 0, TAU); sg.fill();
+      down: function (id, x, y) { touchAt(x, y); },
+      move: function (id, x, y) { // dragging stirs the blobs nearby
+        blobs.forEach(function (b) {
+          var dx = b.x - x, dy = b.y - y;
+          if (dx * dx + dy * dy < b.r * b.r * 4) { b.vx += dx * 0.05; b.vy += dy * 0.05; }
         });
-        // Scaling the small picture up blurs it into a smooth glow.
+      },
+      up: function () {},
+      dwell: function (x, y) { touchAt(x, y); },
+      press: function () {
+        changeColour();
+        addBlob(rand(0.25, 0.75) * W, H + 40 * unit(), rand(60, 90) * unit(), true);
+        for (var i = 0; i < (calm() ? 10 : 22); i++) {
+          sparks.push({ x: rand(0, W), y: H + 10, vx: rand(-10, 10), vy: -rand(40, 120) * unit(), age: 0, life: rand(2.5, 4), c: Math.floor(rand(0, 4)) });
+        }
+      },
+      update: function (dt) {
+        mix = Math.min(1, mix + dt / 2.5); // colour changes fade over 2.5 s, never a flash
+        var top = H * 0.18, bottom = H * 0.86;
+        for (var i = blobs.length - 1; i >= 0; i--) {
+          var b = blobs[i];
+          b.size = b.leaving ? b.size - dt * 0.5 : Math.min(1, b.size + dt * 0.8);
+          if (b.size <= 0) { blobs.splice(i, 1); continue; }
+          // Warm blobs rise, cool blobs sink, like wax in a lamp.
+          if (b.y < top && b.heat > 0 && Math.random() < dt * 0.8) b.heat = -1;
+          if (b.y > bottom && b.heat < 0 && Math.random() < dt * 0.8) b.heat = 1;
+          b.vy += -b.heat * 22 * unit() * dt;
+          b.wob += dt;
+          b.vx += Math.sin(b.wob * 0.7) * 6 * unit() * dt;
+          b.vx *= 1 - dt * 0.6; b.vy *= 1 - dt * 0.5;
+          b.x += b.vx * dt; b.y += b.vy * dt;
+          if (b.x < b.r * 0.5) { b.x = b.r * 0.5; b.vx = Math.abs(b.vx); }
+          if (b.x > W - b.r * 0.5) { b.x = W - b.r * 0.5; b.vx = -Math.abs(b.vx); }
+          if (b.y < -b.r) { b.y = -b.r; b.heat = -1; }
+          if (b.y > H + b.r * 1.5) { b.y = H + b.r * 1.5; b.heat = 1; }
+        }
+        for (i = sparks.length - 1; i >= 0; i--) {
+          var s = sparks[i];
+          s.age += dt; s.x += s.vx * dt; s.y += s.vy * dt;
+          s.vx *= 1 - dt * 0.8; s.vy = s.vy * (1 - dt * 0.8) - 14 * dt;
+          if (s.age > s.life) sparks.splice(i, 1);
+        }
+        for (i = rings.length - 1; i >= 0; i--) { rings[i].age += dt; if (rings[i].age > 2.4) rings.splice(i, 1); }
+      },
+      draw: function (g) {
+        var sw = Math.max(32, Math.round(W / SCALE)), sh = Math.max(24, Math.round(H / SCALE));
+        if (small.width !== sw || small.height !== sh || !img) {
+          small.width = sw; small.height = sh;
+          img = sg.createImageData(sw, sh);
+        }
+        var p = now(), data = img.data, n = blobs.length;
+        var bx = new Float32Array(n), by = new Float32Array(n), rr = new Float32Array(n);
+        for (var i = 0; i < n; i++) {
+          var b = blobs[i], r = b.r * easeOut(b.size) / SCALE;
+          bx[i] = b.x / SCALE; by[i] = b.y / SCALE;
+          rr[i] = r * r * (1 + 0.08 * Math.sin(b.wob * 2));
+        }
+        var cols = blobs.map(function (b) { return p.c[b.c % p.c.length]; });
+        var halo = calm() ? 0.3 : 0.45;
+        var o = 0;
+        for (var y = 0; y < sh; y++) {
+          var shadeY = 0.75 + 0.35 * (y / sh); // the lamp is a little brighter at the bottom
+          var bgR = p.bg[0] * shadeY, bgG = p.bg[1] * shadeY, bgB = p.bg[2] * shadeY;
+          for (var x = 0; x < sw; x++) {
+            var f = 0, cr = 0, cg = 0, cb = 0;
+            for (i = 0; i < n; i++) {
+              var dx = x - bx[i], dy = y - by[i];
+              var w = rr[i] / (dx * dx + dy * dy + 1);
+              f += w; cr += w * cols[i][0]; cg += w * cols[i][1]; cb += w * cols[i][2];
+            }
+            if (f > 0) { cr /= f; cg /= f; cb /= f; }
+            var inside = f < 0.9 ? 0 : f > 1.1 ? 1 : (f - 0.9) / 0.2;
+            var h = Math.min(1, f) * halo;
+            var lit = 0.8 + 0.4 * Math.min(1, (f - 1) * 0.6);
+            var outR = bgR + cr * h, outG = bgG + cg * h, outB = bgB + cb * h;
+            data[o] = outR + (Math.min(255, cr * lit) - outR) * inside;
+            data[o + 1] = outG + (Math.min(255, cg * lit) - outG) * inside;
+            data[o + 2] = outB + (Math.min(255, cb * lit) - outB) * inside;
+            data[o + 3] = 255;
+            o += 4;
+          }
+        }
+        sg.putImageData(img, 0, 0);
         g.imageSmoothingEnabled = true;
         if ("imageSmoothingQuality" in g) g.imageSmoothingQuality = "high";
         g.drawImage(small, 0, 0, W, H);
+        g.globalCompositeOperation = "lighter";
+        rings.forEach(function (rg) {
+          var f = rg.age / 2.4, c = p.c[0];
+          g.strokeStyle = "rgba(" + Math.round(c[0]) + "," + Math.round(c[1]) + "," + Math.round(c[2]) + "," + (0.45 * (1 - f)) + ")";
+          g.lineWidth = 10 * unit() * (1 - f) + 2;
+          g.beginPath(); g.arc(rg.x, rg.y, easeOut(f) * 220 * unit(), 0, TAU); g.stroke();
+        });
+        sparks.forEach(function (s) {
+          var c = p.c[s.c % p.c.length], f = 1 - s.age / s.life, sz = 10 * unit() * (0.5 + f);
+          var hue = rgbHue(c);
+          g.globalAlpha = f;
+          g.drawImage(glow(hue, sat(), light()), s.x - sz, s.y - sz, sz * 2, sz * 2);
+        });
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = "source-over";
+      }
+    };
+  }
+  function rgbHue(c) {
+    var r = c[0] / 255, g = c[1] / 255, b = c[2] / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+    if (!d) return 0;
+    var h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return (h * 60 + 360) % 360;
+  }
+
+  /* =====================================================================
+     Activity 5: Fish Tank
+     ===================================================================== */
+  function FishTank(activity) {
+    var fish = [], weeds = [], bubbles = [], food = [], pebbles = [], pictures = picturesFor(activity);
+    var COLOURS = [ [28, 95], [48, 95], [200, 85], [330, 80], [270, 70], [160, 70], [12, 90] ];
+    function makeFish(i, pic) {
+      var c = COLOURS[i % COLOURS.length];
+      return {
+        x: rand(0.15, 0.85) * W, y: rand(0.15, 0.75) * H, vx: rand(-30, 30), vy: 0,
+        tx: rand(0.1, 0.9) * W, ty: rand(0.12, 0.78) * H,
+        len: rand(70, 120) * unit() * (pic ? 1.25 : 1), hue: c[0] + rand(-8, 8), sat: c[1],
+        tail: rand(0, TAU), excite: 0, face: 1, pause: 0, stripes: Math.random() < 0.6, pic: pic || null
+      };
+    }
+    function setup() {
+      var count = calm() ? 5 : 7, pics = pictures();
+      fish = [];
+      for (var i = 0; i < count; i++) fish.push(makeFish(i, pics.length ? pics[i % pics.length] : null));
+      if (pics.length) { // keep a few drawn fish too
+        for (i = 0; i < Math.min(3, count); i++) fish[i].pic = null;
+        for (i = 0; i < fish.length; i++) if (fish[i].pic) fish[i].len = rand(90, 130) * unit();
+      }
+      weeds = [];
+      for (i = 0; i < 9; i++) weeds.push({ x: rand(0.03, 0.97), h: rand(0.18, 0.42), ph: rand(0, TAU), hue: rand(95, 150), w: rand(10, 18) });
+      pebbles = [];
+      for (i = 0; i < 40; i++) pebbles.push({ x: rand(0, 1), y: rand(0.905, 1), r: rand(3, 9), l: rand(55, 80) });
+    }
+    function newTarget(f) { f.tx = rand(0.08, 0.92) * W; f.ty = rand(0.1, 0.8) * H; }
+    function stir(x, y, all) {
+      // Every fish wiggles. Fish near the touch swim over to look; the rest dart to a new spot.
+      fish.forEach(function (f) {
+        var dx = f.x - x, dy = f.y - y, d = Math.sqrt(dx * dx + dy * dy);
+        f.excite = 1;
+        f.pause = 0;
+        if (!all && d < Math.min(W, H) * 0.55) { f.tx = x + rand(-60, 60) * unit(); f.ty = y + rand(-40, 40) * unit(); }
+        else newTarget(f);
+      });
+    }
+    function blowBubbles(x, y, n) {
+      for (var i = 0; i < n; i++) bubbles.push({ x: x + rand(-10, 10), y: y, r: rand(3, 8) * unit() + 1, vy: rand(40, 80), ph: rand(0, TAU) });
+      if (bubbles.length > 120) bubbles.splice(0, bubbles.length - 120);
+    }
+    function drawFish(g, f, time) {
+      var L = f.len, wig = Math.sin(f.tail) * (0.14 + f.excite * 0.16);
+      var angle = clamp(Math.atan2(f.vy, Math.abs(f.vx) + 1), -0.45, 0.45);
+      g.save();
+      g.translate(f.x, f.y);
+      g.scale(f.face, 1);
+      g.rotate(angle);
+      if (f.pic && ready(f.pic)) {
+        // A picture fish wiggles by gently bending side to side.
+        g.rotate(wig * 0.35);
+        var s = L, ar = f.pic.naturalWidth / f.pic.naturalHeight;
+        var w = ar >= 1 ? s : s * ar, h = ar >= 1 ? s / ar : s;
+        g.scale(1, 1 + Math.sin(f.tail * 0.5) * 0.03);
+        g.drawImage(f.pic, -w / 2, -h / 2, w, h);
+        g.restore();
+        return;
+      }
+      var S = calm() ? Math.round(f.sat * 0.65) : f.sat, Lt = calm() ? 52 : 58;
+      var main = "hsl(" + Math.round(f.hue) + "," + S + "%," + Lt + "%)";
+      var dark = "hsl(" + Math.round(f.hue) + "," + S + "%," + (Lt - 18) + "%)";
+      var lightC = "hsl(" + Math.round(f.hue + 10) + "," + S + "%," + (Lt + 18) + "%)";
+      var tailY = wig * L;            // the tail swings
+      var midY = wig * L * 0.25;      // the body bends a little too
+      // tail fin
+      g.fillStyle = dark;
+      g.beginPath();
+      g.moveTo(-L * 0.32, midY * 1.6);
+      g.quadraticCurveTo(-L * 0.5, tailY * 0.8 - L * 0.05, -L * 0.62, tailY - L * 0.2);
+      g.quadraticCurveTo(-L * 0.54, tailY, -L * 0.62, tailY + L * 0.2);
+      g.quadraticCurveTo(-L * 0.5, tailY * 0.8 + L * 0.05, -L * 0.32, midY * 1.6);
+      g.fill();
+      // top fin
+      g.beginPath();
+      g.moveTo(L * 0.12, -L * 0.2);
+      g.quadraticCurveTo(-L * 0.05, -L * 0.42, -L * 0.2, -L * 0.16 + midY);
+      g.closePath();
+      g.fill();
+      // body
+      var grad = g.createLinearGradient(0, -L * 0.25, 0, L * 0.25);
+      grad.addColorStop(0, lightC);
+      grad.addColorStop(0.55, main);
+      grad.addColorStop(1, dark);
+      g.fillStyle = grad;
+      g.beginPath();
+      g.moveTo(L * 0.42, 0);
+      g.bezierCurveTo(L * 0.36, -L * 0.26, -L * 0.12, -L * 0.28 + midY, -L * 0.34, midY * 1.6);
+      g.bezierCurveTo(-L * 0.12, L * 0.26 + midY, L * 0.36, L * 0.24, L * 0.42, 0);
+      g.fill();
+      if (f.stripes) {
+        g.save();
+        g.clip();
+        g.fillStyle = "rgba(255,255,255,0.55)";
+        [0.08, -0.12].forEach(function (sx) {
+          g.beginPath();
+          g.ellipse(L * sx, midY * 0.5, L * 0.035, L * 0.3, 0, 0, TAU);
+          g.fill();
+        });
+        g.restore();
+      }
+      // side fin, flapping
+      g.fillStyle = dark;
+      g.beginPath();
+      g.ellipse(L * 0.08, L * 0.07, L * 0.1, L * 0.045, 0.6 + Math.sin(f.tail * 1.3) * 0.4, 0, TAU);
+      g.fill();
+      // eye
+      g.fillStyle = "#fff";
+      g.beginPath(); g.arc(L * 0.25, -L * 0.05, L * 0.065, 0, TAU); g.fill();
+      g.fillStyle = "#101820";
+      g.beginPath(); g.arc(L * 0.27, -L * 0.05, L * 0.035, 0, TAU); g.fill();
+      g.fillStyle = "rgba(255,255,255,0.9)";
+      g.beginPath(); g.arc(L * 0.28, -L * 0.065, L * 0.012, 0, TAU); g.fill();
+      g.restore();
+    }
+    return {
+      start: function () { setup(); },
+      resize: function () { setup(); },
+      down: function (id, x, y) {
+        stir(x, y, false);
+        food.push({ x: x, y: y, age: 0 });
+        blowBubbles(x, y, calm() ? 4 : 8);
+        chime(noteFreq(rand(4, 10)), { gain: 0.2, bend: 0.6, decay: 1.1 });
+        announceSometimes("The fish wiggle and swim.");
+      },
+      move: function () {},
+      up: function () {},
+      dwell: function (x, y) { this.down(null, x, y); },
+      press: function () {
+        stir(0, 0, true);
+        blowBubbles(rand(0.2, 0.8) * W, H * 0.9, calm() ? 6 : 12);
+        arpeggio(Math.floor(rand(3, 7)), 3, 0.11, { gain: 0.14, bend: 0.7, decay: 1 });
+        announceSometimes("The fish wiggle and swim.");
+      },
+      update: function (dt) {
+        fish.forEach(function (f) {
+          f.excite = Math.max(0, f.excite - dt / 3);
+          var dx = f.tx - f.x, dy = f.ty - f.y, d = Math.sqrt(dx * dx + dy * dy) + 0.001;
+          if (d < 30 * unit()) {
+            f.pause += dt;
+            if (f.pause > rand(1, 4)) { f.pause = 0; newTarget(f); }
+          }
+          var speed = (40 + f.excite * 170) * unit();
+          var want = d < 30 * unit() ? 0 : speed;
+          var ax = (dx / d * want - f.vx) * (1.2 + f.excite * 2.5);
+          var ay = (dy / d * want * 0.6 - f.vy) * (1.2 + f.excite * 2.5);
+          f.vx += ax * dt; f.vy += ay * dt;
+          f.x += f.vx * dt; f.y += f.vy * dt;
+          f.y = clamp(f.y, H * 0.06, H * 0.85);
+          // turn round smoothly (the fish squashes, then faces the other way)
+          var faceTo = f.vx >= 0 ? 1 : -1;
+          if (Math.abs(f.vx) > 4) f.face += (faceTo - f.face) * Math.min(1, dt * 5);
+          var sp = Math.sqrt(f.vx * f.vx + f.vy * f.vy) / unit();
+          f.tail += dt * (3 + sp * 0.05 + f.excite * 12);
+        });
+        if (Math.random() < dt * 0.6) blowBubbles(W * 0.88, H * 0.92, 1); // the bubbler in the corner
+        for (var i = bubbles.length - 1; i >= 0; i--) {
+          var b = bubbles[i];
+          b.ph += dt * 3; b.y -= b.vy * dt * unit(); b.x += Math.sin(b.ph) * 12 * dt;
+          if (b.y < -10) bubbles.splice(i, 1);
+        }
+        for (i = food.length - 1; i >= 0; i--) { food[i].age += dt; if (food[i].age > 1.6) food.splice(i, 1); }
+      },
+      draw: function (g, time) {
+        var bg = g.createLinearGradient(0, 0, 0, H);
+        bg.addColorStop(0, calm() ? "#1a5470" : "#1b6f95");
+        bg.addColorStop(0.6, calm() ? "#0f3a55" : "#0f4a6e");
+        bg.addColorStop(1, "#082338");
+        g.fillStyle = bg;
+        g.fillRect(0, 0, W, H);
+        // soft moving light on the water
+        g.globalCompositeOperation = "lighter";
+        g.fillStyle = "rgba(160,220,255," + (calm() ? 0.03 : 0.05) + ")";
+        for (var k = 0; k < 6; k++) {
+          g.beginPath();
+          g.ellipse((k / 6 + Math.sin(time * 0.15 + k) * 0.05) * W, H * (0.08 + 0.05 * Math.sin(time * 0.2 + k * 2)),
+                    W * 0.09, H * 0.025, 0, 0, TAU);
+          g.fill();
+        }
+        g.globalCompositeOperation = "source-over";
+        // sand and pebbles
+        g.fillStyle = "#c8a66b";
+        g.beginPath();
+        g.moveTo(0, H);
+        for (var x = 0; x <= W; x += W / 20) g.lineTo(x, H * 0.91 - Math.sin(x / W * 4) * H * 0.015);
+        g.lineTo(W, H);
+        g.fill();
+        pebbles.forEach(function (p) {
+          g.fillStyle = "hsl(30,25%," + p.l + "%)";
+          g.beginPath(); g.ellipse(p.x * W, p.y * H, p.r * unit() + 2, (p.r * unit() + 2) * 0.7, 0, 0, TAU); g.fill();
+        });
+        // swaying water plants
+        weeds.forEach(function (w) {
+          var x0 = w.x * W, y0 = H * 0.93, h = w.h * H, sw2 = Math.sin(time * 0.8 + w.ph) * h * 0.12;
+          g.strokeStyle = "hsl(" + Math.round(w.hue) + "," + (calm() ? 35 : 55) + "%,34%)";
+          g.lineWidth = w.w * unit() + 3;
+          g.lineCap = "round";
+          g.beginPath();
+          g.moveTo(x0, y0);
+          g.bezierCurveTo(x0 + sw2, y0 - h * 0.35, x0 - sw2, y0 - h * 0.7, x0 + sw2 * 1.4, y0 - h);
+          g.stroke();
+        });
+        // where the touch was: a gentle ripple
+        food.forEach(function (fd) {
+          var f = fd.age / 1.6;
+          g.strokeStyle = "rgba(220,245,255," + (0.5 * (1 - f)) + ")";
+          g.lineWidth = 3;
+          g.beginPath(); g.arc(fd.x, fd.y, easeOut(f) * 70 * unit() + 6, 0, TAU); g.stroke();
+        });
+        fish.forEach(function (f) { drawFish(g, f, time); });
+        g.strokeStyle = "rgba(220,245,255,0.7)";
+        g.lineWidth = 1.5;
+        bubbles.forEach(function (b) { g.beginPath(); g.arc(b.x, b.y, b.r, 0, TAU); g.stroke(); });
       }
     };
   }
@@ -654,7 +971,7 @@
     };
   }
 
-  var MAKERS = { trails: LightPainting, bubbles: BubbleFloat, lamp: ColourLamp, bloom: LookAndBloom };
+  var MAKERS = { fish: FishTank, trails: LightPainting, bubbles: BubbleFloat, lamp: ColourLamp, bloom: LookAndBloom };
 
   /* ---------- Running an activity ---------- */
   var current = null, currentInfo = null, running = false, lastT = 0, clock = 0;
@@ -838,6 +1155,10 @@
 
   /* ---------- Menu ---------- */
   var ART = {
+    fish: '<svg viewBox="0 0 160 90" aria-hidden="true"><defs><linearGradient id="g5" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b6f95"/><stop offset="1" stop-color="#082338"/></linearGradient></defs><rect width="160" height="90" fill="url(#g5)"/><path d="M0 90V80Q40 76 80 80T160 79V90Z" fill="#c8a66b"/><path d="M18 82C22 70 12 62 18 50M140 82C136 72 146 64 140 54" fill="none" stroke="#3f8a4a" stroke-width="4" stroke-linecap="round"/>' +
+      '<g transform="translate(66 42)"><path d="M-14 0Q-22-4-26-10Q-23 0-26 10Q-22 4-14 0Z" fill="#d2611c"/><path d="M18 0C16-11-6-12-15 0C-6 11 16 10 18 0Z" fill="#ff8a2a"/><ellipse cx="2" cy="0" rx="1.8" ry="9" fill="#fff" opacity=".6"/><circle cx="10" cy="-2" r="3" fill="#fff"/><circle cx="11" cy="-2" r="1.6" fill="#101820"/></g>' +
+      '<g transform="translate(116 26) scale(-.7 .7)"><path d="M-14 0Q-22-4-26-10Q-23 0-26 10Q-22 4-14 0Z" fill="#2a6fd0"/><path d="M18 0C16-11-6-12-15 0C-6 11 16 10 18 0Z" fill="#4fa3ff"/><circle cx="10" cy="-2" r="3" fill="#fff"/><circle cx="11" cy="-2" r="1.6" fill="#101820"/></g>' +
+      '<g fill="none" stroke="#dff4ff" stroke-opacity=".8"><circle cx="92" cy="40" r="2.5"/><circle cx="96" cy="31" r="2"/><circle cx="93" cy="22" r="1.5"/></g></svg>',
     trails: '<svg viewBox="0 0 160 90" aria-hidden="true"><defs><filter id="a1" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="2.5"/></filter><linearGradient id="g1" x1="0" x2="1"><stop offset="0" stop-color="#ff5fae"/><stop offset=".5" stop-color="#ffd65c"/><stop offset="1" stop-color="#3fd0ff"/></linearGradient></defs><rect width="160" height="90" fill="#080c22"/><path d="M15 62C40 10 70 85 92 42S135 20 148 34" fill="none" stroke="url(#g1)" stroke-width="9" stroke-linecap="round" filter="url(#a1)"/><path d="M15 62C40 10 70 85 92 42S135 20 148 34" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="2.5" stroke-linecap="round"/><circle cx="118" cy="66" r="12" fill="none" stroke="#9fe8ff" stroke-opacity=".5" stroke-width="2"/><circle cx="118" cy="66" r="20" fill="none" stroke="#9fe8ff" stroke-opacity=".25" stroke-width="2"/></svg>',
     bubbles: '<svg viewBox="0 0 160 90" aria-hidden="true"><defs><linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d3b58"/><stop offset="1" stop-color="#04101f"/></linearGradient><radialGradient id="b2" cx=".5" cy=".5" r=".5"><stop offset=".7" stop-color="#bfe9ff" stop-opacity=".05"/><stop offset="1" stop-color="#d9f3ff" stop-opacity=".6"/></radialGradient></defs><rect width="160" height="90" fill="url(#g2)"/><g stroke="#e8c8ff" stroke-opacity=".8" stroke-width="1.5" fill="url(#b2)"><circle cx="50" cy="52" r="20"/><circle cx="96" cy="32" r="14"/><circle cx="122" cy="62" r="10"/><circle cx="78" cy="72" r="7"/></g><g fill="#fff" fill-opacity=".85"><ellipse cx="42" cy="44" rx="6" ry="3.5" transform="rotate(-35 42 44)"/><ellipse cx="91" cy="27" rx="4" ry="2.5" transform="rotate(-35 91 27)"/><ellipse cx="119" cy="58" rx="3" ry="2" transform="rotate(-35 119 58)"/></g></svg>',
     lamp: '<svg viewBox="0 0 160 90" aria-hidden="true"><defs><filter id="a3" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="9"/></filter></defs><rect width="160" height="90" fill="#14072b"/><g filter="url(#a3)"><circle cx="55" cy="40" r="26" fill="#9b4dff"/><circle cx="100" cy="52" r="24" fill="#ff7ad9"/><circle cx="80" cy="25" r="16" fill="#4b5cff"/><circle cx="125" cy="30" r="12" fill="#2ee6c8"/></g></svg>',
