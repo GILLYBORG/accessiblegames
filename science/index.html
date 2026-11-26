@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Science Lab</title>
+<meta name="description" content="Science simulators for Ontario grades 1 to 6. Change things, watch what happens, and read the results as a graph or a table. Works with touch, keyboard, switches and screen readers.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Nunito:wght@800&display=swap">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#101a30">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Science">
+<link rel="apple-touch-icon" href="images/icon-180.png">
+<link rel="icon" href="images/icon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #101a30; --text: #f6f2e7; --muted: #c9d3e8;
+    --card: #ffffff; --card-text: #14213d; --card-muted: #3c4a66;
+    --focus: #ffd23f; --focus-inner: #14213d;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
+    font: 20px/1.4 "Atkinson Hyperlegible", Verdana, system-ui, sans-serif;
+    padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+             max(28px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; }
+  .top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; margin-bottom: 8px; }
+  h1 { margin: 0; font: 800 clamp(32px, 5vw, 52px)/1.1 Nunito, "Atkinson Hyperlegible", system-ui, sans-serif; }
+  .lead { margin: 0 0 20px; color: var(--muted); max-width: 60ch; }
+  .tools { display: flex; flex-wrap: wrap; gap: 10px; }
+  .tool {
+    display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 10px 18px;
+    border: 3px solid #4a5d86; border-radius: 14px; background: #1f2f54; color: var(--text); text-decoration: none;
+    font: 700 18px/1.2 "Atkinson Hyperlegible", system-ui, sans-serif; cursor: pointer;
+    -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+  }
+  .tool svg { width: 24px; height: 24px; flex: none; }
+  .tool[aria-pressed="true"] { background: var(--focus); border-color: var(--focus); color: var(--card-text); }
+  .tool .state { font-weight: 400; }
+  .tool:focus-visible { outline: 5px solid #fff; outline-offset: 3px; }
+
+  .games { --gap: clamp(16px, 2.5vw, 28px); list-style: none; margin: 0; padding: 0; display: grid; gap: var(--gap);
+           grid-template-columns: repeat(auto-fill, minmax(min(100%, max(270px, calc((100% - 2 * var(--gap)) / 3))), 1fr)); }
+  .card {
+    position: relative; display: flex; flex-direction: column; height: 100%;
+    background: var(--card); color: var(--card-text); text-decoration: none;
+    border-radius: 24px; overflow: hidden; border: 6px solid var(--accent, #fff);
+    box-shadow: 0 8px 0 rgba(0, 0, 0, .28);
+    transition: transform .15s ease, box-shadow .15s ease;
+    -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+  }
+  .card img, .card .art { display: block; flex: none; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; background: #e8ecf5; }
+  .card .text { padding: 12px 18px 18px; }
+  .card .grade { display: inline-block; padding: 2px 12px; border-radius: 999px; background: var(--accent); color: #101a30; font-weight: 700; font-size: 16px; }
+  .card .name { display: block; margin-top: 6px; font: 800 clamp(26px, 3vw, 32px)/1.15 Nunito, "Atkinson Hyperlegible", system-ui, sans-serif; }
+  .card .about { display: block; margin-top: 4px; font-size: 18px; color: var(--card-muted); }
+  .card .strand { display: block; margin-top: 8px; font-size: 15px; color: var(--card-muted); }
+  a.card:hover { transform: translateY(-3px); box-shadow: 0 11px 0 rgba(0, 0, 0, .28); }
+  a.card:active { transform: translateY(3px); box-shadow: 0 4px 0 rgba(0, 0, 0, .28); }
+  .card:focus { outline: none; }
+  .card:focus-visible, .card.is-scan { outline: 8px solid var(--focus); outline-offset: 5px; box-shadow: 0 0 0 5px var(--focus-inner), 0 8px 0 rgba(0, 0, 0, .28); }
+  .card.soon { background: #dfe5f1; border-style: dashed; box-shadow: none; }
+  .card.soon .art { opacity: .75; }
+  .soon-tag { position: absolute; top: 12px; right: 12px; padding: 6px 14px; border-radius: 999px; background: #14213d; color: #fff; font-weight: 700; font-size: 16px; }
+  .scan-tag {
+    display: none; position: absolute; top: 12px; left: 12px; padding: 6px 14px; border-radius: 999px;
+    background: var(--focus); color: var(--card-text); font-weight: 700; font-size: 18px; box-shadow: 0 2px 0 rgba(0, 0, 0, .3);
+  }
+  .card.is-scan .scan-tag { display: block; }
+  .note { margin: 28px 0 0; color: var(--muted); font-size: 17px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  @media (prefers-reduced-motion: reduce) { .card, a.card:hover, a.card:active { transition: none; transform: none; } }
+  @media (forced-colors: active) {
+    .card { border: 3px solid CanvasText; }
+    .card:focus-visible, .card.is-scan { outline: 6px solid Highlight; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Science Lab</h1>
+    <div class="tools">
+      <a class="tool" id="btn-home" href="../">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5M5.5 9.5V20h5v-6h3v6h5V9.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Home</span>
+      </a>
+      <button type="button" class="tool" id="btn-scan" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="12" cy="12" r="4.5" fill="currentColor"/></svg>
+        <span>Switch scanning: <span class="state" id="scan-state">Off</span></span>
+      </button>
+      <button type="button" class="tool" id="btn-talk" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <span>Read names aloud: <span class="state" id="talk-state">Off</span></span>
+      </button>
+    </div>
+  </header>
+  <p class="lead">Change one thing, watch what happens, and check the results in a graph or a table. One simulator for each grade, from the Ontario Science and Technology curriculum (2022).</p>
+
+  <main>
+    <h2 class="sr-only">Simulators</h2>
+    <!--
+      To add a simulator: copy one <li> block, change the link, picture, grade, name and the short line.
+      Pictures are 16:10 and live in images/. A "Coming soon" card is a <div class="card soon">, not a link.
+    -->
+    <ul class="games" id="games">
+      <li><a class="card" href="sun-shadows/" style="--accent:#ffd23f">
+        <img src="images/thumb-sun-shadows.jpg" alt="" width="800" height="498">
+        <span class="scan-tag" aria-hidden="true">Press to play</span>
+        <span class="text"><span class="grade">Grade 1</span>
+        <span class="name">Sun and Shadows<span class="sr-only">. Grade 1.</span></span>
+        <span class="about">Move the sun through the day and the seasons. Measure your shadow.</span>
+        <span class="strand">Earth and Space: Daily and Seasonal Changes</span></span>
+      </a></li>
+      <li><a class="card" href="hot-cold/" style="--accent:#ff8a3d">
+        <img src="images/thumb-hot-cold.jpg" alt="" width="800" height="498">
+        <span class="scan-tag" aria-hidden="true">Press to play</span>
+        <span class="text"><span class="grade">Grade 2</span>
+        <span class="name">Hot and Cold<span class="sr-only">. Grade 2.</span></span>
+        <span class="about">Heat and cool ice, chocolate and wax. Melt, freeze and boil.</span>
+        <span class="strand">Matter and Energy: Properties of Liquids and Solids</span></span>
+      </a></li>
+      <li><a class="card" href="plant-lab/" style="--accent:#2fb36a">
+        <img src="images/thumb-plant-lab.jpg" alt="" width="800" height="498">
+        <span class="scan-tag" aria-hidden="true">Press to play</span>
+        <span class="text"><span class="grade">Grade 3</span>
+        <span class="name">Plant Lab<span class="sr-only">. Grade 3.</span></span>
+        <span class="about">Grow three plants. Change light, water and soil. Is it a fair test?</span>
+        <span class="strand">Life Systems: Growth and Changes in Plants</span></span>
+      </a></li>
+      <li><div class="card soon" style="--accent:#5b8def">
+        <svg class="art" viewBox="0 0 800 500" aria-hidden="true"><rect width="800" height="500" fill="#cfe3d0"/><circle cx="140" cy="260" r="70" fill="#4cc15a"/><text x="140" y="275" text-anchor="middle" font-size="40" font-weight="700" fill="#14213d">grass</text><circle cx="400" cy="260" r="70" fill="#e8c27a"/><text x="400" y="275" text-anchor="middle" font-size="40" font-weight="700" fill="#14213d">rabbit</text><circle cx="660" cy="260" r="70" fill="#e0662a"/><text x="660" y="275" text-anchor="middle" font-size="40" font-weight="700" fill="#14213d">fox</text><path d="M220 260h90M480 260h90" stroke="#14213d" stroke-width="12" stroke-linecap="round"/><path d="M295 238l25 22-25 22M555 238l25 22-25 22" fill="none" stroke="#14213d" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="soon-tag">Coming soon</span>
+        <span class="text"><span class="grade">Grade 4</span>
+        <span class="name">Food Chains<span class="sr-only">. Grade 4. Coming soon.</span></span>
+        <span class="about">Build a habitat. Add or take away a living thing and see what happens to the others.</span>
+        <span class="strand">Life Systems: Habitats and Communities</span></span>
+      </div></li>
+      <li><div class="card soon" style="--accent:#b36be0">
+        <svg class="art" viewBox="0 0 800 500" aria-hidden="true"><rect width="800" height="500" fill="#d9e4f2"/><rect y="380" width="160" height="120" fill="#8a6a46"/><rect x="640" y="380" width="160" height="120" fill="#8a6a46"/><path d="M160 380h480M160 380l80-110 80 110 80-110 80 110 80-110 80 110M240 270h400" fill="none" stroke="#14213d" stroke-width="14" stroke-linejoin="round"/><rect x="350" y="300" width="100" height="70" rx="8" fill="#e8327c"/><text x="400" y="346" text-anchor="middle" font-size="34" font-weight="700" fill="#fff">5 kg</text></svg>
+        <span class="soon-tag">Coming soon</span>
+        <span class="text"><span class="grade">Grade 5</span>
+        <span class="name">Bridge Builder<span class="sr-only">. Grade 5. Coming soon.</span></span>
+        <span class="about">Build a bridge, add weight, and see which parts push and which parts pull.</span>
+        <span class="strand">Structures and Mechanisms: Forces Acting on Structures</span></span>
+      </div></li>
+      <li><div class="card soon" style="--accent:#2a9d8f">
+        <svg class="art" viewBox="0 0 800 500" aria-hidden="true"><rect width="800" height="500" fill="#e3ecef"/><rect x="120" y="190" width="70" height="140" rx="10" fill="#14213d"/><rect x="138" y="170" width="34" height="22" fill="#14213d"/><path d="M155 190V110h460v120M155 330v60h460V310" fill="none" stroke="#e0662a" stroke-width="12" stroke-linecap="round"/><circle cx="615" cy="270" r="48" fill="#ffd23f" stroke="#14213d" stroke-width="8"/><path d="M380 390l60-40" stroke="#14213d" stroke-width="12" stroke-linecap="round"/><circle cx="380" cy="390" r="10" fill="#14213d"/><circle cx="450" cy="390" r="10" fill="#14213d"/></svg>
+        <span class="soon-tag">Coming soon</span>
+        <span class="text"><span class="grade">Grade 6</span>
+        <span class="name">Circuit Builder<span class="sr-only">. Grade 6. Coming soon.</span></span>
+        <span class="about">Join batteries, bulbs and switches. Find out what conducts electricity.</span>
+        <span class="strand">Matter and Energy: Electrical Phenomena</span></span>
+      </div></li>
+    </ul>
+  </main>
+
+  <p class="note">Tap a simulator to start. Keyboard: Tab to a simulator, then Enter. Switch: turn on Switch scanning, then press your switch when the one you want lights up. Each simulator has its own Settings for talking, high contrast and switches.</p>
+  <div class="sr-only" id="live" aria-live="polite"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  // Only the simulators that are ready are links; "Coming soon" cards are skipped.
+  var cards = Array.prototype.slice.call(document.querySelectorAll("a.card"));
+  var params = new URLSearchParams(location.search);
+  var KEY = "ag-science-home";
+  var settings = { scan: false, speed: 2, talk: false };
+  try { var saved = JSON.parse(localStorage.getItem(KEY) || "{}"); for (var k in saved) settings[k] = saved[k]; } catch (e) {}
+  if (params.has("scan")) settings.scan = params.get("scan") !== "0";
+  if (params.has("talk")) settings.talk = params.get("talk") !== "0";
+  var sp = parseFloat(params.get("speed"));
+  if (sp >= 0.5 && sp <= 10) settings.speed = sp;
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(settings)); } catch (e) {} }
+  function nameOf(card) { return card.querySelector(".name").textContent; }
+  var live = document.getElementById("live");
+  function announce(text) { live.textContent = ""; setTimeout(function () { live.textContent = text; }, 50); }
+
+  var synth = window.speechSynthesis;
+  function say(text) {
+    if (!settings.talk || !synth) return;
+    try { synth.cancel(); var u = new SpeechSynthesisUtterance(text); u.rate = 0.9; synth.speak(u); } catch (e) {}
+  }
+  var lastSaid = null;
+  cards.forEach(function (card) {
+    card.addEventListener("focus", function () { if (lastSaid !== card) { lastSaid = card; say(nameOf(card)); } });
+    card.addEventListener("mouseenter", function () { if (lastSaid !== card) { lastSaid = card; say(nameOf(card)); } });
+    card.addEventListener("blur", function () { if (lastSaid === card) lastSaid = null; });
+    card.addEventListener("mouseleave", function () { if (lastSaid === card) lastSaid = null; });
+  });
+  var btnTalk = document.getElementById("btn-talk");
+  function showTalk() { btnTalk.setAttribute("aria-pressed", settings.talk ? "true" : "false"); document.getElementById("talk-state").textContent = settings.talk ? "On" : "Off"; }
+  btnTalk.addEventListener("click", function () { settings.talk = !settings.talk; save(); showTalk(); if (settings.talk) say("Names will be read aloud."); else if (synth) synth.cancel(); });
+
+  var scanIndex = -1, scanTimer = null, opening = false;
+  var btnScan = document.getElementById("btn-scan");
+  function showScan() { btnScan.setAttribute("aria-pressed", settings.scan ? "true" : "false"); document.getElementById("scan-state").textContent = settings.scan ? "On" : "Off"; }
+  function stopScan() { clearInterval(scanTimer); scanTimer = null; if (cards[scanIndex]) cards[scanIndex].classList.remove("is-scan"); scanIndex = -1; }
+  function scanStep() {
+    if (cards[scanIndex]) cards[scanIndex].classList.remove("is-scan");
+    scanIndex = (scanIndex + 1) % cards.length;
+    var c = cards[scanIndex]; c.classList.add("is-scan");
+    c.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    say(nameOf(c));
+  }
+  function startScan() { stopScan(); if (!settings.scan || document.hidden) return; scanStep(); scanTimer = setInterval(scanStep, settings.speed * 1000); }
+  btnScan.addEventListener("click", function () {
+    settings.scan = !settings.scan; save(); showScan();
+    announce(settings.scan ? "Switch scanning on. Press your switch when your simulator lights up." : "Switch scanning off.");
+    if (settings.scan) setTimeout(startScan, 1200); else stopScan();
+  });
+  function openCard(card) {
+    if (opening) return; opening = true; stopScan(); say(nameOf(card));
+    setTimeout(function () { location.href = card.href; }, settings.talk ? 600 : 0);
+  }
+  var IGNORE = { Tab: 1, Shift: 1, Control: 1, Alt: 1, Meta: 1, Escape: 1, CapsLock: 1, Fn: 1 };
+  document.addEventListener("keydown", function (e) {
+    if (!settings.scan || scanIndex < 0) return;
+    if (IGNORE[e.key] || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target && e.target.closest && e.target.closest(".tool")) return;
+    e.preventDefault();
+    if (e.repeat) return;
+    openCard(cards[scanIndex]);
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Tab" && scanTimer) stopScan(); });
+  window.addEventListener("pageshow", function () { opening = false; showScan(); showTalk(); startScan(); });
+  document.addEventListener("visibilitychange", function () { if (document.hidden) stopScan(); else startScan(); });
+})();
+</script>
+</body>
+</html>
