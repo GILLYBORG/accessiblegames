@@ -1,11 +1,12 @@
 # Sensory Room (beta)
 
-Five calm cause-and-effect activities. There is no right or wrong, no score and no timer.
+Six calm cause-and-effect activities. There is no right or wrong, no score and no timer.
 Everything is drawn and played by the computer, so no pictures or sound files are needed.
 
 | Activity | Touch / mouse | Switch (any key, Space, Enter) | Eye gaze (look and wait) |
 | --- | --- | --- | --- |
 | Fish Tank | Touch the water: every fish wiggles and the nearby ones swim over to look | All the fish wiggle and dart to new spots, bubbles rise | The fish come to where you look |
+| Fireworks | Touch the sky to send a firework there | A firework goes up | A firework bursts where you look |
 | Light Painting | Move to paint glowing light, tap for a ripple | A ribbon of light swirls across the screen | Moving paints, resting makes a ripple |
 | Bubble Float | Tap to blow bubbles, tap a bubble to pop it | More bubbles float up | Look at a bubble to pop it |
 | Colour Lamp | A lava lamp: touch to make a glowing blob that rises and merges, with sparkles; drag to stir | The whole lamp fades to a new colour (name read aloud) | A blob grows where you look |
@@ -20,7 +21,8 @@ Everything is drawn and played by the computer, so no pictures or sound files ar
 
 ## Calm and safe
 
-- Nothing flashes. Colour changes fade over about 2.5 seconds, however fast the switch is pressed.
+- Nothing flashes. Fireworks are soft glows with capped brightness, never a full-screen flash, and only a few can be in the sky at once however fast the switch is pressed. Calm mode makes the bangs quieter.
+- Colour changes fade over about 2.5 seconds, however fast the switch is pressed.
 - **Calm mode** (Settings): slower movement, softer colours, quieter sounds, fewer things on screen. It is on automatically when the device is set to reduce motion.
 - Sounds are soft chimes from a pentatonic scale, so every mix of notes sounds pleasant.
 
@@ -37,7 +39,7 @@ The file picker on a Chromebook or iPad can also open Google Drive. Pictures sta
 
 ## Links for teachers
 
-- One activity: `?activity=fish`, `trails`, `bubbles`, `lamp` or `bloom`
+- One activity: `?activity=fish`, `fireworks`, `trails`, `bubbles`, `lamp` or `bloom`
 - Calm mode: `&calm=1` · Eye gaze dwell: `&dwell=1.5` · Scanning off: `&scan=0`
 
 Example: `https://gillyborg.github.io/accessiblegames/sensory/?activity=bloom&dwell=1.5`
