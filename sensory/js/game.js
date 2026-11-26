@@ -856,6 +856,170 @@
     };
   }
 
+  /* ---------- Soft whoosh and thump for Fireworks (filtered noise, never loud) ---------- */
+  var noiseBuf = null;
+  function noise() {
+    if (noiseBuf || !actx) return noiseBuf;
+    noiseBuf = actx.createBuffer(1, actx.sampleRate * 2, actx.sampleRate);
+    var d = noiseBuf.getChannelData(0);
+    for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    return noiseBuf;
+  }
+  // kind "whoosh": a soft rising hiss; kind "thump": a gentle low pop
+  function softNoise(kind, gain) {
+    if (!audioReady() || !noise()) return;
+    var t = actx.currentTime, src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
+    src.buffer = noiseBuf;
+    var len = kind === "whoosh" ? 0.9 : 0.7;
+    if (kind === "whoosh") {
+      f.type = "bandpass"; f.Q.value = 1.2;
+      f.frequency.setValueAtTime(500, t);
+      f.frequency.exponentialRampToValueAtTime(2600, t + len);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(gain, t + len * 0.7);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    } else {
+      f.type = "lowpass"; f.frequency.value = 380;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(gain, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    }
+    src.connect(f); f.connect(g); g.connect(master); g.connect(echo);
+    src.start(t, Math.random()); src.stop(t + len + 0.05);
+    if (kind === "thump") { // a low round tone under the pop
+      var o = actx.createOscillator(), og = actx.createGain();
+      o.frequency.setValueAtTime(110, t);
+      o.frequency.exponentialRampToValueAtTime(55, t + 0.4);
+      og.gain.setValueAtTime(0.0001, t);
+      og.gain.linearRampToValueAtTime(gain * 0.9, t + 0.015);
+      og.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+      o.connect(og); og.connect(master);
+      o.start(t); o.stop(t + 0.55);
+    }
+  }
+
+  /* =====================================================================
+     Activity 6: Fireworks (soft glowing bursts: no strobing, no screen flashes)
+     ===================================================================== */
+  function Fireworks() {
+    var rockets = [], sparks = [], stars = [], hills = [];
+    var STYLES = ["globe", "ring", "willow", "twotone"];
+    function maxShows() { return calm() ? 2 : 5; }
+    function launch(tx, ty) {
+      if (rockets.length + countBursts() >= maxShows() + 2) return; // keep the sky calm, however fast the presses
+      ty = clamp(ty, H * 0.12, H * 0.7);
+      var x0 = clamp(tx + rand(-80, 80) * unit(), W * 0.05, W * 0.95);
+      var dur = calm() ? 1.6 : 1.1;
+      rockets.push({ x0: x0, y0: H + 10, x: x0, y: H + 10, tx: tx, ty: ty, t: 0, dur: dur, hue: rand(0, 360), trail: [] });
+      softNoise("whoosh", calm() ? 0.05 : 0.08);
+    }
+    var burstIds = 0, liveBursts = {};
+    function countBursts() { return Object.keys(liveBursts).length; }
+    function burst(r) {
+      var style = pick(STYLES), id = ++burstIds, n = calm() ? 40 : 70;
+      var hue2 = (r.hue + rand(60, 180)) % 360;
+      var speed = rand(170, 240) * unit() * (calm() ? 0.75 : 1);
+      liveBursts[id] = n;
+      for (var i = 0; i < n; i++) {
+        var a = i / n * TAU + rand(-0.05, 0.05), v = speed;
+        if (style === "globe") v = speed * Math.sqrt(Math.random());
+        if (style === "willow") v = speed * rand(0.5, 0.9);
+        sparks.push({
+          x: r.x, y: r.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
+          hue: style === "twotone" && i % 2 ? hue2 : r.hue, age: 0,
+          life: style === "willow" ? rand(2.6, 3.4) : rand(1.6, 2.3), fall: style === "willow" ? 1.7 : 1,
+          drag: style === "ring" ? 1.6 : 1.1, id: id, tw: rand(0, TAU)
+        });
+      }
+      softNoise("thump", calm() ? 0.06 : 0.14);
+      chime(noteFreq(12 - (r.y / H) * 9), { gain: 0.1, decay: 2.2, delay: 0.08 });
+      announceSometimes("Fireworks!");
+    }
+    return {
+      start: function () {
+        stars = [];
+        for (var i = 0; i < 80; i++) stars.push({ x: Math.random(), y: Math.random() * 0.8, s: rand(0.6, 1.8), p: rand(0, TAU) });
+        hills = [];
+        for (i = 0; i <= 12; i++) hills.push(rand(0.86, 0.93));
+        rockets = []; sparks = []; liveBursts = {};
+      },
+      down: function (id, x, y) { launch(x, y); },
+      move: function () {},
+      up: function () {},
+      dwell: function (x, y) { launch(x, y); },
+      press: function () { launch(rand(0.15, 0.85) * W, rand(0.15, 0.45) * H); },
+      update: function (dt) {
+        for (var i = rockets.length - 1; i >= 0; i--) {
+          var r = rockets[i];
+          r.t += dt;
+          var f = easeOut(r.t / r.dur);
+          r.x = r.x0 + (r.tx - r.x0) * f;
+          r.y = r.y0 + (r.ty - r.y0) * f;
+          r.trail.push({ x: r.x, y: r.y });
+          if (r.trail.length > 14) r.trail.shift();
+          if (r.t >= r.dur) { burst(r); rockets.splice(i, 1); }
+        }
+        var g = 60 * unit();
+        for (i = sparks.length - 1; i >= 0; i--) {
+          var s = sparks[i];
+          s.age += dt;
+          s.vx *= 1 - dt * s.drag; s.vy = s.vy * (1 - dt * s.drag) + g * s.fall * dt;
+          s.x += s.vx * dt; s.y += s.vy * dt;
+          if (s.age > s.life) {
+            sparks.splice(i, 1);
+            if (--liveBursts[s.id] <= 0) delete liveBursts[s.id];
+          }
+        }
+        stars.forEach(function (st) { st.p += dt * 0.5; });
+      },
+      draw: function (g, time) {
+        var bg = g.createLinearGradient(0, 0, 0, H);
+        bg.addColorStop(0, "#03040f");
+        bg.addColorStop(0.7, "#0b1030");
+        bg.addColorStop(1, "#141a40");
+        g.fillStyle = bg;
+        g.fillRect(0, 0, W, H);
+        g.fillStyle = "#fff";
+        stars.forEach(function (st) {
+          g.globalAlpha = 0.35 + 0.25 * Math.sin(st.p); // slow twinkle
+          g.fillRect(st.x * W, st.y * H, st.s, st.s);
+        });
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = "lighter";
+        var S = sat(), Li = light();
+        rockets.forEach(function (r) {
+          r.trail.forEach(function (p, i) {
+            var a = (i + 1) / r.trail.length, sz = 6 * unit() * a + 2;
+            g.globalAlpha = a * 0.7;
+            g.drawImage(glow(40, 80, 65), p.x - sz, p.y - sz, sz * 2, sz * 2);
+          });
+        });
+        // Each spark is a soft glow with a short tail. Brightness is capped so a burst
+        // never lights up the whole screen.
+        var cap = calm() ? 0.55 : 0.8;
+        for (var i = 0; i < sparks.length; i++) {
+          var s = sparks[i], f = 1 - s.age / s.life;
+          var a = Math.min(1, f * 1.4, s.age / 0.2) * cap * (0.85 + 0.15 * Math.sin(s.tw + s.age * 4)); // fades in, never pops on
+          var sz = (7 * unit() + 2) * (0.6 + 0.4 * f);
+          var img = glow(s.hue, S, Li);
+          g.globalAlpha = a;
+          g.drawImage(img, s.x - sz, s.y - sz, sz * 2, sz * 2);
+          g.globalAlpha = a * 0.4;
+          g.drawImage(img, s.x - s.vx * 0.06 - sz * 0.7, s.y - s.vy * 0.06 - sz * 0.7, sz * 1.4, sz * 1.4);
+        }
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = "source-over";
+        // hills along the bottom
+        g.fillStyle = "#070a1c";
+        g.beginPath();
+        g.moveTo(0, H);
+        for (var k = 0; k < hills.length; k++) g.lineTo(k / (hills.length - 1) * W, hills[k] * H);
+        g.lineTo(W, H);
+        g.fill();
+      }
+    };
+  }
+
   /* =====================================================================
      Activity 4: Look and Bloom
      ===================================================================== */
@@ -971,7 +1135,7 @@
     };
   }
 
-  var MAKERS = { fish: FishTank, trails: LightPainting, bubbles: BubbleFloat, lamp: ColourLamp, bloom: LookAndBloom };
+  var MAKERS = { fish: FishTank, trails: LightPainting, bubbles: BubbleFloat, lamp: ColourLamp, bloom: LookAndBloom, fireworks: Fireworks };
 
   /* ---------- Running an activity ---------- */
   var current = null, currentInfo = null, running = false, lastT = 0, clock = 0;
@@ -1155,6 +1319,12 @@
 
   /* ---------- Menu ---------- */
   var ART = {
+    fireworks: '<svg viewBox="0 0 160 90" aria-hidden="true"><defs><filter id="a6" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2"/></filter></defs><rect width="160" height="90" fill="#070a22"/><g filter="url(#a6)" stroke-linecap="round" stroke-width="2.5">' +
+      [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map(function (a) {
+        var r = a * Math.PI / 180;
+        return '<line x1="' + (60 + Math.cos(r) * 8).toFixed(1) + '" y1="' + (36 + Math.sin(r) * 8).toFixed(1) + '" x2="' + (60 + Math.cos(r) * 22).toFixed(1) + '" y2="' + (36 + Math.sin(r) * 22).toFixed(1) + '" stroke="#ff7ad9"/>' +
+               '<line x1="' + (115 + Math.cos(r) * 5).toFixed(1) + '" y1="' + (28 + Math.sin(r) * 5).toFixed(1) + '" x2="' + (115 + Math.cos(r) * 14).toFixed(1) + '" y2="' + (28 + Math.sin(r) * 14).toFixed(1) + '" stroke="#ffd65c"/>';
+      }).join("") + '</g><path d="M0 90V80L30 76L70 81L110 75L160 79V90Z" fill="#03050f"/></svg>',
     fish: '<svg viewBox="0 0 160 90" aria-hidden="true"><defs><linearGradient id="g5" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b6f95"/><stop offset="1" stop-color="#082338"/></linearGradient></defs><rect width="160" height="90" fill="url(#g5)"/><path d="M0 90V80Q40 76 80 80T160 79V90Z" fill="#c8a66b"/><path d="M18 82C22 70 12 62 18 50M140 82C136 72 146 64 140 54" fill="none" stroke="#3f8a4a" stroke-width="4" stroke-linecap="round"/>' +
       '<g transform="translate(66 42)"><path d="M-14 0Q-22-4-26-10Q-23 0-26 10Q-22 4-14 0Z" fill="#d2611c"/><path d="M18 0C16-11-6-12-15 0C-6 11 16 10 18 0Z" fill="#ff8a2a"/><ellipse cx="2" cy="0" rx="1.8" ry="9" fill="#fff" opacity=".6"/><circle cx="10" cy="-2" r="3" fill="#fff"/><circle cx="11" cy="-2" r="1.6" fill="#101820"/></g>' +
       '<g transform="translate(116 26) scale(-.7 .7)"><path d="M-14 0Q-22-4-26-10Q-23 0-26 10Q-22 4-14 0Z" fill="#2a6fd0"/><path d="M18 0C16-11-6-12-15 0C-6 11 16 10 18 0Z" fill="#4fa3ff"/><circle cx="10" cy="-2" r="3" fill="#fff"/><circle cx="11" cy="-2" r="1.6" fill="#101820"/></g>' +
