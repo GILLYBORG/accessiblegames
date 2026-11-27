@@ -1,12 +1,13 @@
 # Sensory Room (beta)
 
-Six calm cause-and-effect activities. There is no right or wrong, no score and no timer.
+Seven calm cause-and-effect activities. There is no right or wrong, no score and no timer.
 Everything is drawn and played by the computer, so no pictures or sound files are needed.
 
 | Activity | Touch / mouse | Switch (any key, Space, Enter) | Eye gaze (look and wait) |
 | --- | --- | --- | --- |
 | Fish Tank (coral reef picture by SG; drawn tank in calm mode) | Each touch brings a new fish that swims for 12 to 20 seconds, then swims away; the others wiggle and come to look. The shark visits about 1 touch in 5, one at a time | A new fish swims in, all the fish wiggle | A new fish appears where you look |
 | Fireworks | Touch the sky to send a firework there | A firework goes up | A firework bursts where you look |
+| Snow Globe | Tap to shake the globe: the snow swirls, the wind blows, then the snow slowly settles on the hills and the roof. Drag to stir the snow | The globe shakes and the snow swirls | The globe shakes |
 | Light Painting | Move to paint glowing light, tap for a ripple | A ribbon of light swirls across the screen | Moving paints, resting makes a ripple |
 | Bubble Float | Tap to blow bubbles, tap a bubble to pop it | More bubbles float up | Look at a bubble to pop it |
 | Colour Lamp | A lava lamp: touch to make a glowing blob that rises and merges, with sparkles; drag to stir | The whole lamp fades to a new colour (name read aloud) | A blob grows where you look |
@@ -24,6 +25,7 @@ Everything is drawn and played by the computer, so no pictures or sound files ar
 - Nothing flashes. Fireworks are soft glows with capped brightness, never a full-screen flash, and only a few can be in the sky at once however fast the switch is pressed. In regular mode the fireworks whistle, bang and crackle (built from noise, limited so they are never painfully loud; your own recordings can be set in `fireworksSounds` in config.js). Calm mode keeps soft sounds.
 - Colour changes fade over about 2.5 seconds, however fast the switch is pressed.
 - **Calm mode** (Settings): slower movement, softer colours, quieter sounds, fewer things on screen. It is on automatically when the device is set to reduce motion.
+- The Snow Globe wind is made by the computer from filtered noise (no sound file to licence). It is a soft breeze while the snow rests and swells into a gust when the globe is shaken, then dies down as the snow settles. The globe only rocks a little, and calm mode makes it gentler and quieter.
 - Sounds are soft chimes from a pentatonic scale, so every mix of notes sounds pleasant.
 
 ## My pictures
@@ -39,7 +41,7 @@ The file picker on a Chromebook or iPad can also open Google Drive. Pictures are
 
 ## Links for teachers
 
-- One activity: `?activity=fish`, `fireworks`, `trails`, `bubbles`, `lamp` or `bloom`
+- One activity: `?activity=fish`, `fireworks`, `snow`, `trails`, `bubbles`, `lamp` or `bloom`
 - Calm mode: `&calm=1` · Eye gaze dwell: `&dwell=1.5` · Scanning off: `&scan=0`
 
 Example: `https://gillyborg.github.io/accessiblegames/sensory/?activity=bloom&dwell=1.5`
