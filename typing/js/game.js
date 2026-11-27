@@ -852,6 +852,55 @@
     $("win-monster").src = cfg.monster;
     speak([phrase("full")]);
     showPanel("panel-done", null, $("done-title"));
+    startConfetti();
+  }
+
+  /* ---------- Confetti when the monster is full ----------
+     Paper bits fall from the top for about 5 seconds, behind the win card.
+     With Animation off (or "reduce motion" on the device) the confetti is
+     drawn once and stays still. No flashing. */
+  var CONFETTI_COLORS = ["#e0282e", "#1f6fe0", "#f28cb8", "#ffbf00", "#2bb673", "#ff8a00", "#8e5cf0"];
+  var confettiRaf = 0;
+  function startConfetti() {
+    var cv = $("confetti");
+    var c = cv && cv.getContext && cv.getContext("2d");
+    if (!c) return;
+    cancelAnimationFrame(confettiRaf);
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var w = cv.clientWidth || window.innerWidth, h = cv.clientHeight || window.innerHeight;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var size = Math.max(10, Math.min(w, h) / 40);
+    var bits = [];
+    for (var i = 0; i < 160; i++) {
+      bits.push({
+        x: Math.random() * w,
+        y: settings.animation ? -Math.random() * h : Math.random() * h, // start above the screen, or scattered when still
+        vy: h * (0.003 + Math.random() * 0.004),
+        sway: Math.random() * 6, turn: (Math.random() - 0.5) * 0.15,
+        s: size * (0.6 + Math.random() * 0.7), col: CONFETTI_COLORS[i % CONFETTI_COLORS.length]
+      });
+    }
+    function draw(t) {
+      c.clearRect(0, 0, w, h);
+      bits.forEach(function (b) {
+        c.save(); c.translate(b.x + Math.sin(t / 400 + b.sway) * 12, b.y); c.rotate(b.sway + t * b.turn / 16);
+        c.fillStyle = b.col; c.fillRect(-b.s / 2, -b.s / 4, b.s, b.s / 2);
+        c.restore();
+      });
+    }
+    if (!settings.animation) { draw(0); return; }
+    var start = performance.now();
+    function frame(now) {
+      if (!openPanel || openPanel.id !== "panel-done") { c.clearRect(0, 0, w, h); return; } // stop when Play again is pressed
+      var t = now - start;
+      bits.forEach(function (b) { b.y += b.vy; });
+      c.globalAlpha = t > 4500 ? Math.max(0, 1 - (t - 4500) / 1000) : 1; // gentle fade out
+      draw(t);
+      if (c.globalAlpha > 0) confettiRaf = requestAnimationFrame(frame); else c.clearRect(0, 0, w, h);
+      c.globalAlpha = 1;
+    }
+    confettiRaf = requestAnimationFrame(frame);
   }
 
   /* ---------- Typing from a real keyboard ---------- */

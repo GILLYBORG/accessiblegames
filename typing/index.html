@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Nunito:wght@800&display=swap">
 <!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
-<link rel="stylesheet" href="css/style.css?v=20261125m">
+<link rel="stylesheet" href="css/style.css?v=20261127a">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -88,8 +88,10 @@
   <div class="sr-only" id="live" aria-live="polite" aria-atomic="true"></div>
 </div>
 
-<div class="overlay overlay-win" id="panel-done" role="dialog" aria-modal="true" aria-labelledby="done-title" aria-describedby="done-desc" hidden>
+<div class="overlay overlay-win" id="panel-done" role="dialog" aria-modal="true" aria-labelledby="done-title" aria-describedby="done-party done-desc" hidden>
+  <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
   <div class="panel panel-win">
+    <p class="sr-only" id="done-party">Confetti! Hooray!</p>
     <img class="win-monster" id="win-monster" src="" alt="">
     <h2 id="done-title" tabindex="-1">The monster is full!</h2>
     <p class="done-desc" id="done-desc"></p>
@@ -327,7 +329,7 @@
   </div>
 </div>
 
-<script src="js/config.js?v=20261125m"></script>
-<script src="js/game.js?v=20261125m"></script>
+<script src="js/config.js?v=20261127a"></script>
+<script src="js/game.js?v=20261127a"></script>
 </body>
 </html>
