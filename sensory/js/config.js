@@ -16,12 +16,15 @@ window.SENSORY_CONFIG = {
   // The activities, in the order they appear on the menu. Change the names
   // and hints freely; keep the "id" words as they are.
   activities: [
+    /* Peek and Find is hidden for now (its page still works at peek-and-find/).
+       To show it on the menu again, delete this line and the "end hidden" line below.
     {
       id: "peek",
       name: "Peek and Find",
       hint: "Tap the squares to find the surprise. Teachers can add their own pictures.",
       href: "peek-and-find/" // opens its own page
     },
+    end hidden */
     {
       id: "fish",
       name: "Fish Tank",
