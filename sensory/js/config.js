@@ -43,8 +43,8 @@ window.SENSORY_CONFIG = {
     {
       id: "snow",
       name: "Snow Globe",
-      hint: "Shake the snow globe and listen to the wind.",
-      label: "Snow globe. Tap or press a switch to shake the globe. The snow swirls and the wind blows, then the snow slowly settles. Drag to stir the snow."
+      hint: "You are inside a snow globe. Shake it to make it snow!",
+      label: "Snow globe. You are inside the snow globe. Tap, press a switch, or shake the iPad to shake the globe. The more you shake, the more it snows and the wind blows. Every few shakes the sky changes or an animal comes to visit. Drag to stir the snow."
     },
     {
       id: "trails",
@@ -106,6 +106,21 @@ window.SENSORY_CONFIG = {
   // Calm mode always uses the plainer drawn tank.
   fishBackground: "images/fish-background.jpg",
 
+  // Snow Globe pictures (SG's own). Leave "" to use the drawn ones.
+  // Best: 1000x1000 PNG with a see-through background, standing on the bottom edge.
+  // Animals visit one at a time, in this order; "say" is read aloud.
+  // kind: "reindeer", "fox", "owl" or "bunny" picks the drawn one when src is "".
+  snowPictures: {
+    cabin: "",   // e.g. "images/snow/cabin.png"
+    snowman: "", // e.g. "images/snow/snowman.png"
+    animals: [
+      { kind: "reindeer", name: "reindeer", say: "A reindeer came to visit.", src: "" },
+      { kind: "fox",      name: "fox",      say: "A fox came to visit.",      src: "" },
+      { kind: "owl",      name: "owl",      say: "An owl came to visit.",     src: "" },
+      { kind: "bunny",    name: "bunny",    say: "A bunny came to visit.",    src: "" }
+    ]
+  },
+
   // Fireworks sounds in regular mode are built in (calm mode uses soft sounds).
   // To use your own recordings instead, put them in the "sounds" folder and
   // write their names here, for example bang: "sounds/bang.mp3".
@@ -122,6 +137,8 @@ window.SENSORY_CONFIG = {
     scan: true,      // switch scanning on the menu (activities light up in turn)
     scanSeconds: 2,  // how long each activity stays lit
     holdSeconds: 3,  // hold a switch this long inside an activity to go back to the menu (0 = off)
+    snowSound: "wind", // Snow Globe sound: "wind", "music" (wind and music box) or "bells" (wind and sleigh bells)
+    snowMotion: true,  // shake or tilt an iPad or tablet to shake the Snow Globe
     useMine: true,   // use pictures added with "My pictures" when there are any
     keepPictures: false // false: added pictures are forgotten when the page closes (safer on shared devices)
   }
