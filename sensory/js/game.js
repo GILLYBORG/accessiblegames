@@ -731,10 +731,17 @@
      ===================================================================== */
   function FishTank(activity) {
     var fish = [], weeds = [], bubbles = [], food = [], pebbles = [], pictures = picturesFor(activity);
-    // The background picture (config.js fishBackground). Calm mode uses the plainer drawn tank.
-    var photo = null;
-    if (cfg.fishBackground) { photo = new Image(); photo.src = cfg.fishBackground; }
-    function usePhoto() { return !calm() && ready(photo); }
+    // The background picture (config.js fishBackground), used in every mode (SG).
+    // Calm mode dims it a little more. The drawn tank only shows if there is no picture.
+    var photo = null, photoFailed = false;
+    if (cfg.fishBackground) {
+      photo = new Image();
+      photo.onerror = function () { photoFailed = true; };
+      photo.src = cfg.fishBackground;
+    }
+    function usePhoto() { return ready(photo); }
+    // While the picture is still loading, show plain water (not the drawn tank).
+    function photoLoading() { return !!photo && !photoFailed && !ready(photo); }
     var sea = (cfg.fishPictures || []).map(function (c) {
       var img = new Image();
       img.src = c.src;
@@ -999,9 +1006,10 @@
           g.drawImage(photo, (W - pw) / 2, (H - ph) / 2, pw, ph);
           // Soften the busy reef with a little water colour so the fish stand out.
           var veil = g.createLinearGradient(0, 0, 0, H);
-          veil.addColorStop(0, "rgba(10,70,110,0.08)");
-          veil.addColorStop(0.5, "rgba(10,70,110,0.22)");
-          veil.addColorStop(1, "rgba(6,40,70,0.42)");
+          var c = calm() ? 0.14 : 0;
+          veil.addColorStop(0, "rgba(10,70,110," + (0.08 + c) + ")");
+          veil.addColorStop(0.5, "rgba(10,70,110," + (0.22 + c) + ")");
+          veil.addColorStop(1, "rgba(6,40,70," + (0.42 + c) + ")");
           g.fillStyle = veil;
           g.fillRect(0, 0, W, H);
         } else {
@@ -1011,6 +1019,8 @@
           bg.addColorStop(1, "#082338");
           g.fillStyle = bg;
           g.fillRect(0, 0, W, H);
+        }
+        if (!usePhoto() && !photoLoading()) {
           // soft moving light on the water
           g.globalCompositeOperation = "lighter";
           g.fillStyle = "rgba(160,220,255," + (calm() ? 0.03 : 0.05) + ")";
