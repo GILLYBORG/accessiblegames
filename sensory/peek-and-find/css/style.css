@@ -255,14 +255,25 @@ h1 {
 /* ---------- Full screen: board only, plus one exit button ---------- */
 .is-fullscreen .bar { display: none; }
 .is-fullscreen .app { padding-top: max(12px, env(safe-area-inset-top, 0px)); }
+/* Transparent so it does not distract (SG). A thin halo in the page colour
+   around the text, icon and border keeps it readable on any picture. */
 .fs-exit {
   position: fixed;
   z-index: 15;
-  top: calc(8px + env(safe-area-inset-top, 0px));
-  right: calc(8px + env(safe-area-inset-right, 0px));
-  opacity: 0.9;
+  top: calc(14px + env(safe-area-inset-top, 0px));
+  right: calc(14px + env(safe-area-inset-right, 0px));
+  background: transparent;
+  color: var(--fg);
+  border-color: var(--fg);
+  text-shadow: 0 0 2px var(--bg), 0 0 4px var(--bg), 0 0 6px var(--bg);
+  box-shadow: 0 0 0 2px var(--bg), inset 0 0 0 2px var(--bg);
 }
-.fs-exit:hover, .fs-exit:focus-visible { opacity: 1; }
+.fs-exit svg { filter: drop-shadow(0 0 1.5px var(--bg)) drop-shadow(0 0 3px var(--bg)); }
+.fs-exit:focus-visible {
+  outline: 5px solid var(--focus);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 2px var(--bg), inset 0 0 0 2px var(--bg), 0 0 0 11px var(--focus-inner);
+}
 /* game.js adds top room when the button would cover a square. */
 .is-fullscreen .stage { padding-top: var(--fs-room, 0px); }
 

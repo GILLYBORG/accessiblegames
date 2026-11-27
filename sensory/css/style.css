@@ -224,14 +224,36 @@ h1 {
 .is-fullscreen.in-activity .app { padding: 0; }
 .is-fullscreen.in-activity .play { border-radius: 0; }
 .is-fullscreen .menu { padding-top: 64px; }
+/* Transparent so it does not distract (SG). A thin halo in the page colour
+   around the text, icon and border keeps it readable on any picture. */
 .fs-exit {
   position: fixed;
   z-index: 15;
-  top: calc(8px + env(safe-area-inset-top, 0px));
-  right: calc(8px + env(safe-area-inset-right, 0px));
-  opacity: 0.85;
+  top: calc(14px + env(safe-area-inset-top, 0px));
+  right: calc(14px + env(safe-area-inset-right, 0px));
+  background: transparent;
+  color: var(--fg);
+  border-color: var(--fg);
+  text-shadow: 0 0 2px var(--bg), 0 0 4px var(--bg), 0 0 6px var(--bg);
+  box-shadow: 0 0 0 2px var(--bg), inset 0 0 0 2px var(--bg);
 }
-.fs-exit:hover, .fs-exit:focus-visible { opacity: 1; }
+.fs-exit svg { filter: drop-shadow(0 0 1.5px var(--bg)) drop-shadow(0 0 3px var(--bg)); }
+.fs-exit:focus-visible {
+  outline: 5px solid var(--focus);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 2px var(--bg), inset 0 0 0 2px var(--bg), 0 0 0 11px var(--focus-inner);
+}
+/* Inside an activity the scene is dark or a photo, so use white with a dark halo. */
+.is-fullscreen.in-activity .fs-exit {
+  color: #ffffff;
+  border-color: #ffffff;
+  text-shadow: 0 0 2px #000, 0 0 4px #000, 0 0 6px #000;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.75), inset 0 0 0 2px rgba(0, 0, 0, 0.75);
+}
+.is-fullscreen.in-activity .fs-exit svg { filter: drop-shadow(0 0 1.5px #000) drop-shadow(0 0 3px #000); }
+.is-fullscreen.in-activity .fs-exit:focus-visible {
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.75), inset 0 0 0 2px rgba(0, 0, 0, 0.75), 0 0 0 11px var(--focus-inner);
+}
 
 /* ---------- Panels ---------- */
 .overlay {
