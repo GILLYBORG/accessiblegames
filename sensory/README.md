@@ -5,7 +5,7 @@ Everything is drawn and played by the computer, so no pictures or sound files ar
 
 | Activity | Touch / mouse | Switch (any key, Space, Enter) | Eye gaze (look and wait) |
 | --- | --- | --- | --- |
-| Fish Tank (coral reef picture by SG; drawn tank in calm mode) | Each touch brings a new fish that swims for 12 to 20 seconds, then swims away; the others wiggle and come to look. The shark visits about 1 touch in 5, one at a time | A new fish swims in, all the fish wiggle | A new fish appears where you look |
+| Fish Tank (coral reef picture by SG in every mode; calm mode dims it a little) | Each touch brings a new fish that swims for 12 to 20 seconds, then swims away; the others wiggle and come to look. The shark visits about 1 touch in 5, one at a time | A new fish swims in, all the fish wiggle | A new fish appears where you look |
 | Fireworks | Touch the sky to send a firework there | A firework goes up | A firework bursts where you look |
 | Snow Globe (you are inside the globe) | Tap to shake the globe. The more you shake, the more it snows, and then it slowly calms to a light snowfall. Every 3 shakes the sky changes (starry night, northern lights, pink sunset, snowy day) or an animal visits (reindeer, fox, owl, bunny). Drag to stir the snow | A shake | A shake |
 | Light Painting | Move to paint glowing light, tap for a ripple | A ribbon of light swirls across the screen | Moving paints, resting makes a ripple |

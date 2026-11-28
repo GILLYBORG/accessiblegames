@@ -103,7 +103,7 @@ window.SENSORY_CONFIG = {
   ],
 
   // Fish Tank background picture. Write "" to use the drawn tank instead.
-  // Calm mode always uses the plainer drawn tank.
+  // Used in every mode (calm mode dims it a little).
   fishBackground: "images/fish-background.jpg",
 
   // Snow Globe pictures (SG's own). Leave "" to use the drawn ones.
