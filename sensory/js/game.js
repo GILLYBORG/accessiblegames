@@ -1833,28 +1833,52 @@
     function armTip(side, ang) { var b = armBase(side), L = sm().r * 1.3; return [b[0] + Math.cos(ang) * L, b[1] + Math.sin(ang) * L]; }
     function restAng(side) { return Math.atan2(-0.75, side * 1); }
     function windDir() { return gust * 90 + Math.pow(storm, 2) * 520 >= 0 ? 1 : -1; }
+    function liftHat(x, y) {
+      hat.state = "fly"; hat.t = 0; hat.x = x; hat.y = y; hat.ph = rand(0, TAU);
+      hat.vx = windDir() * W * 0.5; hat.vy = -H * 0.8; hat.spin = windDir() * 5;
+    }
     function updateHat(dt, holding) {
       var m = sm(), spd = W * (calm() ? 0.2 : 0.28);
       hat.t += dt;
+      hat.big = (hat.big || 1) + ((hat.state === "fly" ? (calm() ? 1.5 : 1.8) : 1) - (hat.big || 1)) * Math.min(1, dt * 2.5); // bigger while flying, easy to follow
       if (hat.state === "on") {
         var k = holding ? Math.min(1, heldFor / 3) : 0;
         hat.k += (k - hat.k) * Math.min(1, dt * 5);
         if (holding && heldFor >= 3) { // whoosh, off it goes
-          var o = onHead(), dir = windDir();
-          hat.state = "fly"; hat.t = 0; hat.dir = dir; hat.x0 = o.x; hat.y0 = o.y; hat.ang0 = hat.ang;
-          hat.landX = clamp(m.x + dir * W * rand(0.15, 0.22), W * 0.07, W * 0.55);
+          var o = onHead();
+          liftHat(o.x, o.y);
           hat.k = 0;
           announce("Whoosh! The wind blew the snowman's hat off!");
         }
-      } else if (hat.state === "fly") {
-        var p = Math.min(1, hat.t / 1.6), s0 = m.headR;
-        var yLand = groundY(hat.landX) + Math.min(W, H) * 0.012 - s0 * 0.75;
-        hat.x = hat.x0 + (hat.landX - hat.x0) * p + Math.sin(p * Math.PI * 3) * s0 * 0.6 * (1 - p);
-        hat.y = hat.y0 + (yLand - hat.y0) * p * p - Math.sin(p * Math.PI) * H * 0.16;
-        hat.ang = hat.ang0 + hat.dir * p * TAU * 1.5 + (p > 0.8 ? 0 : 0);
-        if (p >= 1) { hat.state = "ground"; hat.t = 0; hat.ang = hat.dir * 1.45; hat.x = hat.landX; hat.y = yLand; }
+      } else if (hat.state === "fly") { // while you hold, the hat flies all around the screen
+        if (!holding) { hat.state = "fall"; hat.t = 0; announceSometimes("The hat is falling down."); }
+        else {
+          var tt = hat.t, ux = W * (0.5 + 0.4 * Math.sin(tt * 0.83 + hat.ph) * Math.cos(tt * 0.37)),
+              uy = H * (0.36 + 0.24 * Math.sin(tt * 1.21 + hat.ph * 2));
+          var push = windDir() * W * 0.08 * storm;
+          hat.vx += ((ux + push - hat.x) * 2.2 - hat.vx) * dt * 1.6;
+          hat.vy += ((uy - hat.y) * 2.2 - hat.vy) * dt * 1.6;
+          hat.x = clamp(hat.x + hat.vx * dt, W * 0.06, W * 0.94);
+          hat.y = clamp(hat.y + hat.vy * dt, H * 0.08, H * 0.72);
+          hat.spin += (Math.sin(tt * 0.7 + hat.ph) * 6 - hat.spin) * dt;
+          hat.ang += hat.spin * dt;
+        }
+      } else if (hat.state === "fall") { // let go: it drops to the ground right where it is
+        hat.vy += H * 1.4 * dt;
+        hat.vx *= Math.exp(-dt * 2);
+        hat.x = clamp(hat.x + hat.vx * dt + Math.sin(hat.t * 6) * W * 0.04 * dt, W * 0.05, W * 0.95);
+        hat.y += hat.vy * dt;
+        var rest = hat.vx >= 0 ? 1.45 : -1.45; // lands lying on its side
+        hat.spin *= Math.exp(-dt * 3);
+        hat.ang += hat.spin * dt;
+        var yLand = groundY(hat.x) + Math.min(W, H) * 0.012 - m.headR * 0.75;
+        if (hat.y >= yLand) {
+          hat.state = "ground"; hat.t = 0; hat.y = yLand; hat.vx = hat.vy = 0;
+          hat.ang = rest;
+        }
       } else if (hat.state === "ground") {
-        if (hat.t > 1.2 && (!holding || hat.t > 5) && !fox) { // the fox comes to help
+        if (holding && heldFor > 0.4) { liftHat(hat.x, hat.y); announceSometimes("Whoosh! Up goes the hat again!"); }
+        else if (hat.t > 1 && !holding && storm < 0.15 && !fox) { // once the snow has died down, the fox comes to help
           var pos = scene(), visiting = animal >= 0 && ANIMALS[animal].kind === "fox" && animalT >= 1;
           var edge = hat.x > m.x ? W * 1.1 : -W * 0.1; // comes in from the far side, never through the snowman
           var home = visiting ? pos.animal : edge;
@@ -1862,6 +1886,10 @@
           hat.state = "fetch"; hat.t = 0;
           announce("Here comes the fox to get the hat.");
         }
+      } else if (hat.state === "fetch" && holding && heldFor > 0.4) { // blown away again before the fox gets there
+        liftHat(hat.x, hat.y);
+        fox.leaving = true;
+        announceSometimes("Whoosh! Up goes the hat again!");
       }
       if (!fox) return;
       var hh = foxH();
@@ -1925,7 +1953,7 @@
         hat.ang = wob;
         drawHat(g, o.x + dir * o.s * 0.25 * k, o.y - lift, o.s, wob);
       } else {
-        drawHat(g, hat.x, hat.y, sm().headR, hat.ang);
+        drawHat(g, hat.x, hat.y, sm().headR * (hat.big || 1), hat.ang);
       }
     }
     function drawFox(g, time) {
@@ -1947,7 +1975,7 @@
         t0 = 0;
       },
       stop: function () { stopWind(); held = {}; },
-      holdExtra: 7, // holding builds the snow, so going back to the menu needs a longer hold here
+      holdExtra: 12, // holding builds the snow, so going back to the menu needs a longer hold here
       hold: function (on) { if (on) held.key = 1; else delete held.key; },
       down: function (id, x, y) { lastDrag[id] = { x: x, y: y }; held["p" + id] = 1; shake(0.7, x < W / 2 ? 1 : -1); },
       move: function (id, x, y) { // dragging stirs the snow near the finger
@@ -2043,7 +2071,8 @@
         if (animal >= 0 && !(hideFox && ANIMALS[animal].kind === "fox")) { g.globalAlpha = easeOut(animalT); drawAnimal(g, ANIMALS[animal], pos.animal, groundY(pos.animal) + u * 0.02, ah, time); }
         g.globalAlpha = 1;
         drawFox(g, time);
-        if (hat.state !== "on") drawHatNow(g, time); // flying, in the snow, or carried in the fox's mouth
+        var airborne = hat.state === "fly" || hat.state === "fall";
+        if (hat.state !== "on" && !airborne) drawHatNow(g, time); // in the snow, or carried in the fox's mouth
         drawFlakes(g, true, time); // near snow, in front
         if (storm > 0.25) { // a white-out haze in a blizzard, thicker near the ground
           var hz = Math.pow((storm - 0.25) / 0.75, 1.4) * (calm() ? 0.25 : 0.5);
@@ -2052,6 +2081,7 @@
           hg.addColorStop(1, "rgba(238,244,252," + hz.toFixed(3) + ")");
           g.fillStyle = hg; g.fillRect(0, 0, W, H);
         }
+        if (airborne) drawHatNow(g, time); // the flying hat stays clear, in front of the blizzard
         drawGlass(g);
       }
     };
