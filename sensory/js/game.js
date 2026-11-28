@@ -1700,12 +1700,14 @@
       g.beginPath(); g.moveTo(x - w * 0.18, y - h * 0.45); g.lineTo(x - w * 0.18, y - h * 0.25); g.stroke();
       g.fillStyle = "#3b2018"; g.fillRect(x + w * 0.1, y - h * 0.4, w * 0.2, h * 0.44);
     }
-    function drawSnowman(g, x, y, h) {
+    // arm (optional): { side: 1 or -1, tip: [x, y] } moves one stick arm, to take and put on the hat
+    function drawSnowman(g, x, y, h, arm) {
       if (ready(snowmanImg)) { drawPicture(g, snowmanImg, x, y + h * 0.03, h * 1.1); return; }
       var r = h * 0.2;
       g.fillStyle = "rgba(60,80,120,0.18)"; g.beginPath(); g.ellipse(x, y + r * 0.1, r * 1.4, r * 0.25, 0, 0, TAU); g.fill();
       g.strokeStyle = "#5a3a22"; g.lineWidth = Math.max(1.5, h * 0.02); g.lineCap = "round";
-      g.beginPath(); g.moveTo(x - r * 0.7, y - r * 2.6); g.lineTo(x - r * 1.8, y - r * 3.3); g.moveTo(x + r * 0.7, y - r * 2.6); g.lineTo(x + r * 1.7, y - r * 3.4); g.stroke();
+      var lt = arm && arm.side < 0 ? arm.tip : [x - r * 1.8, y - r * 3.3], rt = arm && arm.side > 0 ? arm.tip : [x + r * 1.7, y - r * 3.4];
+      g.beginPath(); g.moveTo(x - r * 0.7, y - r * 2.6); g.lineTo(lt[0], lt[1]); g.moveTo(x + r * 0.7, y - r * 2.6); g.lineTo(rt[0], rt[1]); g.stroke();
       [[0, r * 1.15, r * 1.2], [0, r * 2.85, r * 0.85], [0, r * 4.0, r * 0.6]].forEach(function (c) {
         var gr = g.createRadialGradient(x - c[2] * 0.35, y - c[1] - c[2] * 0.35, c[2] * 0.1, x, y - c[1], c[2]);
         gr.addColorStop(0, "#ffffff"); gr.addColorStop(1, "#cfdcf0");
@@ -1718,7 +1720,7 @@
       g.fillStyle = "#f08a24"; g.beginPath(); g.moveTo(x, y - r * 3.98); g.lineTo(x + r * 0.7, y - r * 3.9); g.lineTo(x, y - r * 3.82); g.closePath(); g.fill();
     }
     // The visiting animals, drawn standing at x,y and about h tall.
-    function drawAnimal(g, a, x, y, h, time) {
+    function drawAnimal(g, a, x, y, h, time, run) { // run: a running step (the fox fetching the hat)
       if (ready(a.img)) { drawPicture(g, a.img, x, y + h * 0.03, h * a.size); return; }
       g.save(); g.translate(x, y); g.scale(h / 100, h / 100);
       var bob = Math.sin(time * 1.2) * 1.2;
@@ -1736,7 +1738,10 @@
         g.fillStyle = "#e0702a";
         g.beginPath(); g.moveTo(-28, -28); g.quadraticCurveTo(-62, -40, -60, -10); g.quadraticCurveTo(-48, -2, -28, -18); g.fill(); // tail
         g.fillStyle = "#fff"; g.beginPath(); g.arc(-58, -14, 6, 0, TAU); g.fill();
-        g.fillStyle = "#3a2418"; [-20, -8, 12, 22].forEach(function (lx) { g.fillRect(lx, -16, 5, 16); });
+        g.fillStyle = "#3a2418"; [-20, -8, 12, 22].forEach(function (lx, li) {
+          if (run == null) { g.fillRect(lx, -16, 5, 16); return; }
+          g.save(); g.translate(lx + 2.5, -16); g.rotate(Math.sin(run + (li % 2) * Math.PI) * 0.6); g.fillRect(-2.5, 0, 5, 16); g.restore();
+        });
         g.fillStyle = "#e0702a"; g.beginPath(); g.ellipse(0, -26, 32, 14, 0, 0, TAU); g.fill();
         g.beginPath(); g.moveTo(22, -40 + bob); g.lineTo(26, -62 + bob); g.lineTo(34, -46 + bob); g.lineTo(42, -60 + bob); g.lineTo(44, -40 + bob); g.closePath(); g.fill();
         g.beginPath(); g.arc(34, -40 + bob, 12, 0, TAU); g.fill();
@@ -1812,6 +1817,125 @@
     function scene() { // where things stand, so the animal never stands on the cabin
       return { cabin: W * 0.66, snowman: W * 0.24, animal: W * 0.44 };
     }
+    /* ---- The snowman's top hat: it wobbles while you hold, blows off after
+       3 seconds, and the fox brings it back ---- */
+    var hat = { state: "on", t: 0, x: 0, y: 0, ang: 0, k: 0 }, fox = null;
+    var FOX = ANIMALS.filter(function (a) { return a.kind === "fox"; })[0] || { kind: "fox", img: null, size: 1 };
+    function sm() { // where the snowman is, and the size of his head
+      var u = Math.min(W, H), h = u * 0.28, r = h * 0.2, x = scene().snowman, y = groundY(x) + u * 0.02;
+      if (ready(snowmanImg)) return { x: x, y: y, r: r, headX: x, headY: y - h * 1.02, headR: r * 0.6 };
+      return { x: x, y: y, r: r, headX: x, headY: y - r * 4.0, headR: r * 0.6 };
+    }
+    function onHead() { var m = sm(); return { x: m.headX + m.headR * 0.05, y: m.headY - m.headR * 0.72, s: m.headR }; }
+    function foxH() { return Math.min(W, H) * 0.2; }
+    function mouth() { var hh = foxH(); return { x: fox.x + fox.face * 0.56 * hh, y: groundY(fox.x) + Math.min(W, H) * 0.02 - 0.34 * hh }; }
+    function armBase(side) { var m = sm(); return [m.x + side * m.r * 0.7, m.y - m.r * 2.6]; }
+    function armTip(side, ang) { var b = armBase(side), L = sm().r * 1.3; return [b[0] + Math.cos(ang) * L, b[1] + Math.sin(ang) * L]; }
+    function restAng(side) { return Math.atan2(-0.75, side * 1); }
+    function windDir() { return gust * 90 + Math.pow(storm, 2) * 520 >= 0 ? 1 : -1; }
+    function updateHat(dt, holding) {
+      var m = sm(), spd = W * (calm() ? 0.2 : 0.28);
+      hat.t += dt;
+      if (hat.state === "on") {
+        var k = holding ? Math.min(1, heldFor / 3) : 0;
+        hat.k += (k - hat.k) * Math.min(1, dt * 5);
+        if (holding && heldFor >= 3) { // whoosh, off it goes
+          var o = onHead(), dir = windDir();
+          hat.state = "fly"; hat.t = 0; hat.dir = dir; hat.x0 = o.x; hat.y0 = o.y; hat.ang0 = hat.ang;
+          hat.landX = clamp(m.x + dir * W * rand(0.15, 0.22), W * 0.07, W * 0.55);
+          hat.k = 0;
+          announce("Whoosh! The wind blew the snowman's hat off!");
+        }
+      } else if (hat.state === "fly") {
+        var p = Math.min(1, hat.t / 1.6), s0 = m.headR;
+        var yLand = groundY(hat.landX) + Math.min(W, H) * 0.012 - s0 * 0.75;
+        hat.x = hat.x0 + (hat.landX - hat.x0) * p + Math.sin(p * Math.PI * 3) * s0 * 0.6 * (1 - p);
+        hat.y = hat.y0 + (yLand - hat.y0) * p * p - Math.sin(p * Math.PI) * H * 0.16;
+        hat.ang = hat.ang0 + hat.dir * p * TAU * 1.5 + (p > 0.8 ? 0 : 0);
+        if (p >= 1) { hat.state = "ground"; hat.t = 0; hat.ang = hat.dir * 1.45; hat.x = hat.landX; hat.y = yLand; }
+      } else if (hat.state === "ground") {
+        if (hat.t > 1.2 && (!holding || hat.t > 5) && !fox) { // the fox comes to help
+          var pos = scene(), visiting = animal >= 0 && ANIMALS[animal].kind === "fox" && animalT >= 1;
+          var edge = hat.x > m.x ? W * 1.1 : -W * 0.1; // comes in from the far side, never through the snowman
+          var home = visiting ? pos.animal : edge;
+          fox = { x: home, home: home, hideVisitor: visiting, face: hat.x > home ? 1 : -1, run: 0 };
+          hat.state = "fetch"; hat.t = 0;
+          announce("Here comes the fox to get the hat.");
+        }
+      }
+      if (!fox) return;
+      var hh = foxH();
+      function goTo(tx) {
+        var d = tx - fox.x;
+        if (Math.abs(d) < 2) { fox.x = tx; fox.run = 0; return true; }
+        fox.face = d > 0 ? 1 : -1;
+        fox.x += fox.face * Math.min(Math.abs(d), spd * dt);
+        fox.run += dt * 14;
+        return false;
+      }
+      if (hat.state === "fetch") { // run to the hat, nose first
+        if (goTo(hat.x - (hat.x > fox.x ? 1 : -1) * 0.5 * hh)) { hat.state = "pickup"; hat.t = 0; fox.face = hat.x > fox.x ? 1 : -1; hat.gx = hat.x; hat.gy = hat.y; hat.gang = hat.ang; }
+      } else if (hat.state === "pickup") {
+        var q = Math.min(1, hat.t / 0.6), mo = mouth();
+        hat.x = hat.gx + (mo.x - hat.gx) * q; hat.y = hat.gy + (mo.y + m.headR * 0.4 - hat.gy) * q; hat.ang = hat.gang + (fox.face * 0.35 - hat.gang) * q;
+        if (q >= 1) { hat.state = "carry"; hat.t = 0; hat.side = fox.x >= m.x ? 1 : -1; }
+      } else if (hat.state === "carry") { // bring it to the snowman's hand
+        var reach = armTip(hat.side, Math.atan2(0.9, hat.side * 0.45));
+        var target = reach[0] + hat.side * 0.66 * hh;
+        var done = goTo(target);
+        var mo2 = mouth(); hat.x = mo2.x; hat.y = mo2.y + m.headR * 0.4; hat.ang = fox.face * 0.35;
+        if (done) { fox.face = -hat.side; hat.state = "give"; hat.t = 0; hat.hx = hat.x; hat.hy = hat.y; }
+      } else if (hat.state === "give") { // the snowman reaches down and takes it
+        var q2 = easeOut(Math.min(1, hat.t / 0.9)), a0 = restAng(hat.side), a1 = Math.atan2(0.9, hat.side * 0.45);
+        hat.armAng = a0 + (a1 - a0) * q2;
+        var tp = armTip(hat.side, hat.armAng); hat.x = hat.hx + (tp[0] - hat.hx) * q2; hat.y = hat.hy + (tp[1] - hat.hy) * q2; hat.ang = fox.face * 0.35 * (1 - q2);
+        if (q2 >= 1) { hat.state = "place"; hat.t = 0; announceSometimes("The fox gave the hat back."); }
+      } else if (hat.state === "place") { // and puts it back on
+        var q3 = Math.min(1, hat.t / 1.6), b0 = Math.atan2(0.9, hat.side * 0.45), b1 = Math.atan2(-1, hat.side * 0.15);
+        hat.armAng = b0 + (b1 - b0) * easeOut(Math.min(1, q3 / 0.6));
+        var tip = armTip(hat.side, hat.armAng), o2 = onHead();
+        if (q3 < 0.6) { hat.x = tip[0]; hat.y = tip[1]; hat.ang = 0; }
+        else { var w = easeOut((q3 - 0.6) / 0.4); hat.x = tip[0] + (o2.x - tip[0]) * w; hat.y = tip[1] + (o2.y - tip[1]) * w; hat.ang = 0; }
+        if (q3 >= 1) { hat.state = "on"; hat.t = 0; hat.armAng = null; hat.k = 0; fox.leaving = true; announce("The snowman's hat is back on."); }
+      }
+      if (fox && fox.leaving) {
+        if (goTo(fox.home)) { fox = null; }
+      }
+    }
+    function drawHat(g, x, y, sz, ang) { // a classic black top hat; x,y is the middle of the brim
+      g.save(); g.translate(x, y); g.rotate(ang);
+      var bw = sz * 1.25, cw = sz * 0.78, ch = sz * 1.55;
+      g.fillStyle = "#15171d";
+      g.beginPath(); g.moveTo(-cw * 0.92, 0); g.lineTo(-cw, -ch); g.quadraticCurveTo(0, -ch - sz * 0.12, cw, -ch); g.lineTo(cw * 0.92, 0); g.closePath(); g.fill();
+      g.fillStyle = "#2c3140"; // a soft shine down one side
+      g.fillRect(-cw * 0.7, -ch * 0.92, cw * 0.22, ch * 0.75);
+      g.fillStyle = "#8e1f2a"; // the band
+      g.beginPath(); g.moveTo(-cw * 0.93, -sz * 0.08); g.lineTo(-cw * 0.95, -sz * 0.36); g.lineTo(cw * 0.95, -sz * 0.36); g.lineTo(cw * 0.93, -sz * 0.08); g.closePath(); g.fill();
+      g.fillStyle = "#15171d";
+      g.beginPath(); g.ellipse(0, 0, bw, sz * 0.17, 0, 0, TAU); g.fill();
+      g.restore();
+    }
+    function drawHatNow(g, time) {
+      var o;
+      if (hat.state === "on") {
+        o = onHead();
+        var k = hat.k, dir = windDir();
+        var wob = Math.sin(time * (7 + 9 * k)) * 0.28 * k + dir * 0.3 * k; // wobbles and leans into the wind
+        var lift = Math.abs(Math.sin(time * (9 + 8 * k))) * o.s * 0.45 * k;
+        hat.ang = wob;
+        drawHat(g, o.x + dir * o.s * 0.25 * k, o.y - lift, o.s, wob);
+      } else {
+        drawHat(g, hat.x, hat.y, sm().headR, hat.ang);
+      }
+    }
+    function drawFox(g, time) {
+      if (!fox) return;
+      var hh = foxH(), y = groundY(fox.x) + Math.min(W, H) * 0.02;
+      g.save(); g.translate(fox.x, 0); g.scale(fox.face, 1);
+      drawAnimal(g, FOX, 0, y, hh, time, fox.run ? fox.run : null);
+      g.restore();
+    }
+
 
     return {
       start: function () {
@@ -1860,6 +1984,7 @@
           heldFor = 0;
           storm += (0.06 - storm) * dt * 0.7; // calms down quickly once you let go
         }
+        updateHat(dt, holding);
         if (storm > 0.5) wasStormy = true;
         if (wasStormy && storm < 0.25) { wasStormy = false; announceSometimes("The snow is settling."); }
         gust *= Math.exp(-dt * 0.7);
@@ -1910,11 +2035,15 @@
         drawGround(g, a, 1);
         if (skyT < 1 || skyFrom !== sky) drawGround(g, b, easeOut(skyT));
         drawCabin(g, pos.cabin, groundY(pos.cabin) + u * 0.01, u * 0.24, time);
-        drawSnowman(g, pos.snowman, groundY(pos.snowman) + u * 0.02, u * 0.28);
-        var ah = u * 0.2;
+        var arm = hat.armAng != null ? { side: hat.side, tip: armTip(hat.side, hat.armAng) } : null;
+        drawSnowman(g, pos.snowman, groundY(pos.snowman) + u * 0.02, u * 0.28, arm);
+        if (hat.state === "on") drawHatNow(g, time);
+        var ah = u * 0.2, hideFox = fox && fox.hideVisitor;
         if (animalFrom >= 0 && animalT < 1) { g.globalAlpha = 1 - animalT; drawAnimal(g, ANIMALS[animalFrom], pos.animal, groundY(pos.animal) + u * 0.02, ah, time); }
-        if (animal >= 0) { g.globalAlpha = easeOut(animalT); drawAnimal(g, ANIMALS[animal], pos.animal, groundY(pos.animal) + u * 0.02, ah, time); }
+        if (animal >= 0 && !(hideFox && ANIMALS[animal].kind === "fox")) { g.globalAlpha = easeOut(animalT); drawAnimal(g, ANIMALS[animal], pos.animal, groundY(pos.animal) + u * 0.02, ah, time); }
         g.globalAlpha = 1;
+        drawFox(g, time);
+        if (hat.state !== "on") drawHatNow(g, time); // flying, in the snow, or carried in the fox's mouth
         drawFlakes(g, true, time); // near snow, in front
         if (storm > 0.25) { // a white-out haze in a blizzard, thicker near the ground
           var hz = Math.pow((storm - 0.25) / 0.75, 1.4) * (calm() ? 0.25 : 0.5);
