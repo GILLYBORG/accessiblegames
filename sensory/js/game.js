@@ -2109,7 +2109,7 @@
     },
     echo: {
       name: "Echo game", hint: "Listen to the monster, then play it back.",
-      label: "Echo game. A friendly monster plays a few drum beats. Then it is your turn to play them back on your drums. Every try gets a cheer."
+      label: "Echo game. A friendly monster plays a few drum beats. Then it is your turn to play them back on your drums: the big drum or the small drum, in the same order. Copy it and the monster cheers. If it is not quite the same, the monster says good try and plays it again."
     }
   };
   if (params.has("bongo") && BONGO_MODES[params.get("bongo")]) settings.bongoMode = params.get("bongo");
@@ -2264,7 +2264,7 @@
     var holds = {}, roll = null, pendingAuto = 0, cym = { tilt: 0, v: 0, shine: 0 };
     var band = { on: false, level: 0, until: 0, step: 0, next: 0, out: null, pulse: 0 };
     var dancers = [], fewerFor = 0, nextDancer = 1;
-    var echo = { state: "wait", t: 0, idx: 0, pat: null, played: 0, tries: [], last: 0, replays: 0, said: "", jump: 0, jv: 0, arm: [0, 0], mini: [0, 0], happy: 0 };
+    var echo = { state: "wait", t: 0, idx: 0, pat: null, played: 0, tries: [], last: 0, replays: 0, misses: 0, said: "", jump: 0, jv: 0, arm: [0, 0], mini: [0, 0], happy: 0 };
     function S() { return Math.min(W, H) / 700; }
     function calmK() { return calm() ? 0.5 : 1; }
 
@@ -2502,7 +2502,7 @@
     function echoNext() {
       var i = echo.idx < ECHO_PATTERNS.length ? echo.idx : 3 + Math.floor(Math.random() * (ECHO_PATTERNS.length - 3));
       echo.idx++;
-      echo.pat = ECHO_PATTERNS[i]; echo.replays = 0;
+      echo.pat = ECHO_PATTERNS[i]; echo.replays = 0; echo.misses = 0;
       echoListen();
     }
     function echoListen() {
@@ -2526,10 +2526,15 @@
         }
       } else if (e.state === "turn") {
         if (e.tries.length) {
-          if (now - e.last > (calm() ? 1.7 : 1.3) || e.tries.length >= e.pat.length + 4) echoCheer();
+          if (now - e.last > (calm() ? 1.7 : 1.3) || e.tries.length >= e.pat.length + 4) echoResult();
         } else if (now - e.turnAt > 9 && e.replays < 1) { e.replays++; echoListen(); }
       } else if (e.state === "cheer") {
         if (now > e.t) echoNext();
+      } else if (e.state === "again") {
+        if (now > e.t) {
+          if (e.misses >= 3) { e.idx = Math.max(0, e.idx - 2); echoNext(); } // after 3 tries, an easier one
+          else { e.replays = 0; echoListen(); } // the monster plays the same beats again
+        }
       }
       e.jv += 2600 * S() * dt; e.jump += e.jv * dt;
       if (e.jump > 0) { e.jump = 0; e.jv = 0; }
@@ -2537,14 +2542,26 @@
       e.arm[0] *= Math.exp(-dt * 7); e.arm[1] *= Math.exp(-dt * 7);
       e.happy *= Math.exp(-dt * 0.8);
     }
-    function echoCheer() {
-      var e = echo, same = e.tries.length === e.pat.length && e.pat.every(function (p, i) { return p[1] === e.tries[i]; });
-      e.state = "cheer"; e.t = perfNow() + 2.6; e.happy = 1; e.same = same;
-      e.said = same ? pick(["You copied it!", "Perfect echo!", "Just like me!"]) : pick(["Great drumming!", "Yay!", "Woo-hoo!", "Nice playing!"]);
-      e.jv = -Math.sqrt(2 * 2600 * S() * monsterSize() * (calm() ? 0.2 : 0.4));
-      cheerSound(same);
-      var m = monsterPos();
-      confetti(m.x, m.y - monsterSize() * 0.4, Math.round((same ? 80 : 50) * calmK()), same ? 1 : 0.7);
+    // The same drums in the same order (big or small, and how many) counts as copied.
+    function echoMatch(i) { return i < echo.pat.length && i < echo.tries.length && echo.pat[i][1] === echo.tries[i]; }
+    function echoResult() {
+      var e = echo, same = e.tries.length === e.pat.length && e.pat.every(function (p, i) { return echoMatch(i); });
+      if (same) { // copied: a big cheer, then a new pattern
+        e.state = "cheer"; e.t = perfNow() + 2.6; e.happy = 1;
+        e.said = pick(["You copied it!", "Perfect echo!", "Just like me!", "You got it!"]);
+        e.jv = -Math.sqrt(2 * 2600 * S() * monsterSize() * (calm() ? 0.2 : 0.4));
+        cheerSound(true);
+        var m = monsterPos();
+        confetti(m.x, m.y - monsterSize() * 0.4, Math.round(80 * calmK()), 1);
+        announce(e.said);
+        return;
+      }
+      // not quite: a kind word, then the monster plays the same beats again
+      e.misses++;
+      e.state = "again"; e.t = perfNow() + 2.6; e.happy = 0.25;
+      e.said = e.misses >= 3 ? "Good try! Let's try a new one." : pick(["Good try! Listen again.", "Nice try! Let's listen again.", "Let's try that again!"]);
+      chime(noteFreq(7), { gain: 0.12, decay: 1.2 });
+      chime(noteFreq(9), { gain: 0.12, decay: 1.2, delay: 0.18 });
       announce(e.said);
     }
     function monsterSize() { return Math.min(H * 0.16, W * 0.14) * Math.min(1.2, 0.9 + 0.1 * sizeK()); }
@@ -2804,7 +2821,7 @@
       drawBubble2(g, x + m * 0.95, p.y - m * 0.85, m, time);
     }
     function drawBubble2(g, x, y, m, time) {
-      var e = echo, text = e.state === "listen" ? "Listen..." : e.state === "turn" ? "Your turn!" : e.state === "cheer" ? e.said : "";
+      var e = echo, text = e.state === "listen" ? "Listen..." : e.state === "turn" ? "Your turn!" : e.state === "cheer" || e.state === "again" ? e.said : "";
       if (!text) return;
       var fs = Math.max(20, Math.round(m * 0.32));
       g.font = "700 " + fs + "px 'Atkinson Hyperlegible', system-ui, sans-serif";
@@ -2824,16 +2841,30 @@
       if (!e.pat) return;
       var dots = e.pat, n = dots.length, dr = Math.max(9, m * 0.11), gap = dr * 2.8;
       var dx0 = x + pad * 0.5, dy = y + bh + fs * 1.2;
+      // top row: the monster's beats. Bottom row: what you played. A white ring
+      // shows a beat you matched, but only once your turn is over.
+      var judged = e.state === "cheer" || e.state === "again";
       for (var i = 0; i < n; i++) {
         var sd = dots[i][1], shown = e.state === "listen" ? i < e.played : true;
-        var done = e.state !== "listen" && i < e.tries.length;
-        var cx = dx0 + dots[i][0] * gap * 0.9 + i * gap * 0.35;
+        var cx = dx0 + i * gap;
         g.globalAlpha = shown ? 1 : 0.25;
         g.fillStyle = sd ? "#3fb4ff" : "#ff8a3d";
         g.beginPath(); g.arc(cx, dy, dr * (sd ? 0.85 : 1.05), 0, TAU); g.fill();
-        if (done) { g.strokeStyle = "#fff"; g.lineWidth = 3; g.beginPath(); g.arc(cx, dy, dr * 1.35, 0, TAU); g.stroke(); }
+        if (judged && echoMatch(i)) { g.strokeStyle = "#fff"; g.lineWidth = 3; g.beginPath(); g.arc(cx, dy, dr * 1.35, 0, TAU); g.stroke(); }
       }
       g.globalAlpha = 1;
+      if (e.state === "turn" || judged) {
+        for (i = 0; i < Math.min(e.tries.length, n + 4); i++) {
+          var cx2 = dx0 + i * gap;
+          if (cx2 > W - dr) break;
+          g.fillStyle = e.tries[i] ? "#3fb4ff" : "#ff8a3d";
+          g.beginPath(); g.arc(cx2, dy + dr * 3, dr * (e.tries[i] ? 0.85 : 1.05), 0, TAU); g.fill();
+          if (judged && !echoMatch(i)) { // a different drum, or an extra beat
+            g.strokeStyle = "rgba(255,255,255,0.55)"; g.lineWidth = 2; g.setLineDash([4, 4]);
+            g.beginPath(); g.arc(cx2, dy + dr * 3, dr * 1.35, 0, TAU); g.stroke(); g.setLineDash([]);
+          }
+        }
+      }
     }
     function drawNote(g, n) {
       var a = clamp(Math.min(n.life / 0.3, (n.max - n.life) / 0.8), 0, 1), s = n.sz;
