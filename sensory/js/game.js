@@ -754,8 +754,8 @@
       return sea;
     }
     // Pick one by weight, so a rare one (like the shark) only turns up now and then.
-    function pickCreature(avoidRare) {
-      var list = creatures().filter(function (c) {
+    function pickCreature(avoidRare, from) {
+      var list = (from || creatures()).filter(function (c) {
         if (avoidRare && c.rare) return false;
         if (c.rare && fish.some(function (f) { return f.from === c && !f.leaving; })) return false; // one at a time
         if (c.kind === "jelly" && fish.filter(function (f) { return f.jelly; }).length >= 2) return false;
@@ -770,7 +770,7 @@
       var f = makeFish(n, c ? c.img : null);
       if (c) {
         f.from = c;
-        f.len = rand(80, 100) * unit() * (c.size || 1) * (creatures() === sea ? 1 : 0.8);
+        f.len = rand(80, 100) * unit() * (c.size || 1) * (sea.indexOf(c) >= 0 ? 1 : 0.8);
         f.jelly = c.kind === "jelly";
         if (f.jelly) { f.vx = rand(-6, 6); f.ty = rand(0.2, 0.6) * H; }
       }
@@ -807,10 +807,14 @@
     function setup() {
       var count = calm() ? 5 : 7, pics = pictures(), i;
       fish = [];
-      if (pics.length) { // My pictures swim with a few drawn fish
-        for (i = 0; i < count; i++) fish.push(makeFish(i, pics[i % pics.length]));
-        for (i = 0; i < Math.min(3, count); i++) fish[i].pic = null;
-        for (i = 0; i < fish.length; i++) if (fish[i].pic) fish[i].len = rand(90, 130) * unit();
+      if (pics.length) { // My pictures swim with a few of SG's fish (drawn fish only if there are none)
+        var mates = Math.min(3, count);
+        for (i = 0; i < mates; i++) fish.push(sea.length ? creatureFish(pickCreature(true, sea), i) : makeFish(i, null));
+        for (i = mates; i < count; i++) {
+          var p = makeFish(i, pics[(i - mates) % pics.length]);
+          p.len = rand(90, 130) * unit();
+          fish.push(p);
+        }
       } else if (sea.length) { // three fish live in the tank; touches bring visitors
         for (i = 0; i < 3; i++) fish.push(creatureFish(pickCreature(true), i));
       } else {
