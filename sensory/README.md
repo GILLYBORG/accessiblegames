@@ -7,7 +7,7 @@ Everything is drawn and played by the computer, so no pictures or sound files ar
 | --- | --- | --- | --- |
 | Fish Tank (coral reef picture by SG in every mode; calm mode dims it a little) | Each touch brings a new fish that swims for 12 to 20 seconds, then swims away; the others wiggle and come to look. The shark visits about 1 touch in 5, one at a time | A new fish swims in, all the fish wiggle | A new fish appears where you look |
 | Fireworks | Touch the sky to send a firework there | A firework goes up | A firework bursts where you look |
-| Snow Globe (you are inside the globe) | Tap to shake the globe. The more you shake, the more it snows, and then it slowly calms to a light snowfall. Every 3 shakes the sky changes (starry night, northern lights, pink sunset, snowy day) or an animal visits (reindeer, fox, owl, bunny). Drag to stir the snow | A shake | A shake |
+| Snow Globe (you are inside the globe) | Tap to shake the globe. Hold your finger down and the snow gets heavier and heavier, up to a snowstorm; let go and it gently calms to a light snowfall. Every 3 shakes the sky changes (starry night, northern lights, pink sunset, snowy day) or an animal visits (reindeer, fox, owl, bunny). Drag to stir the snow | Hold the switch down for more and more snow; let go and it calms. Here the hold to go back to the menu is 7 seconds longer | A shake |
 | Light Painting | Move to paint glowing light, tap for a ripple | A ribbon of light swirls across the screen | Moving paints, resting makes a ripple |
 | Bubble Float | Tap to blow bubbles, tap a bubble to pop it | More bubbles float up | Look at a bubble to pop it |
 | Colour Lamp | A lava lamp: touch to make a glowing blob that rises and merges, with sparkles; drag to stir | The whole lamp fades to a new colour (name read aloud) | A blob grows where you look |
@@ -25,7 +25,7 @@ Everything is drawn and played by the computer, so no pictures or sound files ar
 - Nothing flashes. Fireworks are soft glows with capped brightness, never a full-screen flash, and only a few can be in the sky at once however fast the switch is pressed. In regular mode the fireworks whistle, bang and crackle (built from noise, limited so they are never painfully loud; your own recordings can be set in `fireworksSounds` in config.js). Calm mode keeps soft sounds.
 - Colour changes fade over about 2.5 seconds, however fast the switch is pressed.
 - **Calm mode** (Settings): slower movement, softer colours, quieter sounds, fewer things on screen. It is on automatically when the device is set to reduce motion.
-- Snow Globe sounds are made by the computer (no sound files): a wind that gets stronger as the snow gets heavier, plus a choice in Settings of a music box or sleigh bells. On an iPad, shaking or tilting the iPad also shakes the globe (it asks once for permission; turn it off in Settings). Calm mode caps the snow at half, with gentler movement and quieter sounds.
+- Snow Globe sounds are made by the computer (no sound files): a wind that gets stronger as the snow gets heavier, plus a choice in Settings of a music box or sleigh bells. Calm mode caps the snow at about half, with gentler movement and quieter sounds.
 - Snow Globe pictures: put your own PNGs (1000x1000, see-through background, standing on the bottom edge) in `images/snow/` and name them in `snowPictures` in config.js (cabin, snowman, and the visiting animals).
 - Sounds are soft chimes from a pentatonic scale, so every mix of notes sounds pleasant.
 

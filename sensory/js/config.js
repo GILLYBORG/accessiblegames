@@ -43,8 +43,8 @@ window.SENSORY_CONFIG = {
     {
       id: "snow",
       name: "Snow Globe",
-      hint: "You are inside a snow globe. Shake it to make it snow!",
-      label: "Snow globe. You are inside the snow globe. Tap, press a switch, or shake the iPad to shake the globe. The more you shake, the more it snows and the wind blows. Every few shakes the sky changes or an animal comes to visit. Drag to stir the snow."
+      hint: "You are inside a snow globe. Hold down for more and more snow!",
+      label: "Snow globe. You are inside the snow globe. Tap or press a switch to shake the globe. Hold it down and the snow gets heavier and heavier; let go and it calms down. Every few shakes the sky changes or an animal comes to visit. Drag to stir the snow."
     },
     {
       id: "trails",
@@ -138,7 +138,6 @@ window.SENSORY_CONFIG = {
     scanSeconds: 2,  // how long each activity stays lit
     holdSeconds: 3,  // hold a switch this long inside an activity to go back to the menu (0 = off)
     snowSound: "wind", // Snow Globe sound: "wind", "music" (wind and music box) or "bells" (wind and sleigh bells)
-    snowMotion: true,  // shake or tilt an iPad or tablet to shake the Snow Globe
     useMine: true,   // use pictures added with "My pictures" when there are any
     keepPictures: false // false: added pictures are forgotten when the page closes (safer on shared devices)
   }
