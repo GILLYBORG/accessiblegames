@@ -152,6 +152,20 @@
           <option value="5">Hold for 5 seconds</option>
         </select>
       </div>
+      <div class="field">
+        <label for="set-snow-sound">Snow Globe sound</label>
+        <select id="set-snow-sound">
+          <option value="wind">Wind</option>
+          <option value="music">Wind and music box</option>
+          <option value="bells">Wind and sleigh bells</option>
+        </select>
+      </div>
+      <label class="toggle" for="set-snow-motion">
+        <input type="checkbox" id="set-snow-motion" aria-describedby="snow-motion-desc">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">Shake the iPad to shake the Snow Globe</span>
+      </label>
+      <p class="help" id="snow-motion-desc">On an iPad or tablet, shaking or tilting it moves the snow. The iPad asks once for permission to use motion. Tapping and switches always work too.</p>
     </div>
   </div>
 </div>

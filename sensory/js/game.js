@@ -1461,67 +1461,125 @@
   }
 
   /* =====================================================================
-     Snow Globe: shake (tap, switch, look) to swirl the snow, drag to stir.
-     The wind is made by the computer from filtered noise (no sound files).
+     Snow Globe: you are inside the globe. Shake it (tap, switch, look, or
+     shake the iPad) and the snow swirls. The more you shake, the more it
+     snows. Every few shakes the sky changes or an animal comes to visit.
+     All sounds are made by the computer (no sound files).
      ===================================================================== */
+  var motionAsked = false;
   function SnowGlobe() {
-    var flakes = [], stars = [], swirl = 0, wobble = 0, wobbleV = 0, energy = 0, lastShake = -9;
-    var wind = null, flakeImg = null, lastDrag = {};
-    function count() { return calm() ? 220 : 380; }
-    // The globe: centre, radius, and where its base sits.
-    function geo() {
-      var R = Math.min(W * 0.42, H * 0.36);
-      return { cx: W / 2, cy: H * 0.43, R: R };
-    }
-    // Inside the globe, R = 1 and the centre is 0,0.
-    function hill(x) { return 0.5 + 0.05 * Math.cos(x * 3.1) - 0.03 * Math.cos(x * 7 + 1); }
-    var HOUSE = { x0: -0.2, x1: 0.16, wall: 0.27, roof: 0.1 };
-    function ground(x) {
-      var y = Math.min(hill(x), Math.sqrt(Math.max(0, 1 - x * x)) * 0.97);
-      if (x > HOUSE.x0 - 0.04 && x < HOUSE.x1 + 0.04) { // snow can sit on the roof
-        var mid = (HOUSE.x0 + HOUSE.x1) / 2, half = (HOUSE.x1 - HOUSE.x0) / 2 + 0.04;
-        y = Math.min(y, HOUSE.roof + (HOUSE.wall - HOUSE.roof) * Math.abs(x - mid) / half);
-      }
-      return y;
-    }
-    function makeFlake(scattered) {
-      var a = rand(0, TAU), d = Math.sqrt(Math.random()) * 0.9, x = Math.cos(a) * d;
-      var f = { x: x, y: Math.sin(a) * d, vx: 0, vy: 0, s: rand(0.6, 1.4), fall: rand(0.05, 0.11), ph: rand(0, TAU), settled: false };
-      if (!scattered) { f.settled = true; f.y = ground(x) - 0.005; }
-      return f;
-    }
-    function sprite() {
-      if (flakeImg) return flakeImg;
-      var c = document.createElement("canvas");
-      c.width = c.height = 32;
-      var g = c.getContext("2d"), grad = g.createRadialGradient(16, 16, 0, 16, 16, 16);
-      grad.addColorStop(0, "rgba(255,255,255,1)");
-      grad.addColorStop(0.45, "rgba(240,248,255,0.85)");
-      grad.addColorStop(1, "rgba(220,235,255,0)");
-      g.fillStyle = grad;
-      g.fillRect(0, 0, 32, 32);
-      return (flakeImg = c);
-    }
-    // Shake the globe. strength 0..1. dir -1 or 1 sets which way the snow swirls.
-    function shake(strength, dir) {
-      var k = (calm() ? 0.6 : 1) * strength;
-      swirl = clamp(swirl + dir * 1.1 * k, -1.6, 1.6);
-      wobbleV = clamp(wobbleV + dir * 1.2 * k, -1.6, 1.6);
-      flakes.forEach(function (f) {
-        f.settled = false;
-        f.vx += rand(-0.7, 0.7) * k;
-        f.vy -= rand(0.4, 1.2) * k;
-      });
-      if (clock - lastShake > 0.8) { // a soft glassy twinkle, never a burst of notes
-        arpeggio(10 + Math.floor(rand(0, 3)), calm() ? 2 : 3, 0.12, { gain: calm() ? 0.05 : 0.08, decay: 2.4 });
-      }
-      lastShake = clock;
-      announceSometimes("Whoosh! The snow swirls around.");
-    }
-    function local(x, y) { var G = geo(); return { x: (x - G.cx) / G.R, y: (y - G.cy) / G.R }; }
-    function sideOf(x) { return x < W / 2 ? -1 : 1; }
+    var PIC = cfg.snowPictures || {};
+    function img(src) { if (!src) return null; var i = new Image(); i.src = src; return i; }
+    var cabinImg = img(PIC.cabin), snowmanImg = img(PIC.snowman);
+    var ANIMALS = (PIC.animals && PIC.animals.length ? PIC.animals : [
+      { kind: "reindeer" }, { kind: "fox" }, { kind: "owl" }, { kind: "bunny" }
+    ]).map(function (a) {
+      return { kind: a.kind || "picture", name: a.name || a.kind, say: a.say || ("A " + (a.name || a.kind) + " came to visit."), img: img(a.src), size: a.size || 1 };
+    });
+    var SKIES = [
+      { name: "Starry night", say: "A starry night.", top: "#040820", mid: "#0d1b48", low: "#26407a", stars: 1, aurora: 0, hill: ["#dfe9f8", "#93a9d1"], far: "#5a6fa0", light: false },
+      { name: "Northern lights", say: "Northern lights are dancing in the sky.", top: "#020d1a", mid: "#06263a", low: "#14405e", stars: 0.7, aurora: 1, hill: ["#d6ecf0", "#86aabb"], far: "#3f6a80", light: false },
+      { name: "Pink sunset", say: "A pink sunset.", top: "#251a4d", mid: "#6b3c78", low: "#e0887c", stars: 0.25, aurora: 0, hill: ["#f8e6ee", "#c49dbd"], far: "#8c6a9c", light: false },
+      { name: "Snowy day", say: "A snowy day.", top: "#2a5390", mid: "#4f80bf", low: "#93b5df", stars: 0, aurora: 0, hill: ["#ffffff", "#c4d6ee"], far: "#8fb0d8", light: true }
+    ];
+    var flakes = [], stars = [], trees = [], storm = 0.15, gust = 0, tilt = 0, shakes = 0, discoveries = 0;
+    var sky = 0, skyFrom = 0, skyT = 1, animal = -1, animalFrom = -1, animalT = 1;
+    var wind = null, lastDrag = {}, beat = 0, wasStormy = false, motionOn = false, lastMotion = 0, prevG = null;
+    var sprite = null, shade = null, t0 = 0;
+    function S() { return Math.min(W, H) / 700; }
+    function maxFlakes() { return calm() ? 260 : 650; }
+    function cap() { return calm() ? 0.5 : 1; }
+    function target() { return Math.round(maxFlakes() * (0.14 + 0.86 * storm)); }
+    function horizon() { return H * 0.6; }
+    function groundY(x) { return H * 0.76 + Math.sin(x / W * 5 + 0.6) * H * 0.025; }
 
-    /* ---- Wind: noise through two moving filters, louder while the snow is swirling ---- */
+    function makeSprites() {
+      if (sprite) return;
+      sprite = document.createElement("canvas"); sprite.width = sprite.height = 48;
+      var g = sprite.getContext("2d"), gr = g.createRadialGradient(24, 24, 0, 24, 24, 24);
+      gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.35, "rgba(250,252,255,0.9)");
+      gr.addColorStop(0.7, "rgba(225,238,255,0.35)"); gr.addColorStop(1, "rgba(220,235,255,0)");
+      g.fillStyle = gr; g.fillRect(0, 0, 48, 48);
+      shade = document.createElement("canvas"); shade.width = shade.height = 48; // a soft outline so flakes show on a pale sky
+      g = shade.getContext("2d"); gr = g.createRadialGradient(24, 24, 0, 24, 24, 24);
+      gr.addColorStop(0, "rgba(30,60,110,0.55)"); gr.addColorStop(1, "rgba(30,60,110,0)");
+      g.fillStyle = gr; g.fillRect(0, 0, 48, 48);
+    }
+    function newFlake(fromTop) {
+      var z = Math.pow(Math.random(), 0.8) * 0.75 + 0.25;
+      return { x: rand(0, W), y: fromTop ? rand(-60, -5) : rand(0, H), z: z, vx: 0, vy: (22 + 50 * z) * S(), ph: rand(0, TAU), spark: Math.random() < 0.28 };
+    }
+
+    /* ---- Shaking ---- */
+    function shake(strength, dir) {
+      var k = strength * (calm() ? 0.6 : 1), s = S();
+      var before = storm;
+      storm = Math.min(cap(), storm + (calm() ? 0.11 : 0.17) * strength);
+      gust = clamp(gust + dir * 1.3 * k, -2.5, 2.5);
+      flakes.forEach(function (f) {
+        f.vx += dir * rand(30, 150) * s * f.z * k;
+        f.vy -= rand(20, 160) * s * f.z * k;
+      });
+      // snow kicked up from the ground
+      var extra = Math.min(Math.round((calm() ? 25 : 60) * strength), maxFlakes() - flakes.length);
+      for (var i = 0; i < extra; i++) {
+        var f = newFlake(false);
+        f.y = rand(H * 0.7, H); f.vy = -rand(120, 360) * s * k; f.vx = dir * rand(20, 140) * s * k;
+        flakes.push(f);
+      }
+      if (snowSound() === "bells") jingle(0.05 + 0.05 * strength, 3);
+      else if (snowSound() === "music") chime(noteFreq(10 + Math.floor(rand(0, 4))), { gain: 0.07, decay: 2.6 });
+      if (before < 0.68 && storm >= 0.68) announce("A snowstorm!");
+      else announceSometimes(storm > 0.4 ? "More snow!" : "The snow swirls around.");
+      shakes++;
+      if (shakes % 3 === 0) discover();
+    }
+    function discover() {
+      if (discoveries++ % 2 === 0) {
+        animalFrom = animal; animal = (animal + 1) % ANIMALS.length; animalT = 0;
+        setTimeout(function () { announce(ANIMALS[animal].say); }, 1500);
+      } else {
+        skyFrom = sky; sky = (sky + 1) % SKIES.length; skyT = 0;
+        setTimeout(function () { announce(SKIES[sky].say); }, 1500);
+      }
+    }
+
+    /* ---- Shake or tilt the iPad ---- */
+    function isIOS() { return typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function"; }
+    function askMotion() {
+      if (motionAsked || settings.snowMotion === false || !isIOS()) return;
+      motionAsked = true;
+      try { DeviceMotionEvent.requestPermission().then(function () {}, function () {}); } catch (e) { /* ignore */ }
+    }
+    function onMotion(e) {
+      var a = e.accelerationIncludingGravity;
+      if (!a || a.x == null) return;
+      // gravity on the screen (iPads report it the other way round to Android)
+      var sign = isIOS() ? 1 : -1, dx = sign * a.x, dyd = -sign * a.y;
+      var ang = ((screen.orientation && screen.orientation.angle) || window.orientation || 0) * Math.PI / 180;
+      var sx = dx * Math.cos(ang) + dyd * Math.sin(ang);
+      tilt += (clamp(sx / 9.8, -1, 1) - tilt) * 0.1;
+      // a shake: a quick jolt
+      var m = 0, b = e.acceleration;
+      if (b && b.x != null) m = Math.sqrt(b.x * b.x + b.y * b.y + b.z * b.z);
+      else if (prevG) m = Math.sqrt(Math.pow(a.x - prevG.x, 2) + Math.pow(a.y - prevG.y, 2) + Math.pow(a.z - prevG.z, 2));
+      prevG = { x: a.x, y: a.y, z: a.z };
+      var now = Date.now();
+      if (m > 13 && now - lastMotion > 400) {
+        lastMotion = now;
+        shake(clamp((m - 9) / 18, 0.4, 1), sx >= 0 ? 1 : -1);
+      }
+    }
+    function motion(on) {
+      on = on && settings.snowMotion !== false;
+      if (on === motionOn) return;
+      motionOn = on;
+      if (on) { window.addEventListener("devicemotion", onMotion); play.addEventListener("click", askMotion); }
+      else { window.removeEventListener("devicemotion", onMotion); play.removeEventListener("click", askMotion); tilt = 0; prevG = null; }
+    }
+
+    /* ---- Sounds: wind, plus music box or sleigh bells ---- */
+    function snowSound() { return settings.snowSound || "wind"; }
     function startWind() {
       if (wind || !audioReady() || !noise()) return;
       var src = actx.createBufferSource();
@@ -1529,201 +1587,346 @@
       var body = actx.createBiquadFilter(); body.type = "bandpass"; body.Q.value = 0.9; body.frequency.value = 420;
       var howl = actx.createBiquadFilter(); howl.type = "bandpass"; howl.Q.value = 7; howl.frequency.value = 760;
       var soft = actx.createBiquadFilter(); soft.type = "lowpass"; soft.frequency.value = 1800;
-      var bodyG = actx.createGain(), howlG = actx.createGain(), out = actx.createGain();
-      bodyG.gain.value = 1; howlG.gain.value = 0.55; out.gain.value = 0.0001;
-      src.connect(body); body.connect(bodyG); bodyG.connect(soft);
+      var howlG = actx.createGain(), out = actx.createGain();
+      howlG.gain.value = 0.55; out.gain.value = 0.0001;
+      src.connect(body); body.connect(soft);
       src.connect(howl); howl.connect(howlG); howlG.connect(soft);
       soft.connect(out); out.connect(master);
       src.start();
       wind = { src: src, body: body, howl: howl, out: out, drift: 0, driftV: 0 };
     }
-    function setWind(target, freqK, dt) {
+    function setWind(level, dt) {
       if (!wind) return;
       var t = actx.currentTime;
-      // a slow random drift so the wind rises and falls like a real breeze
-      wind.driftV += rand(-1, 1) * dt * 2;
-      wind.driftV *= 1 - dt * 0.8;
+      wind.driftV = (wind.driftV + rand(-1, 1) * dt * 2) * (1 - dt * 0.8);
       wind.drift = clamp(wind.drift + wind.driftV * dt, -1, 1);
-      var f = (calm() ? 300 : 360) + 700 * freqK + 120 * wind.drift;
+      var f = (calm() ? 300 : 360) + 700 * level + 120 * wind.drift;
       wind.body.frequency.setTargetAtTime(f, t, 0.25);
       wind.howl.frequency.setTargetAtTime(f * 1.9 + 80 * wind.drift, t, 0.35);
-      wind.out.gain.setTargetAtTime(Math.max(0.0001, target * (1 + 0.25 * wind.drift)), t, 0.3);
+      var g = 0.025 + (calm() ? 0.2 : 0.38) * level;
+      wind.out.gain.setTargetAtTime(Math.max(0.0001, g * (1 + 0.25 * wind.drift)), t, 0.3);
     }
     function stopWind() {
       if (!wind) return;
       var w = wind; wind = null;
-      try {
-        w.out.gain.setTargetAtTime(0.0001, actx.currentTime, 0.15);
-        w.src.stop(actx.currentTime + 0.8);
-      } catch (e) { /* ignore */ }
+      try { w.out.gain.setTargetAtTime(0.0001, actx.currentTime, 0.15); w.src.stop(actx.currentTime + 0.8); } catch (e) { /* ignore */ }
+    }
+    // A small sleigh bell: a few bright, quickly fading metal tones.
+    function jingle(gain, count) {
+      if (!audioReady()) return;
+      gain *= calm() ? 0.6 : 1;
+      for (var n = 0; n < (count || 1); n++) {
+        var t = actx.currentTime + n * 0.09 + rand(0, 0.03);
+        for (var i = 0; i < 4; i++) {
+          var o = actx.createOscillator(), g = actx.createGain(), f = rand(2600, 5200), d = rand(0.12, 0.3);
+          o.frequency.value = f;
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.linearRampToValueAtTime(gain / 4, t + 0.003);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+          o.connect(g); g.connect(master); g.connect(echo);
+          o.start(t); o.stop(t + d + 0.02);
+          t += rand(0.005, 0.02);
+        }
+      }
+    }
+    var tune = 9;
+    function playBeat(dt) {
+      var mode = snowSound();
+      if (mode === "wind" || !audioReady()) return;
+      beat -= dt;
+      if (beat > 0) return;
+      if (mode === "music") { // a gentle music box that wanders up and down the scale
+        beat = calm() ? 1.6 : 1.15;
+        tune = clamp(tune + pick([-2, -1, -1, 1, 1, 2, 0]), 6, 15);
+        chime(noteFreq(tune), { gain: 0.06, decay: 2.4, delay: 0.001 });
+        if (Math.random() < 0.3) chime(noteFreq(tune - 5), { gain: 0.035, decay: 2.8, delay: 0.3 });
+      } else { // sleigh bells ring faster in a heavier snowfall
+        beat = (calm() ? 1.1 : 0.75) - 0.35 * storm;
+        jingle(0.012 + 0.03 * storm, 1);
+      }
+    }
+
+    /* ---- Drawing the world ---- */
+    function drawSky(g, s, a, time) {
+      g.globalAlpha = a;
+      var gr = g.createLinearGradient(0, 0, 0, horizon() + H * 0.1);
+      gr.addColorStop(0, s.top); gr.addColorStop(0.55, s.mid); gr.addColorStop(1, s.low);
+      g.fillStyle = gr; g.fillRect(0, 0, W, H);
+      if (s.stars) {
+        g.fillStyle = "#fff";
+        stars.forEach(function (st) {
+          g.globalAlpha = a * s.stars * (0.4 + 0.25 * Math.sin(st.p + time * 0.5));
+          g.fillRect(st.x * W, st.y * horizon(), st.s, st.s);
+        });
+      }
+      if (s.aurora) { // slow curtains of light, never flashing
+        g.globalCompositeOperation = "lighter";
+        [[150, 0.0, 0.18], [175, 1.7, 0.26], [280, 3.1, 0.34]].forEach(function (c) {
+          var base = H * c[2], amp = H * 0.05, al = calm() ? 0.12 : 0.2, top = [], bot = [];
+          for (var x = -10; x <= W + 30; x += 20) {
+            var y = base + Math.sin(x / W * 4 + time * 0.25 + c[1]) * amp + Math.sin(x / W * 9 - time * 0.17) * amp * 0.4;
+            var h = H * (0.12 + 0.05 * Math.sin(x / W * 6 + time * 0.3 + c[1]));
+            top.push([x, y - h]); bot.push([x, y + h * 0.15]);
+          }
+          var gr2 = g.createLinearGradient(0, base - amp * 1.4 - H * 0.17, 0, base + amp * 1.4 + H * 0.03);
+          gr2.addColorStop(0, "hsla(" + c[0] + ",80%,60%,0)");
+          gr2.addColorStop(0.42, "hsla(" + c[0] + ",80%,60%,0)");
+          gr2.addColorStop(0.8, "hsla(" + c[0] + ",80%,62%," + al + ")");
+          gr2.addColorStop(1, "hsla(" + c[0] + ",80%,62%,0)");
+          g.globalAlpha = a; g.fillStyle = gr2;
+          g.beginPath(); g.moveTo(top[0][0], top[0][1]);
+          top.forEach(function (pt) { g.lineTo(pt[0], pt[1]); });
+          for (var j = bot.length - 1; j >= 0; j--) g.lineTo(bot[j][0], bot[j][1]);
+          g.closePath(); g.fill();
+        });
+        g.globalCompositeOperation = "source-over";
+      }
+      // far hills
+      g.globalAlpha = a; g.fillStyle = s.far;
+      g.beginPath(); g.moveTo(0, H);
+      for (var x = 0; x <= W + 20; x += 20) g.lineTo(x, horizon() - Math.sin(x / W * 3.2 + 1) * H * 0.04 - Math.sin(x / W * 8) * H * 0.012);
+      g.lineTo(W, H); g.closePath(); g.fill();
+      g.globalAlpha = 1;
+    }
+    function drawGround(g, s, a) {
+      g.globalAlpha = a;
+      var gr = g.createLinearGradient(0, H * 0.72, 0, H);
+      gr.addColorStop(0, s.hill[0]); gr.addColorStop(1, s.hill[1]);
+      g.fillStyle = gr;
+      g.beginPath(); g.moveTo(0, H);
+      for (var x = 0; x <= W + 20; x += 20) g.lineTo(x, groundY(x));
+      g.lineTo(W, H); g.closePath(); g.fill();
+      g.globalAlpha = 1;
+    }
+    function drawTree(g, x, y, h) {
+      g.fillStyle = "#4b2e1e"; g.fillRect(x - h * 0.05, y - h * 0.12, h * 0.1, h * 0.14);
+      for (var k = 0; k < 3; k++) {
+        var ty = y - h * 0.1 - k * h * 0.27, tw = h * (0.4 - k * 0.09);
+        g.fillStyle = calm() ? "#2f5e4a" : "#1d6a44";
+        g.beginPath(); g.moveTo(x - tw, ty); g.lineTo(x + tw, ty); g.lineTo(x, ty - h * 0.42); g.closePath(); g.fill();
+        g.fillStyle = "rgba(240,247,255,0.95)";
+        g.beginPath(); g.moveTo(x - tw * 0.9, ty); g.quadraticCurveTo(x - tw * 0.3, ty - h * 0.06, x, ty - h * 0.02); g.quadraticCurveTo(x + tw * 0.3, ty - h * 0.07, x + tw * 0.9, ty); g.lineTo(x + tw * 0.75, ty - h * 0.04); g.lineTo(x - tw * 0.75, ty - h * 0.04); g.closePath(); g.fill();
+        g.beginPath(); g.moveTo(x - tw * 0.3, ty - h * 0.3); g.lineTo(x + tw * 0.3, ty - h * 0.3); g.lineTo(x, ty - h * 0.42); g.closePath(); g.fill();
+      }
+    }
+    function drawPicture(g, im, x, y, h) { // bottom-centre at x,y
+      var w = h * im.naturalWidth / im.naturalHeight;
+      g.drawImage(im, x - w / 2, y - h, w, h);
+    }
+    function drawCabin(g, x, y, h, time) {
+      if (ready(cabinImg)) { drawPicture(g, cabinImg, x, y + h * 0.04, h * 1.25); return; }
+      var w = h * 1.1;
+      g.fillStyle = "#6e3b2c"; g.fillRect(x + w * 0.18, y - h * 1.12, w * 0.14, h * 0.4); // chimney
+      g.fillStyle = "#a8553a"; g.fillRect(x - w / 2, y - h * 0.62, w, h * 0.66);
+      g.strokeStyle = "rgba(80,35,20,0.35)"; g.lineWidth = Math.max(1, h * 0.015);
+      for (var i = 1; i < 5; i++) { g.beginPath(); g.moveTo(x - w / 2, y - h * 0.62 + i * h * 0.13); g.lineTo(x + w / 2, y - h * 0.62 + i * h * 0.13); g.stroke(); }
+      g.fillStyle = "#5a2f26";
+      g.beginPath(); g.moveTo(x - w * 0.62, y - h * 0.6); g.lineTo(x, y - h * 1.08); g.lineTo(x + w * 0.62, y - h * 0.6); g.closePath(); g.fill();
+      g.fillStyle = "#f6faff"; // snow on the roof
+      g.beginPath(); g.moveTo(x - w * 0.66, y - h * 0.58); g.lineTo(x, y - h * 1.12); g.lineTo(x + w * 0.66, y - h * 0.58);
+      g.quadraticCurveTo(x + w * 0.6, y - h * 0.66, x + w * 0.55, y - h * 0.66); g.lineTo(x, y - h * 1.02); g.lineTo(x - w * 0.55, y - h * 0.66); g.quadraticCurveTo(x - w * 0.6, y - h * 0.66, x - w * 0.66, y - h * 0.58); g.fill();
+      var glowA = 0.55 + 0.07 * Math.sin(time * 0.6); // a slow warm glow, never a flicker
+      g.globalAlpha = glowA; g.drawImage(glow(40, 90, 62), x - w * 0.42, y - h * 0.58, w * 0.5, w * 0.5); g.globalAlpha = 1;
+      g.fillStyle = "#ffd27a"; g.fillRect(x - w * 0.3, y - h * 0.45, w * 0.24, h * 0.2);
+      g.strokeStyle = "#5a2f26"; g.lineWidth = Math.max(1, h * 0.025);
+      g.strokeRect(x - w * 0.3, y - h * 0.45, w * 0.24, h * 0.2);
+      g.beginPath(); g.moveTo(x - w * 0.18, y - h * 0.45); g.lineTo(x - w * 0.18, y - h * 0.25); g.stroke();
+      g.fillStyle = "#3b2018"; g.fillRect(x + w * 0.1, y - h * 0.4, w * 0.2, h * 0.44);
+    }
+    function drawSnowman(g, x, y, h) {
+      if (ready(snowmanImg)) { drawPicture(g, snowmanImg, x, y + h * 0.03, h * 1.1); return; }
+      var r = h * 0.2;
+      g.fillStyle = "rgba(60,80,120,0.18)"; g.beginPath(); g.ellipse(x, y + r * 0.1, r * 1.4, r * 0.25, 0, 0, TAU); g.fill();
+      g.strokeStyle = "#5a3a22"; g.lineWidth = Math.max(1.5, h * 0.02); g.lineCap = "round";
+      g.beginPath(); g.moveTo(x - r * 0.7, y - r * 2.6); g.lineTo(x - r * 1.8, y - r * 3.3); g.moveTo(x + r * 0.7, y - r * 2.6); g.lineTo(x + r * 1.7, y - r * 3.4); g.stroke();
+      [[0, r * 1.15, r * 1.2], [0, r * 2.85, r * 0.85], [0, r * 4.0, r * 0.6]].forEach(function (c) {
+        var gr = g.createRadialGradient(x - c[2] * 0.35, y - c[1] - c[2] * 0.35, c[2] * 0.1, x, y - c[1], c[2]);
+        gr.addColorStop(0, "#ffffff"); gr.addColorStop(1, "#cfdcf0");
+        g.fillStyle = gr; g.beginPath(); g.arc(x, y - c[1], c[2], 0, TAU); g.fill();
+      });
+      g.fillStyle = "#c0392b"; g.fillRect(x - r * 0.75, y - r * 3.55, r * 1.5, r * 0.28); g.fillRect(x + r * 0.2, y - r * 3.5, r * 0.3, r * 0.9);
+      g.fillStyle = "#1b1f2a";
+      g.beginPath(); g.arc(x - r * 0.22, y - r * 4.12, r * 0.08, 0, TAU); g.arc(x + r * 0.22, y - r * 4.12, r * 0.08, 0, TAU); g.fill();
+      [2.55, 2.85, 3.15].forEach(function (k) { g.beginPath(); g.arc(x, y - r * k, r * 0.07, 0, TAU); g.fill(); });
+      g.fillStyle = "#f08a24"; g.beginPath(); g.moveTo(x, y - r * 3.98); g.lineTo(x + r * 0.7, y - r * 3.9); g.lineTo(x, y - r * 3.82); g.closePath(); g.fill();
+    }
+    // The visiting animals, drawn standing at x,y and about h tall.
+    function drawAnimal(g, a, x, y, h, time) {
+      if (ready(a.img)) { drawPicture(g, a.img, x, y + h * 0.03, h * a.size); return; }
+      g.save(); g.translate(x, y); g.scale(h / 100, h / 100);
+      var bob = Math.sin(time * 1.2) * 1.2;
+      g.fillStyle = "rgba(60,80,120,0.18)"; g.beginPath(); g.ellipse(0, 2, 40, 6, 0, 0, TAU); g.fill();
+      if (a.kind === "bunny") {
+        g.fillStyle = "#f4f4f6";
+        g.beginPath(); g.ellipse(-6, -20, 24, 20, 0, 0, TAU); g.fill();
+        g.beginPath(); g.arc(14, -40 + bob, 14, 0, TAU); g.fill();
+        g.beginPath(); g.ellipse(8, -68 + bob, 5, 18, -0.15, 0, TAU); g.ellipse(19, -66 + bob, 5, 18, 0.2, 0, TAU); g.fill();
+        g.fillStyle = "#f2a7bb"; g.beginPath(); g.ellipse(8, -68 + bob, 2.2, 12, -0.15, 0, TAU); g.ellipse(19, -66 + bob, 2.2, 12, 0.2, 0, TAU); g.fill();
+        g.fillStyle = "#fff"; g.beginPath(); g.arc(-29, -22, 7, 0, TAU); g.fill();
+        g.fillStyle = "#1b1f2a"; g.beginPath(); g.arc(20, -43 + bob, 2.4, 0, TAU); g.fill();
+        g.fillStyle = "#e57a96"; g.beginPath(); g.arc(27, -38 + bob, 2, 0, TAU); g.fill();
+      } else if (a.kind === "fox") {
+        g.fillStyle = "#e0702a";
+        g.beginPath(); g.moveTo(-28, -28); g.quadraticCurveTo(-62, -40, -60, -10); g.quadraticCurveTo(-48, -2, -28, -18); g.fill(); // tail
+        g.fillStyle = "#fff"; g.beginPath(); g.arc(-58, -14, 6, 0, TAU); g.fill();
+        g.fillStyle = "#3a2418"; [-20, -8, 12, 22].forEach(function (lx) { g.fillRect(lx, -16, 5, 16); });
+        g.fillStyle = "#e0702a"; g.beginPath(); g.ellipse(0, -26, 32, 14, 0, 0, TAU); g.fill();
+        g.beginPath(); g.moveTo(22, -40 + bob); g.lineTo(26, -62 + bob); g.lineTo(34, -46 + bob); g.lineTo(42, -60 + bob); g.lineTo(44, -40 + bob); g.closePath(); g.fill();
+        g.beginPath(); g.arc(34, -40 + bob, 12, 0, TAU); g.fill();
+        g.beginPath(); g.moveTo(40, -44 + bob); g.lineTo(56, -36 + bob); g.lineTo(40, -32 + bob); g.closePath(); g.fill();
+        g.fillStyle = "#fff"; g.beginPath(); g.moveTo(30, -34 + bob); g.lineTo(56, -36 + bob); g.lineTo(38, -28 + bob); g.closePath(); g.fill();
+        g.beginPath(); g.ellipse(18, -22, 9, 7, 0, 0, TAU); g.fill();
+        g.fillStyle = "#1b1f2a"; g.beginPath(); g.arc(38, -43 + bob, 2.2, 0, TAU); g.arc(56, -36 + bob, 2.4, 0, TAU); g.fill();
+      } else if (a.kind === "owl") {
+        g.fillStyle = "#6b4a2e"; g.fillRect(-16, -14, 32, 14); // stump
+        g.fillStyle = "#f4f8ff"; g.fillRect(-18, -16, 36, 4);
+        g.fillStyle = "#8a6440"; g.beginPath(); g.ellipse(0, -46 + bob, 22, 30, 0, 0, TAU); g.fill();
+        g.beginPath(); g.moveTo(-18, -66 + bob); g.lineTo(-14, -80 + bob); g.lineTo(-6, -70 + bob); g.moveTo(18, -66 + bob); g.lineTo(14, -80 + bob); g.lineTo(6, -70 + bob); g.fill();
+        g.fillStyle = "#e8d7bd"; g.beginPath(); g.ellipse(0, -36 + bob, 13, 16, 0, 0, TAU); g.fill();
+        var blink = (time % 6) < 0.18 ? 0.15 : 1; // a slow, occasional blink
+        [-9, 9].forEach(function (ex) {
+          g.fillStyle = "#f5e6c8"; g.beginPath(); g.arc(ex, -60 + bob, 9, 0, TAU); g.fill();
+          g.fillStyle = "#f2b630"; g.beginPath(); g.ellipse(ex, -60 + bob, 6, 6 * blink, 0, 0, TAU); g.fill();
+          g.fillStyle = "#1b1f2a"; g.beginPath(); g.ellipse(ex, -60 + bob, 3, 3 * blink, 0, 0, TAU); g.fill();
+        });
+        g.fillStyle = "#e08a1e"; g.beginPath(); g.moveTo(-3, -53 + bob); g.lineTo(3, -53 + bob); g.lineTo(0, -46 + bob); g.closePath(); g.fill();
+      } else { // reindeer
+        g.strokeStyle = "#6a4528"; g.lineWidth = 3; g.lineCap = "round";
+        g.beginPath(); // antlers
+        g.moveTo(30, -66 + bob); g.lineTo(22, -92 + bob); g.moveTo(25, -82 + bob); g.lineTo(14, -88 + bob); g.moveTo(23, -88 + bob); g.lineTo(28, -98 + bob);
+        g.moveTo(36, -66 + bob); g.lineTo(42, -92 + bob); g.moveTo(40, -82 + bob); g.lineTo(50, -88 + bob); g.moveTo(41, -88 + bob); g.lineTo(37, -98 + bob);
+        g.stroke();
+        g.fillStyle = "#5b3a22"; [-24, -12, 14, 26].forEach(function (lx) { g.fillRect(lx, -24, 5, 24); });
+        g.fillStyle = "#8a5a34"; g.beginPath(); g.ellipse(0, -32, 36, 16, 0, 0, TAU); g.fill();
+        g.beginPath(); g.moveTo(18, -40); g.lineTo(26, -62 + bob); g.lineTo(38, -60 + bob); g.lineTo(34, -36); g.closePath(); g.fill();
+        g.beginPath(); g.ellipse(36, -62 + bob, 12, 8, 0.3, 0, TAU); g.fill();
+        g.fillStyle = "#efe2cf"; g.beginPath(); g.ellipse(-30, -38, 6, 5, 0, 0, TAU); g.fill(); g.beginPath(); g.ellipse(26, -44, 6, 9, 0, 0, TAU); g.fill();
+        g.fillStyle = "#1b1f2a"; g.beginPath(); g.arc(36, -65 + bob, 2.2, 0, TAU); g.arc(47, -58 + bob, 3, 0, TAU); g.fill();
+      }
+      g.restore();
+    }
+    function drawFlakes(g, near, time) {
+      var s = S() * sizeK(), lightSky = SKIES[sky].light && skyT > 0.5;
+      for (var i = 0; i < flakes.length; i++) {
+        var f = flakes[i];
+        if ((f.z >= 0.55) !== near) continue;
+        var sz = (3 + 15 * f.z * f.z) * s;
+        var a = 0.45 + 0.55 * f.z;
+        if (lightSky) { g.globalAlpha = a * 0.6; g.drawImage(shade, f.x - sz * 0.75, f.y - sz * 0.75, sz * 1.5, sz * 1.5); }
+        g.globalAlpha = a;
+        g.drawImage(sprite, f.x - sz / 2, f.y - sz / 2, sz, sz);
+        if (f.spark) { // a gentle twinkle (several seconds per cycle)
+          var tw = Math.max(0, Math.sin(f.ph * 0.6 + time * 0.8));
+          if (tw > 0.2) {
+            var L = sz * 0.9 * tw;
+            g.globalAlpha = 0.7 * tw * a;
+            g.fillStyle = "#fff";
+            g.fillRect(f.x - L, f.y - 0.6 * s, L * 2, 1.2 * s);
+            g.fillRect(f.x - 0.6 * s, f.y - L, 1.2 * s, L * 2);
+          }
+        }
+      }
+      g.globalAlpha = 1;
+    }
+    function drawGlass(g) { // hints of the curved glass all around you
+      var cx = W / 2, cy = H * 0.48, R = Math.hypot(W, H) * 0.5;
+      var v = g.createRadialGradient(cx, cy, R * 0.55, cx, cy, R);
+      v.addColorStop(0, "rgba(160,200,255,0)");
+      v.addColorStop(0.75, "rgba(120,170,230,0.10)");
+      v.addColorStop(1, "rgba(10,20,50,0.55)");
+      g.fillStyle = v; g.fillRect(0, 0, W, H);
+      g.lineCap = "round";
+      [[1.08, 1.3, 0.09, 0.05], [1.12, 1.2, 0.12, 0.014], [1.74, 1.84, 0.06, 0.03]].forEach(function (h) {
+        g.strokeStyle = "rgba(255,255,255," + h[2] + ")";
+        g.lineWidth = Math.max(3, Math.min(W, H) * h[3]);
+        g.beginPath(); g.ellipse(cx, cy, W * 0.47, H * 0.46, 0, Math.PI * h[0], Math.PI * h[1]); g.stroke();
+      });
+    }
+    function scene() { // where things stand, so the animal never stands on the cabin
+      return { cabin: W * 0.66, snowman: W * 0.24, animal: W * 0.44 };
     }
 
     return {
       start: function () {
-        flakes = []; stars = [];
-        for (var i = 0; i < count(); i++) flakes.push(makeFlake(true));
-        for (i = 0; i < 40; i++) stars.push({ x: rand(-0.85, 0.85), y: rand(-0.9, 0.1), s: rand(0.004, 0.01), p: rand(0, TAU) });
-        swirl = 0.8; wobble = 0; wobbleV = 0; energy = 0.6;
-        flakes.forEach(function (f) { f.vy = rand(-0.3, 0.1); });
+        makeSprites();
+        flakes = []; stars = []; trees = [];
+        for (var i = 0; i < 90; i++) stars.push({ x: Math.random(), y: Math.random() * 0.9, s: rand(1, 2.2), p: rand(0, TAU) });
+        storm = calm() ? 0.25 : 0.3; gust = 0.4;
+        for (i = 0; i < target(); i++) flakes.push(newFlake(false));
+        t0 = 0;
       },
-      stop: stopWind,
-      down: function (id, x, y) { lastDrag[id] = local(x, y); shake(1, sideOf(x)); },
+      stop: function () { stopWind(); motion(false); },
+      down: function (id, x, y) { lastDrag[id] = { x: x, y: y }; shake(1, x < W / 2 ? 1 : -1); },
       move: function (id, x, y) { // dragging stirs the snow near the finger
-        var p = local(x, y), q = lastDrag[id];
+        var q = lastDrag[id];
         if (!q) return;
-        lastDrag[id] = p;
-        var dx = clamp(p.x - q.x, -0.2, 0.2), dy = clamp(p.y - q.y, -0.2, 0.2);
-        if (Math.abs(dx) + Math.abs(dy) < 0.002) return;
+        lastDrag[id] = { x: x, y: y };
+        var dx = clamp(x - q.x, -60, 60), dy = clamp(y - q.y, -60, 60), r = 170 * S() * sizeK();
+        if (Math.abs(dx) + Math.abs(dy) < 1) return;
         var k = calm() ? 5 : 8;
         flakes.forEach(function (f) {
-          var ddx = f.x - p.x, ddy = f.y - p.y, d2 = ddx * ddx + ddy * ddy;
-          if (d2 > 0.16) return;
-          var w = 1 - d2 / 0.16;
-          f.settled = false;
+          var ex = f.x - x, ey = f.y - y, d2 = ex * ex + ey * ey;
+          if (d2 > r * r) return;
+          var w = 1 - d2 / (r * r);
           f.vx += dx * k * w; f.vy += dy * k * w;
         });
-        swirl = clamp(swirl + (p.x * dy - p.y * dx) * 3, -1.6, 1.6);
-        wobbleV = clamp(wobbleV + dx * 2, -1.6, 1.6);
+        gust = clamp(gust + dx * 0.004, -2.5, 2.5);
       },
       up: function (id) { delete lastDrag[id]; },
-      dwell: function (x) { shake(0.8, sideOf(x)); },
+      dwell: function (x) { shake(0.8, x < W / 2 ? 1 : -1); },
       press: function () { shake(1, Math.random() < 0.5 ? -1 : 1); },
       update: function (dt) {
         startWind();
-        swirl *= Math.exp(-dt * 0.6);
-        // the globe rocks gently and settles, like a spring
-        wobbleV += (-wobble * 9 - wobbleV * 2.2) * dt;
-        wobble = clamp(wobble + wobbleV * dt, -0.09, 0.09);
-        var speed = 0, moving = 0;
-        for (var i = 0; i < flakes.length; i++) {
+        motion(true);
+        t0 += dt;
+        var s = S();
+        // the snow slowly calms down again, back to a light snowfall
+        storm += ((calm() ? 0.14 : 0.12) - storm) * dt * 0.055;
+        if (storm > 0.5) wasStormy = true;
+        if (wasStormy && storm < 0.25) { wasStormy = false; announceSometimes("The snow is settling."); }
+        gust *= Math.exp(-dt * 0.7);
+        if (skyT < 1) skyT = Math.min(1, skyT + dt / 3);
+        if (animalT < 1) animalT = Math.min(1, animalT + dt / 2.5);
+        var swirl = storm * storm;
+        for (var i = flakes.length - 1; i >= 0; i--) {
           var f = flakes[i];
-          if (f.settled) continue;
-          f.ph += dt * 1.3;
-          // swirl around, with gentle eddies that also pull the snow back off the glass
-          var tx = -f.y * swirl * 0.8 - f.x * Math.abs(swirl) * 0.25 + Math.sin(f.ph + f.y * 3) * (0.04 + 0.12 * energy);
-          var ty = f.x * swirl * 0.8 - f.y * Math.abs(swirl) * 0.25 + Math.cos(f.ph * 0.8 + f.x * 3) * 0.1 * energy + f.fall * (1 - Math.min(0.8, Math.abs(swirl) * 0.3));
-          f.vx += (tx - f.vx) * dt * 1.6;
-          f.vy += (ty - f.vy) * dt * 1.6;
+          f.ph += dt;
+          var fall = (20 + 48 * f.z) * s * (1 - 0.35 * swirl);
+          var tx = (gust * 90 + tilt * 70) * s * f.z + Math.sin(f.ph * 0.9) * (8 + 14 * f.z) * s
+                 + Math.sin(f.y * 0.012 + t0 * 0.7 + f.ph * 0.2) * swirl * 140 * s * f.z;
+          var ty = fall + Math.cos(f.x * 0.009 + t0 * 0.5) * swirl * 70 * s * f.z;
+          f.vx += (tx - f.vx) * dt * 1.3;
+          f.vy += (ty - f.vy) * dt * 1.3;
           f.x += f.vx * dt; f.y += f.vy * dt;
-          var d = Math.sqrt(f.x * f.x + f.y * f.y);
-          if (d > 0.97) { // bounce softly off the glass
-            var nx = f.x / d, ny = f.y / d, vr = f.vx * nx + f.vy * ny;
-            f.x = nx * 0.97; f.y = ny * 0.97;
-            if (vr > 0) { f.vx -= 1.6 * vr * nx; f.vy -= 1.6 * vr * ny; }
-            f.vx *= 0.7; f.vy *= 0.7; // the glass slows it down so snow never sticks to the sides
+          if (f.x < -20) f.x += W + 40; else if (f.x > W + 20) f.x -= W + 40;
+          if (f.y < -80) { f.y = -80; f.vy = Math.abs(f.vy) * 0.3; }
+          if (f.y > H + 20) { // reached the ground: fall again from the top, if the snow is still busy
+            if (flakes.length > target()) flakes.splice(i, 1);
+            else { var n = newFlake(true); flakes[i] = n; }
           }
-          var gy = ground(f.x);
-          if (f.y >= gy) {
-            if (f.vy > 0 && Math.abs(swirl) < 0.7) { f.settled = true; f.y = gy - rand(0, 0.012); }
-            else { f.y = gy; if (f.vy > 0) f.vy *= -0.4; }
-          }
-          speed += Math.abs(f.vx) + Math.abs(f.vy); moving++;
         }
-        var e = clamp((speed / Math.max(1, flakes.length)) * 1.6 + Math.abs(swirl) * 0.25, 0, 1);
-        energy += (e - energy) * Math.min(1, dt * 3);
-        var top = calm() ? 0.22 : 0.4;
-        setWind(0.03 + top * energy, energy, dt);
-        stars.forEach(function (s) { s.p += dt * 0.4; });
+        while (flakes.length < target() && Math.random() < 0.6) flakes.push(newFlake(true));
+        setWind(clamp(storm * 0.8 + Math.abs(gust) * 0.15, 0, 1), dt);
+        playBeat(dt);
       },
       draw: function (g, time) {
-        var G = geo(), R = G.R;
-        // the room around the globe
-        var bg = g.createRadialGradient(G.cx, G.cy, R * 0.6, G.cx, G.cy, Math.max(W, H) * 0.8);
-        bg.addColorStop(0, "#1c2a55");
-        bg.addColorStop(1, "#060917");
-        g.fillStyle = bg;
-        g.fillRect(0, 0, W, H);
-        g.save();
-        // rock around the bottom of the base
-        var pivotY = G.cy + R * 1.35;
-        g.translate(G.cx, pivotY);
-        g.rotate(wobble);
-        g.translate(-G.cx, -pivotY);
-        // soft shadow and base
-        g.fillStyle = "rgba(0,0,0,0.35)";
-        g.beginPath(); g.ellipse(G.cx, G.cy + R * 1.38, R * 0.95, R * 0.09, 0, 0, TAU); g.fill();
-        var bw = R * 0.82, by = G.cy + R * 0.8, bh = R * 0.55;
-        var wood = g.createLinearGradient(0, by, 0, by + bh);
-        wood.addColorStop(0, calm() ? "#6b3a3a" : "#8c2f39");
-        wood.addColorStop(1, calm() ? "#3a1f24" : "#4a1420");
-        g.fillStyle = wood;
-        g.beginPath();
-        g.moveTo(G.cx - bw * 0.85, by);
-        g.lineTo(G.cx + bw * 0.85, by);
-        g.lineTo(G.cx + bw, by + bh);
-        g.quadraticCurveTo(G.cx, by + bh * 1.12, G.cx - bw, by + bh);
-        g.closePath(); g.fill();
-        g.fillStyle = "#d9a441";
-        g.fillRect(G.cx - bw * 0.9, by + bh * 0.42, bw * 1.8, bh * 0.12);
-
-        // inside the globe
-        g.save();
-        g.translate(G.cx, G.cy);
-        g.scale(R, R);
-        g.beginPath(); g.arc(0, 0, 1, 0, TAU); g.clip();
-        var sky = g.createLinearGradient(0, -1, 0, 1);
-        sky.addColorStop(0, calm() ? "#14234a" : "#10255e");
-        sky.addColorStop(1, calm() ? "#3a5583" : "#4a73b8");
-        g.fillStyle = sky; g.fillRect(-1, -1, 2, 2);
-        g.fillStyle = "#fff";
-        stars.forEach(function (s) { g.globalAlpha = 0.35 + 0.25 * Math.sin(s.p); g.fillRect(s.x, s.y, s.s, s.s); });
-        g.globalAlpha = 0.9;
-        g.drawImage(glow(50, 60, 80), -0.75, -0.75, 0.3, 0.3); // the moon
+        var a = SKIES[skyFrom], b = SKIES[sky];
+        drawSky(g, a, 1, time);
+        if (skyT < 1 || skyFrom !== sky) drawSky(g, b, easeOut(skyT), time);
+        drawFlakes(g, false, time); // far snow, behind everything
+        var pos = scene(), u = Math.min(W, H);
+        // trees along the back
+        [[0.06, 0.26], [0.13, 0.19], [0.86, 0.24], [0.94, 0.3], [0.38, 0.13]].forEach(function (t) { drawTree(g, W * t[0], groundY(W * t[0]) - H * 0.04, u * t[1]); });
+        drawGround(g, a, 1);
+        if (skyT < 1 || skyFrom !== sky) drawGround(g, b, easeOut(skyT));
+        drawCabin(g, pos.cabin, groundY(pos.cabin) + u * 0.01, u * 0.24, time);
+        drawSnowman(g, pos.snowman, groundY(pos.snowman) + u * 0.02, u * 0.28);
+        var ah = u * 0.2;
+        if (animalFrom >= 0 && animalT < 1) { g.globalAlpha = 1 - animalT; drawAnimal(g, ANIMALS[animalFrom], pos.animal, groundY(pos.animal) + u * 0.02, ah, time); }
+        if (animal >= 0) { g.globalAlpha = easeOut(animalT); drawAnimal(g, ANIMALS[animal], pos.animal, groundY(pos.animal) + u * 0.02, ah, time); }
         g.globalAlpha = 1;
-        // trees
-        [[-0.6, 0.47, 0.32], [-0.42, 0.5, 0.22], [0.5, 0.47, 0.36], [0.68, 0.43, 0.2]].forEach(function (t) {
-          var x = t[0], y = t[1], h = t[2];
-          g.fillStyle = "#4b2e1e"; g.fillRect(x - h * 0.06, y - h * 0.12, h * 0.12, h * 0.14);
-          for (var k = 0; k < 3; k++) {
-            var ty = y - h * 0.1 - k * h * 0.28, tw = h * (0.42 - k * 0.1);
-            g.fillStyle = calm() ? "#2f5e4a" : "#1f6b45";
-            g.beginPath(); g.moveTo(x - tw, ty); g.lineTo(x + tw, ty); g.lineTo(x, ty - h * 0.42); g.closePath(); g.fill();
-            g.fillStyle = "#eef6ff";
-            g.beginPath(); g.moveTo(x - tw * 0.35, ty - h * 0.26); g.lineTo(x + tw * 0.35, ty - h * 0.26); g.lineTo(x, ty - h * 0.42); g.closePath(); g.fill();
-          }
-        });
-        // snowy hill
-        var snow = g.createLinearGradient(0, 0.4, 0, 1);
-        snow.addColorStop(0, "#f4f9ff"); snow.addColorStop(1, "#b9cdea");
-        g.fillStyle = snow;
-        g.beginPath(); g.moveTo(-1, 1);
-        for (var x = -1; x <= 1.001; x += 0.05) g.lineTo(x, hill(x));
-        g.lineTo(1, 1); g.closePath(); g.fill();
-        // the little house with a warm window
-        var hx0 = HOUSE.x0, hx1 = HOUSE.x1, mid = (hx0 + hx1) / 2;
-        g.fillStyle = "#a8553a"; g.fillRect(hx0, HOUSE.wall, hx1 - hx0, hill(mid) - HOUSE.wall + 0.03);
-        g.fillStyle = "#6e3b2c"; g.fillRect(hx1 - 0.09, 0.08, 0.05, 0.12); // chimney
-        g.fillStyle = "#5a2f26";
-        g.beginPath(); g.moveTo(hx0 - 0.05, HOUSE.wall + 0.01); g.lineTo(mid, HOUSE.roof - 0.01); g.lineTo(hx1 + 0.05, HOUSE.wall + 0.01); g.closePath(); g.fill();
-        g.fillStyle = "#f4f9ff";
-        g.beginPath(); g.moveTo(hx0 - 0.05, HOUSE.wall + 0.01); g.lineTo(mid, HOUSE.roof - 0.01); g.lineTo(hx1 + 0.05, HOUSE.wall + 0.01); g.lineTo(hx1 + 0.02, HOUSE.wall - 0.015); g.lineTo(mid, HOUSE.roof + 0.015); g.lineTo(hx0 - 0.02, HOUSE.wall - 0.015); g.closePath(); g.fill();
-        var lampGlow = 0.85 + 0.08 * Math.sin(time * 0.7); // a slow, gentle glow, never a flicker
-        g.globalAlpha = 0.5 * lampGlow; g.drawImage(glow(42, 90, 62), -0.12, 0.24, 0.2, 0.2); g.globalAlpha = 1;
-        g.fillStyle = "#ffd27a"; g.fillRect(-0.06, 0.3, 0.08, 0.08);
-        g.fillStyle = "#3b2018"; g.fillRect(0.07, 0.36, 0.06, hill(0.1) - 0.36 + 0.03); // door
-        // snowflakes
-        var img = sprite(), base = 0.022 * sizeK();
-        for (var i = 0; i < flakes.length; i++) {
-          var f = flakes[i], sz = base * f.s;
-          g.globalAlpha = f.settled ? 0.75 : 0.95;
-          g.drawImage(img, f.x - sz / 2, f.y - sz / 2, sz, sz);
-        }
-        g.globalAlpha = 1;
-        // the glass: a gentle shine and a rim
-        var shine = g.createRadialGradient(-0.35, -0.45, 0.05, -0.2, -0.3, 1.1);
-        shine.addColorStop(0, "rgba(255,255,255,0.28)");
-        shine.addColorStop(0.35, "rgba(255,255,255,0.06)");
-        shine.addColorStop(1, "rgba(255,255,255,0)");
-        g.fillStyle = shine; g.fillRect(-1, -1, 2, 2);
-        g.restore();
-        g.lineWidth = Math.max(2, R * 0.03);
-        g.strokeStyle = "rgba(220,236,255,0.55)";
-        g.beginPath(); g.arc(G.cx, G.cy, R, 0, TAU); g.stroke();
-        g.lineWidth = Math.max(2, R * 0.035);
-        g.lineCap = "round";
-        g.strokeStyle = "rgba(255,255,255,0.5)";
-        g.beginPath(); g.arc(G.cx, G.cy, R * 0.86, Math.PI * 1.08, Math.PI * 1.38); g.stroke();
-        g.restore();
+        drawFlakes(g, true, time); // near snow, in front
+        drawGlass(g);
       }
     };
   }
@@ -1912,11 +2115,11 @@
 
   /* ---------- Menu ---------- */
   var ART = {
-    snow: '<svg viewBox="0 0 160 90" aria-hidden="true"><defs><radialGradient id="g7" cx=".5" cy=".45" r=".7"><stop offset="0" stop-color="#1c2a55"/><stop offset="1" stop-color="#060917"/></radialGradient><linearGradient id="s7" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#10255e"/><stop offset="1" stop-color="#4a73b8"/></linearGradient><clipPath id="c7"><circle cx="80" cy="38" r="30"/></clipPath></defs><rect width="160" height="90" fill="url(#g7)"/>' +
-      '<path d="M57 62H103L110 80Q80 84 50 80Z" fill="#8c2f39"/><rect x="53" y="69" width="54" height="3.5" fill="#d9a441"/>' +
-      '<g clip-path="url(#c7)"><rect x="50" y="8" width="60" height="60" fill="url(#s7)"/><path d="M50 68V53Q65 50 80 53T110 52V68Z" fill="#eef6ff"/><path d="M62 52L68 40L74 52Z" fill="#1f6b45"/><path d="M89 53L96 38L103 53Z" fill="#1f6b45"/><rect x="74" y="44" width="11" height="9" fill="#a8553a"/><path d="M72 45L79.5 38L87 45Z" fill="#eef6ff"/><rect x="76.5" y="47" width="3" height="3" fill="#ffd27a"/>' +
-      [[60,20],[70,30],[88,16],[98,28],[76,24],[64,40],[94,42],[83,32],[72,14],[102,36],[58,30],[90,24]].map(function (p) { return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="1.4" fill="#fff"/>'; }).join("") +
-      '</g><circle cx="80" cy="38" r="30" fill="none" stroke="#dcecff" stroke-opacity=".6" stroke-width="1.5"/><path d="M58 30A25 25 0 0 1 68 17" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2.5" stroke-linecap="round"/></svg>',
+    snow: '<svg viewBox="0 0 160 90" aria-hidden="true"><defs><linearGradient id="s7" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#040820"/><stop offset=".6" stop-color="#0d1b48"/><stop offset="1" stop-color="#26407a"/></linearGradient><radialGradient id="v7" cx=".5" cy=".48" r=".62"><stop offset=".7" stop-color="#78aae6" stop-opacity="0"/><stop offset="1" stop-color="#0a1432" stop-opacity=".6"/></radialGradient><radialGradient id="f7"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#fff" stop-opacity=".8"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><rect width="160" height="90" fill="url(#s7)"/>' +
+      '<path d="M0 90V56Q30 50 60 55T120 52T160 54V90Z" fill="#5a6fa0"/><path d="M14 64L22 46L30 64ZM132 62L141 42L150 62Z" fill="#1d6a44"/><path d="M0 90V68Q40 62 80 68T160 66V90Z" fill="#e8f0fb"/>' +
+      '<rect x="96" y="54" width="24" height="15" fill="#a8553a"/><path d="M93 55L108 44L123 55Z" fill="#f6faff"/><rect x="100" y="58" width="6" height="5" fill="#ffd27a"/><circle cx="44" cy="63" r="6" fill="#fff"/><circle cx="44" cy="54" r="4.3" fill="#fff"/><circle cx="44" cy="47" r="3.2" fill="#fff"/>' +
+      [[12,14,3],[30,30,4.5],[55,12,2.5],[70,38,5.5],[86,20,3],[104,32,4],[124,14,3.5],[140,34,5],[150,18,2.5],[24,48,3],[62,58,4],[130,70,5],[84,76,3.5],[40,24,2]].map(function (p) { return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + p[2] + '" fill="url(#f7)"/>'; }).join("") +
+      '<rect width="160" height="90" fill="url(#v7)"/><path d="M18 46A76 50 0 0 1 52 8" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="3.5" stroke-linecap="round"/></svg>',
     peek: '<img src="../home/thumbs/peek-and-find.jpg" alt="" style="width:100%;height:100%;object-fit:cover;display:block">',
     fireworks: '<svg viewBox="0 0 160 90" aria-hidden="true"><defs><filter id="a6" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2"/></filter></defs><rect width="160" height="90" fill="#070a22"/><g filter="url(#a6)" stroke-linecap="round" stroke-width="2.5">' +
       [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map(function (a) {
@@ -2095,6 +2298,15 @@
     size.addEventListener("change", function () { settings.size = parseFloat(size.value); saveSettings(); });
     dw.addEventListener("change", function () { settings.dwell = parseFloat(dw.value); dwell = null; saveSettings(); });
     gap.addEventListener("change", function () { settings.switchGap = parseFloat(gap.value); saveSettings(); });
+    var snowSnd = $("set-snow-sound"), snowMo = $("set-snow-motion");
+    if (snowSnd) {
+      selectValue(snowSnd, settings.snowSound || "wind");
+      snowSnd.addEventListener("change", function () { settings.snowSound = snowSnd.value; saveSettings(); });
+    }
+    if (snowMo) {
+      snowMo.checked = settings.snowMotion !== false;
+      snowMo.addEventListener("change", function () { settings.snowMotion = snowMo.checked; saveSettings(); });
+    }
   }
 
   /* ---------- Full screen ---------- */
