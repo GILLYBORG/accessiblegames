@@ -1466,7 +1466,6 @@
      snows. Every few shakes the sky changes or an animal comes to visit.
      All sounds are made by the computer (no sound files).
      ===================================================================== */
-  var motionAsked = false;
   function SnowGlobe() {
     var PIC = cfg.snowPictures || {};
     function img(src) { if (!src) return null; var i = new Image(); i.src = src; return i; }
@@ -1482,14 +1481,14 @@
       { name: "Pink sunset", say: "A pink sunset.", top: "#251a4d", mid: "#6b3c78", low: "#e0887c", stars: 0.25, aurora: 0, hill: ["#f8e6ee", "#c49dbd"], far: "#8c6a9c", light: false },
       { name: "Snowy day", say: "A snowy day.", top: "#2a5390", mid: "#4f80bf", low: "#93b5df", stars: 0, aurora: 0, hill: ["#ffffff", "#c4d6ee"], far: "#8fb0d8", light: true }
     ];
-    var flakes = [], stars = [], trees = [], storm = 0.15, gust = 0, tilt = 0, shakes = 0, discoveries = 0;
+    var flakes = [], stars = [], trees = [], storm = 0.15, gust = 0, shakes = 0, discoveries = 0;
     var sky = 0, skyFrom = 0, skyT = 1, animal = -1, animalFrom = -1, animalT = 1;
-    var wind = null, lastDrag = {}, beat = 0, wasStormy = false, motionOn = false, lastMotion = 0, prevG = null;
+    var wind = null, lastDrag = {}, beat = 0, wasStormy = false, held = {}, heldFor = 0;
     var sprite = null, shade = null, t0 = 0;
     function S() { return Math.min(W, H) / 700; }
-    function maxFlakes() { return calm() ? 260 : 650; }
+    function maxFlakes() { return calm() ? 320 : 900; }
     function cap() { return calm() ? 0.5 : 1; }
-    function target() { return Math.round(maxFlakes() * (0.14 + 0.86 * storm)); }
+    function target() { return Math.round(maxFlakes() * (0.1 + 0.9 * storm)); }
     function horizon() { return H * 0.6; }
     function groundY(x) { return H * 0.76 + Math.sin(x / W * 5 + 0.6) * H * 0.025; }
 
@@ -1542,40 +1541,6 @@
         skyFrom = sky; sky = (sky + 1) % SKIES.length; skyT = 0;
         setTimeout(function () { announce(SKIES[sky].say); }, 1500);
       }
-    }
-
-    /* ---- Shake or tilt the iPad ---- */
-    function isIOS() { return typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function"; }
-    function askMotion() {
-      if (motionAsked || settings.snowMotion === false || !isIOS()) return;
-      motionAsked = true;
-      try { DeviceMotionEvent.requestPermission().then(function () {}, function () {}); } catch (e) { /* ignore */ }
-    }
-    function onMotion(e) {
-      var a = e.accelerationIncludingGravity;
-      if (!a || a.x == null) return;
-      // gravity on the screen (iPads report it the other way round to Android)
-      var sign = isIOS() ? 1 : -1, dx = sign * a.x, dyd = -sign * a.y;
-      var ang = ((screen.orientation && screen.orientation.angle) || window.orientation || 0) * Math.PI / 180;
-      var sx = dx * Math.cos(ang) + dyd * Math.sin(ang);
-      tilt += (clamp(sx / 9.8, -1, 1) - tilt) * 0.1;
-      // a shake: a quick jolt
-      var m = 0, b = e.acceleration;
-      if (b && b.x != null) m = Math.sqrt(b.x * b.x + b.y * b.y + b.z * b.z);
-      else if (prevG) m = Math.sqrt(Math.pow(a.x - prevG.x, 2) + Math.pow(a.y - prevG.y, 2) + Math.pow(a.z - prevG.z, 2));
-      prevG = { x: a.x, y: a.y, z: a.z };
-      var now = Date.now();
-      if (m > 13 && now - lastMotion > 400) {
-        lastMotion = now;
-        shake(clamp((m - 9) / 18, 0.4, 1), sx >= 0 ? 1 : -1);
-      }
-    }
-    function motion(on) {
-      on = on && settings.snowMotion !== false;
-      if (on === motionOn) return;
-      motionOn = on;
-      if (on) { window.addEventListener("devicemotion", onMotion); play.addEventListener("click", askMotion); }
-      else { window.removeEventListener("devicemotion", onMotion); play.removeEventListener("click", askMotion); tilt = 0; prevG = null; }
     }
 
     /* ---- Sounds: wind, plus music box or sleigh bells ---- */
@@ -1811,7 +1776,7 @@
         var f = flakes[i];
         if ((f.z >= 0.55) !== near) continue;
         var sz = (3 + 15 * f.z * f.z) * s;
-        var a = 0.45 + 0.55 * f.z;
+        var a = (0.45 + 0.55 * f.z) * (f.fade === undefined ? 1 : f.fade);
         if (lightSky) { g.globalAlpha = a * 0.6; g.drawImage(shade, f.x - sz * 0.75, f.y - sz * 0.75, sz * 1.5, sz * 1.5); }
         g.globalAlpha = a;
         g.drawImage(sprite, f.x - sz / 2, f.y - sz / 2, sz, sz);
@@ -1855,8 +1820,10 @@
         for (i = 0; i < target(); i++) flakes.push(newFlake(false));
         t0 = 0;
       },
-      stop: function () { stopWind(); motion(false); },
-      down: function (id, x, y) { lastDrag[id] = { x: x, y: y }; shake(1, x < W / 2 ? 1 : -1); },
+      stop: function () { stopWind(); held = {}; },
+      holdExtra: 7, // holding builds the snow, so going back to the menu needs a longer hold here
+      hold: function (on) { if (on) held.key = 1; else delete held.key; },
+      down: function (id, x, y) { lastDrag[id] = { x: x, y: y }; held["p" + id] = 1; shake(0.7, x < W / 2 ? 1 : -1); },
       move: function (id, x, y) { // dragging stirs the snow near the finger
         var q = lastDrag[id];
         if (!q) return;
@@ -1872,16 +1839,25 @@
         });
         gust = clamp(gust + dx * 0.004, -2.5, 2.5);
       },
-      up: function (id) { delete lastDrag[id]; },
+      up: function (id) { delete lastDrag[id]; delete held["p" + id]; },
       dwell: function (x) { shake(0.8, x < W / 2 ? 1 : -1); },
-      press: function () { shake(1, Math.random() < 0.5 ? -1 : 1); },
+      press: function () { shake(0.7, Math.random() < 0.5 ? -1 : 1); },
       update: function (dt) {
         startWind();
-        motion(true);
         t0 += dt;
         var s = S();
-        // the snow slowly calms down again, back to a light snowfall
-        storm += ((calm() ? 0.14 : 0.12) - storm) * dt * 0.055;
+        // Holding a touch, key or switch makes the snow heavier and heavier.
+        // Letting go, it calms down again to a light snowfall.
+        var holding = Object.keys(held).length > 0;
+        if (holding) {
+          heldFor += dt;
+          storm = Math.min(cap(), storm + (calm() ? 0.1 : 0.18) * dt);
+          gust = clamp(gust + Math.sin(heldFor * 0.7) * dt * 0.8, -2.5, 2.5); // the wind swirls around while you hold
+          if (heldFor > 1.5 && storm >= cap() - 0.02) announceSometimes(calm() ? "Lots of snow." : "A snowstorm!");
+        } else {
+          heldFor = 0;
+          storm += ((calm() ? 0.14 : 0.12) - storm) * dt * 0.35;
+        }
         if (storm > 0.5) wasStormy = true;
         if (wasStormy && storm < 0.25) { wasStormy = false; announceSometimes("The snow is settling."); }
         gust *= Math.exp(-dt * 0.7);
@@ -1892,7 +1868,7 @@
           var f = flakes[i];
           f.ph += dt;
           var fall = (20 + 48 * f.z) * s * (1 - 0.35 * swirl);
-          var tx = (gust * 90 + tilt * 70) * s * f.z + Math.sin(f.ph * 0.9) * (8 + 14 * f.z) * s
+          var tx = gust * 90 * s * f.z + Math.sin(f.ph * 0.9) * (8 + 14 * f.z) * s
                  + Math.sin(f.y * 0.012 + t0 * 0.7 + f.ph * 0.2) * swirl * 140 * s * f.z;
           var ty = fall + Math.cos(f.x * 0.009 + t0 * 0.5) * swirl * 70 * s * f.z;
           f.vx += (tx - f.vx) * dt * 1.3;
@@ -1900,12 +1876,23 @@
           f.x += f.vx * dt; f.y += f.vy * dt;
           if (f.x < -20) f.x += W + 40; else if (f.x > W + 20) f.x -= W + 40;
           if (f.y < -80) { f.y = -80; f.vy = Math.abs(f.vy) * 0.3; }
+          if (f.fade !== undefined) { f.fade -= dt / 1.5; if (f.fade <= 0) { flakes.splice(i, 1); continue; } }
           if (f.y > H + 20) { // reached the ground: fall again from the top, if the snow is still busy
             if (flakes.length > target()) flakes.splice(i, 1);
             else { var n = newFlake(true); flakes[i] = n; }
           }
         }
-        while (flakes.length < target() && Math.random() < 0.6) flakes.push(newFlake(true));
+        // after letting go, extra snow gently fades away
+        var fading = 0;
+        for (var m = 0; m < flakes.length; m++) if (flakes[m].fade !== undefined) fading++;
+        var toFade = Math.ceil((flakes.length - fading - target()) * dt * 1.2);
+        for (m = 0; m < flakes.length && toFade > 0; m++) {
+          var fm = flakes[(m * 7919 + Math.floor(t0 * 60)) % flakes.length];
+          if (fm.fade === undefined) { fm.fade = 1; toFade--; }
+        }
+        // while held, new snow appears all over (it swirls in); otherwise it falls in from the top
+        var add = holding ? 12 : 1;
+        for (var n = 0; n < add && flakes.length < target(); n++) if (Math.random() < 0.6) flakes.push(newFlake(!holding));
         setWind(clamp(storm * 0.8 + Math.abs(gust) * 0.15, 0, 1), dt);
         playBeat(dt);
       },
@@ -1926,6 +1913,7 @@
         if (animal >= 0) { g.globalAlpha = easeOut(animalT); drawAnimal(g, ANIMALS[animal], pos.animal, groundY(pos.animal) + u * 0.02, ah, time); }
         g.globalAlpha = 1;
         drawFlakes(g, true, time); // near snow, in front
+        if (storm > 0.3) { g.fillStyle = "rgba(225,235,250," + ((storm - 0.3) * (calm() ? 0.12 : 0.2)).toFixed(3) + ")"; g.fillRect(0, 0, W, H); } // a soft snowy haze
         drawGlass(g);
       }
     };
@@ -2078,16 +2066,18 @@
     e.preventDefault();
     if (e.repeat) return; // holding a switch down counts once
     switchPress();
+    if (current.hold) current.hold(true); // e.g. the Snow Globe: holding makes more snow
     // Holding the switch down goes back to the menu.
     clearHold();
     if (settings.holdSeconds > 0) {
-      var hold = settings.holdSeconds * 1000;
-      hintTimer = setTimeout(function () { $("hold-hint").hidden = false; }, Math.min(1000, hold / 2));
+      var extra = current.holdExtra || 0, hold = (settings.holdSeconds + extra) * 1000;
+      hintTimer = setTimeout(function () { $("hold-hint").hidden = false; }, extra ? hold - 3000 : Math.min(1000, hold / 2));
       holdTimer = setTimeout(function () { clearHold(); showMenu(true); announce("Back to the activities."); }, hold);
     }
   });
-  document.addEventListener("keyup", clearHold);
-  window.addEventListener("blur", clearHold);
+  function letGo() { clearHold(); if (current && current.hold) current.hold(false); }
+  document.addEventListener("keyup", letGo);
+  window.addEventListener("blur", letGo);
 
   /* ---------- Switch scanning on the menu ---------- */
   var scanIndex = -1, scanTimer = null;
@@ -2298,14 +2288,10 @@
     size.addEventListener("change", function () { settings.size = parseFloat(size.value); saveSettings(); });
     dw.addEventListener("change", function () { settings.dwell = parseFloat(dw.value); dwell = null; saveSettings(); });
     gap.addEventListener("change", function () { settings.switchGap = parseFloat(gap.value); saveSettings(); });
-    var snowSnd = $("set-snow-sound"), snowMo = $("set-snow-motion");
+    var snowSnd = $("set-snow-sound");
     if (snowSnd) {
       selectValue(snowSnd, settings.snowSound || "wind");
       snowSnd.addEventListener("change", function () { settings.snowSound = snowSnd.value; saveSettings(); });
-    }
-    if (snowMo) {
-      snowMo.checked = settings.snowMotion !== false;
-      snowMo.addEventListener("change", function () { settings.snowMotion = snowMo.checked; saveSettings(); });
     }
   }
 
