@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sensory Room</title>
-<meta name="description" content="Calm, cause-and-effect light and sound activities for touch, switch, keyboard and eye gaze.">
+<meta name="description" content="Calm, cause-and-effect light, sound and music activities for touch, switch, keyboard and eye gaze.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
-<link rel="stylesheet" href="css/style.css?v=20261128f">
+<link rel="stylesheet" href="css/style.css?v=20261128g">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#14213d">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -153,6 +153,25 @@
         </select>
       </div>
       <div class="field">
+        <label for="set-bongo-mode">Bongo Drums game</label>
+        <select id="set-bongo-mode" aria-describedby="bongo-desc">
+          <option value="jam">Bongo Jam: tap a drum, see a splash</option>
+          <option value="band">Play-along band: the music plays while you drum</option>
+          <option value="roll">Drumroll: hold down, let go for a crash</option>
+          <option value="animals">Dancing animals: drum and they dance</option>
+          <option value="echo">Echo game: copy the monster</option>
+        </select>
+      </div>
+      <p class="help" id="bongo-desc">Changes straight away, even in the middle of playing.</p>
+      <div class="field">
+        <label for="set-bongo-switch">Bongo Drums: a switch press plays</label>
+        <select id="set-bongo-switch">
+          <option value="turns">The drums in turn (big, small, big...)</option>
+          <option value="both">Both drums together</option>
+          <option value="two">Two switches: Space is the big drum, Enter the small drum</option>
+        </select>
+      </div>
+      <div class="field">
         <label for="set-snow-sound">Snow Globe sound</label>
         <select id="set-snow-sound">
           <option value="wind">Wind</option>
@@ -235,8 +254,8 @@
   </div>
 </div>
 
-<script src="js/config.js?v=20261128f"></script>
-<script src="js/pictures.js?v=20261128f"></script>
-<script src="js/game.js?v=20261128f"></script>
+<script src="js/config.js?v=20261128g"></script>
+<script src="js/pictures.js?v=20261128g"></script>
+<script src="js/game.js?v=20261128g"></script>
 </body>
 </html>
