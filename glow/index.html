@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spot the Glow</title>
+<meta name="description" content="A bright glowing shape on a dark screen. Find it or follow it with your eyes. For students with low vision. Works with touch, keyboard, switches and eye gaze.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Nunito:wght@800&display=swap">
+<!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
+<link rel="stylesheet" href="css/style.css?v=20261128a">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Spot the Glow">
+<link rel="apple-touch-icon" href="images/icon-180.png">
+<link rel="icon" href="images/icon.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="app" id="app">
+  <header class="bar">
+    <h1>Spot the Glow</h1>
+    <div class="actions">
+      <a class="btn" id="btn-home" href="../" style="text-decoration:none">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5M5.5 9.5V20h5v-6h3v6h5V9.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Home</span>
+      </a>
+      <button type="button" class="btn" id="btn-menu">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2.3"/><rect x="13" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2.3"/><rect x="4" y="13" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2.3"/><rect x="13" y="13" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2.3"/></svg>
+        <span>Games</span>
+      </button>
+      <button type="button" class="btn" id="btn-results" aria-haspopup="dialog" aria-controls="panel-results">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 20V11M12 20V5M19 20v-6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+        <span>Results</span>
+      </button>
+      <button type="button" class="btn" id="btn-settings" aria-haspopup="dialog" aria-controls="panel-settings">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="7" r="2.5" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="10" cy="17" r="2.5" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>
+        <span>Settings</span>
+      </button>
+      <button type="button" class="btn" id="btn-fullscreen">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="fullscreen-label">Full screen</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+    <section class="menu" id="menu" aria-labelledby="menu-title">
+      <h2 class="sr-only" id="menu-title">Pick a game</h2>
+      <ul class="cards">
+        <li><button type="button" class="card" data-mode="find">
+          <svg class="card-pic" aria-hidden="true" viewBox="0 0 200 150">
+            <defs><radialGradient id="pic-halo"><stop offset="0" stop-color="#ffe14d" stop-opacity=".75"/><stop offset="1" stop-color="#ffe14d" stop-opacity="0"/></radialGradient></defs>
+            <rect width="200" height="150" fill="#000"/>
+            <circle cx="132" cy="58" r="44" fill="url(#pic-halo)"/>
+            <path d="m132 30 8.2 16.6 18.3 2.7-13.2 12.9 3.1 18.2L132 71.8l-16.4 8.6 3.1-18.2-13.2-12.9 18.3-2.7z" fill="#ffe14d"/>
+            <circle cx="56" cy="104" r="11" fill="none" stroke="#fff" stroke-width="4" opacity=".75"/>
+            <path d="M64 96 108 70" stroke="#fff" stroke-width="4" stroke-dasharray="2 9" stroke-linecap="round" opacity=".75"/>
+          </svg>
+          <strong>Find the glow</strong>
+          <span>A light shows up somewhere. Tap it, look at it or press your switch.</span>
+        </button></li>
+        <li><button type="button" class="card" data-mode="follow">
+          <svg class="card-pic" aria-hidden="true" viewBox="0 0 200 150">
+            <defs><radialGradient id="pic-halo2"><stop offset="0" stop-color="#4fd2ff" stop-opacity=".75"/><stop offset="1" stop-color="#4fd2ff" stop-opacity="0"/></radialGradient></defs>
+            <rect width="200" height="150" fill="#000"/>
+            <path d="M30 75c20-40 50-40 70 0s50 40 70 0" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="2 10" stroke-linecap="round" opacity=".7"/>
+            <circle cx="135" cy="96" r="40" fill="url(#pic-halo2)"/>
+            <circle cx="135" cy="96" r="19" fill="#4fd2ff"/>
+            <path d="m160 60 12 4-4 12" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/>
+          </svg>
+          <strong>Follow the glow</strong>
+          <span>A light moves slowly. Follow it with your eyes or your finger.</span>
+        </button></li>
+      </ul>
+      <p class="menu-help" id="menu-help"></p>
+    </section>
+
+    <div class="play" id="play" role="button" tabindex="0" aria-label="Spot the Glow" hidden>
+      <canvas id="canvas" aria-hidden="true"></canvas>
+      <p class="hud" id="hud" aria-hidden="true"></p>
+      <p class="hold-hint" id="hold-hint" aria-hidden="true" hidden>Keep holding to go back</p>
+    </div>
+  </main>
+
+  <button type="button" class="btn fs-exit" id="btn-exit-fs" hidden>
+    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Exit full screen</span>
+  </button>
+
+  <div class="sr-only" id="live" aria-live="polite" aria-atomic="true"></div>
+</div>
+
+<div class="overlay" id="panel-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+  <div class="panel">
+    <div class="panel-head">
+      <h2 id="settings-title" tabindex="-1">Settings</h2>
+      <button type="button" class="btn btn-primary" data-close>Done</button>
+    </div>
+    <div class="panel-body">
+      <section aria-labelledby="look-title">
+        <h3 id="look-title">The glow</h3>
+        <div class="field">
+          <label for="set-colour">Colour</label>
+          <select id="set-colour">
+            <option value="yellow">Yellow</option>
+            <option value="red">Red</option>
+            <option value="pink">Pink</option>
+            <option value="orange">Orange</option>
+            <option value="green">Green</option>
+            <option value="blue">Light blue</option>
+            <option value="white">White</option>
+            <option value="rainbow">Slowly changing colours</option>
+          </select>
+        </div>
+        <p class="help">Many students see red and yellow most easily. Try a few and watch which one they look at first.</p>
+        <div class="field">
+          <label for="set-shape">Shape</label>
+          <select id="set-shape">
+            <option value="circle">Circle</option>
+            <option value="star">Star</option>
+            <option value="heart">Heart</option>
+            <option value="square">Square</option>
+            <option value="face">Smiley face</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="set-size">Size</label>
+          <select id="set-size">
+            <option value="1">Small</option>
+            <option value="2">Medium</option>
+            <option value="3">Big</option>
+            <option value="4">Huge</option>
+            <option value="5">Giant</option>
+          </select>
+        </div>
+        <label class="toggle" for="set-pulse">
+          <input type="checkbox" id="set-pulse" aria-describedby="pulse-desc">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">Gentle glowing (slow, never flashes)</span>
+        </label>
+        <p class="help" id="pulse-desc">The glow slowly grows and shrinks a little. Turn it off for a light that stays perfectly still.</p>
+        <div class="field">
+          <label for="set-bg">Background</label>
+          <select id="set-bg">
+            <option value="black">Black</option>
+            <option value="navy">Dark blue</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="set-extra">Other shapes on the screen</label>
+          <select id="set-extra" aria-describedby="extra-desc">
+            <option value="0">None (just the glow)</option>
+            <option value="3">A few dim shapes</option>
+            <option value="8">Lots of dim shapes</option>
+          </select>
+        </div>
+        <p class="help" id="extra-desc">For students who are ready for a busier screen. The other shapes are dim grey and never glow. Only the glow counts.</p>
+      </section>
+
+      <section aria-labelledby="find-title">
+        <h3 id="find-title">Find the glow</h3>
+        <div class="field">
+          <label for="set-where">Where it shows up</label>
+          <select id="set-where">
+            <option value="any">Anywhere</option>
+            <option value="middle">Near the middle</option>
+            <option value="left">Left side</option>
+            <option value="right">Right side</option>
+            <option value="top">Top</option>
+            <option value="bottom">Bottom</option>
+            <option value="out">Middle first, then further out</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="set-pause">Dark pause between glows</label>
+          <select id="set-pause">
+            <option value="0.5">Half a second</option>
+            <option value="1">1 second</option>
+            <option value="2">2 seconds</option>
+            <option value="4">4 seconds</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="set-fade">How it shows up</label>
+          <select id="set-fade">
+            <option value="0.6">Fades in quickly</option>
+            <option value="2">Fades in slowly</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="set-help">Help if it is not found after</label>
+          <select id="set-help" aria-describedby="help-desc">
+            <option value="0">No help</option>
+            <option value="5">5 seconds</option>
+            <option value="8">8 seconds</option>
+            <option value="15">15 seconds</option>
+          </select>
+        </div>
+        <p class="help" id="help-desc">Help makes the glow bigger and plays a soft sound from its side of the screen (best with headphones or two speakers).</p>
+        <label class="toggle" for="set-saywhere">
+          <input type="checkbox" id="set-saywhere">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">When helping, say where it is</span>
+        </label>
+        <div class="field">
+          <label for="set-moveon">Move it somewhere else if not found after</label>
+          <select id="set-moveon">
+            <option value="0">Never (wait as long as it takes)</option>
+            <option value="15">15 seconds</option>
+            <option value="30">30 seconds</option>
+            <option value="60">1 minute</option>
+          </select>
+        </div>
+        <label class="toggle" for="set-anytap">
+          <input type="checkbox" id="set-anytap" aria-describedby="anytap-desc">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">A tap anywhere counts</span>
+        </label>
+        <p class="help" id="anytap-desc">For students who can tap but cannot aim yet.</p>
+      </section>
+
+      <section aria-labelledby="follow-title">
+        <h3 id="follow-title">Follow the glow</h3>
+        <div class="field">
+          <label for="set-path">How it moves</label>
+          <select id="set-path">
+            <option value="side">Side to side</option>
+            <option value="updown">Up and down</option>
+            <option value="circle">Round in a circle</option>
+            <option value="eight">Figure eight</option>
+            <option value="diagonal">Corner to corner</option>
+            <option value="bounce">Bounce around</option>
+            <option value="wander">Wander</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="set-speed">Speed: <span id="speed-out"></span></label>
+          <input type="range" id="set-speed" min="1" max="5" step="1">
+        </div>
+        <label class="toggle" for="set-stops">
+          <input type="checkbox" id="set-stops" aria-describedby="stops-desc">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">Stop for a moment now and then</span>
+        </label>
+        <p class="help" id="stops-desc">The glow rests for 2 seconds at the ends of its path, so eyes can catch up.</p>
+      </section>
+
+      <section aria-labelledby="access-title">
+        <h3 id="access-title">Switches and eye gaze</h3>
+        <label class="toggle" for="set-switchfinds">
+          <input type="checkbox" id="set-switchfinds" aria-describedby="switchfinds-desc">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">A switch press means "I see it"</span>
+        </label>
+        <p class="help" id="switchfinds-desc">Any key or switch (Space, Enter and others) counts as finding the glow. Turn off if the adult will tap for the student instead.</p>
+        <div class="field">
+          <label for="set-dwell">Eye gaze: look at the glow for</label>
+          <select id="set-dwell" aria-describedby="dwell-desc">
+            <option value="0">Off</option>
+            <option value="0.5">Half a second</option>
+            <option value="1">1 second</option>
+            <option value="1.5">1.5 seconds</option>
+            <option value="2">2 seconds</option>
+            <option value="3">3 seconds</option>
+          </select>
+        </div>
+        <p class="help" id="dwell-desc">For eye gaze cameras and head mice. A ring fills up while the pointer rests on the glow.</p>
+        <div class="field">
+          <label for="set-gap">Ignore extra presses for: <span id="gap-out"></span></label>
+          <input type="range" id="set-gap" min="0" max="2" step="0.25">
+        </div>
+        <div class="field">
+          <label for="set-hold">Hold a switch to go back to the games</label>
+          <select id="set-hold">
+            <option value="0">Off</option>
+            <option value="3">3 seconds</option>
+            <option value="5">5 seconds</option>
+            <option value="8">8 seconds</option>
+          </select>
+        </div>
+        <label class="toggle" for="set-scan">
+          <input type="checkbox" id="set-scan" aria-describedby="scan-desc">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">Light up the games one at a time (switch scanning)</span>
+        </label>
+        <p class="help" id="scan-desc">On the games page, any key or switch picks the game that is lit up.</p>
+        <div class="field">
+          <label for="set-scan-speed">Time on each game</label>
+          <select id="set-scan-speed">
+            <option value="1.5">1.5 seconds</option>
+            <option value="2">2 seconds</option>
+            <option value="3">3 seconds</option>
+            <option value="5">5 seconds</option>
+          </select>
+        </div>
+      </section>
+
+      <section aria-labelledby="sound-title">
+        <h3 id="sound-title">Sound and voice</h3>
+        <label class="toggle" for="set-voice">
+          <input type="checkbox" id="set-voice">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">Read aloud</span>
+        </label>
+        <div class="field">
+          <label for="set-rate">Talking speed: <span id="rate-out"></span></label>
+          <input type="range" id="set-rate" min="0.5" max="1.2" step="0.05">
+        </div>
+        <label class="toggle" for="set-sounds">
+          <input type="checkbox" id="set-sounds">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">Soft sounds</span>
+        </label>
+        <div class="field">
+          <label for="set-volume">Volume</label>
+          <input type="range" id="set-volume" min="0" max="100" step="10">
+        </div>
+        <label class="toggle" for="set-count">
+          <input type="checkbox" id="set-count">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">Show the count in the corner</span>
+        </label>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="panel-results" role="dialog" aria-modal="true" aria-labelledby="results-title" hidden>
+  <div class="panel">
+    <div class="panel-head">
+      <h2 id="results-title" tabindex="-1">Results</h2>
+      <button type="button" class="btn btn-primary" data-close>Done</button>
+    </div>
+    <div class="panel-body" id="results-body"></div>
+  </div>
+</div>
+
+<div class="overlay" id="panel-fullscreen" role="dialog" aria-modal="true" aria-labelledby="fs-title" hidden>
+  <div class="panel">
+    <div class="panel-head">
+      <h2 id="fs-title" tabindex="-1">Play full screen</h2>
+      <button type="button" class="btn btn-primary" data-close>Done</button>
+    </div>
+    <div class="panel-body prose">
+      <p>This browser cannot hide its own address bar, so the game has hidden its buttons instead. Use <strong>Exit full screen</strong> in the corner to get them back.</p>
+      <p>For true full screen on an iPad, add the game to the Home Screen once: tap Share, then <strong>Add to Home Screen</strong>.</p>
+    </div>
+  </div>
+</div>
+
+<script src="js/game.js?v=20261128a"></script>
+</body>
+</html>
