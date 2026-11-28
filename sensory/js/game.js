@@ -1486,9 +1486,9 @@
     var wind = null, lastDrag = {}, beat = 0, wasStormy = false, held = {}, heldFor = 0;
     var sprite = null, shade = null, t0 = 0;
     function S() { return Math.min(W, H) / 700; }
-    function maxFlakes() { return calm() ? 320 : 900; }
-    function cap() { return calm() ? 0.5 : 1; }
-    function target() { return Math.round(maxFlakes() * (0.1 + 0.9 * storm)); }
+    function maxFlakes() { return calm() ? 700 : 2000; }
+    function cap() { return calm() ? 0.6 : 1; }
+    function target() { return Math.round(maxFlakes() * (0.03 + 0.97 * Math.pow(storm, 1.6))); } // a light sprinkle up to a blizzard
     function horizon() { return H * 0.6; }
     function groundY(x) { return H * 0.76 + Math.sin(x / W * 5 + 0.6) * H * 0.025; }
 
@@ -1513,7 +1513,7 @@
     function shake(strength, dir) {
       var k = strength * (calm() ? 0.6 : 1), s = S();
       var before = storm;
-      storm = Math.min(cap(), storm + (calm() ? 0.11 : 0.17) * strength);
+      storm = Math.min(cap(), storm + (calm() ? 0.08 : 0.12) * strength);
       gust = clamp(gust + dir * 1.3 * k, -2.5, 2.5);
       flakes.forEach(function (f) {
         f.vx += dir * rand(30, 150) * s * f.z * k;
@@ -1528,7 +1528,7 @@
       }
       if (snowSound() === "bells") jingle(0.05 + 0.05 * strength, 3);
       else if (snowSound() === "music") chime(noteFreq(10 + Math.floor(rand(0, 4))), { gain: 0.07, decay: 2.6 });
-      if (before < 0.68 && storm >= 0.68) announce("A snowstorm!");
+      if (before < 0.68 && storm >= 0.68) announce(calm() ? "Lots of snow!" : "A blizzard!");
       else announceSometimes(storm > 0.4 ? "More snow!" : "The snow swirls around.");
       shakes++;
       if (shakes % 3 === 0) discover();
@@ -1553,23 +1553,25 @@
       var howl = actx.createBiquadFilter(); howl.type = "bandpass"; howl.Q.value = 7; howl.frequency.value = 760;
       var soft = actx.createBiquadFilter(); soft.type = "lowpass"; soft.frequency.value = 1800;
       var howlG = actx.createGain(), out = actx.createGain();
-      howlG.gain.value = 0.55; out.gain.value = 0.0001;
+      howlG.gain.value = 0.3; out.gain.value = 0.0001;
       src.connect(body); body.connect(soft);
       src.connect(howl); howl.connect(howlG); howlG.connect(soft);
       soft.connect(out); out.connect(master);
       src.start();
-      wind = { src: src, body: body, howl: howl, out: out, drift: 0, driftV: 0 };
+      wind = { src: src, body: body, howl: howl, howlG: howlG, out: out, drift: 0, driftV: 0 };
     }
+    // level 0 is a soft whisper of wind, level 1 is a howling blizzard
     function setWind(level, dt) {
       if (!wind) return;
       var t = actx.currentTime;
       wind.driftV = (wind.driftV + rand(-1, 1) * dt * 2) * (1 - dt * 0.8);
       wind.drift = clamp(wind.drift + wind.driftV * dt, -1, 1);
-      var f = (calm() ? 300 : 360) + 700 * level + 120 * wind.drift;
-      wind.body.frequency.setTargetAtTime(f, t, 0.25);
-      wind.howl.frequency.setTargetAtTime(f * 1.9 + 80 * wind.drift, t, 0.35);
-      var g = 0.025 + (calm() ? 0.2 : 0.38) * level;
-      wind.out.gain.setTargetAtTime(Math.max(0.0001, g * (1 + 0.25 * wind.drift)), t, 0.3);
+      var f = (calm() ? 260 : 300) + (calm() ? 500 : 1000) * level + 120 * wind.drift * (0.4 + level);
+      wind.body.frequency.setTargetAtTime(f, t, 0.2);
+      wind.howl.frequency.setTargetAtTime(f * 1.8 + 150 * wind.drift * level, t, 0.25);
+      wind.howlG.gain.setTargetAtTime(0.15 + 0.9 * level, t, 0.2); // the whistle and howl come in as it gets stormy
+      var g = 0.012 + (calm() ? 0.25 : 0.6) * Math.pow(level, 1.3);
+      wind.out.gain.setTargetAtTime(Math.max(0.0001, g * (1 + 0.3 * wind.drift)), t, 0.18);
     }
     function stopWind() {
       if (!wind) return;
@@ -1775,12 +1777,12 @@
       for (var i = 0; i < flakes.length; i++) {
         var f = flakes[i];
         if ((f.z >= 0.55) !== near) continue;
-        var sz = (3 + 15 * f.z * f.z) * s;
+        var sz = (3 + 15 * f.z * f.z) * s, stretch = 1 + Math.min(2.2, Math.abs(f.vx) / (260 * S())); // blown snow streaks sideways
         var a = (0.45 + 0.55 * f.z) * (f.fade === undefined ? 1 : f.fade);
         if (lightSky) { g.globalAlpha = a * 0.6; g.drawImage(shade, f.x - sz * 0.75, f.y - sz * 0.75, sz * 1.5, sz * 1.5); }
         g.globalAlpha = a;
-        g.drawImage(sprite, f.x - sz / 2, f.y - sz / 2, sz, sz);
-        if (f.spark) { // a gentle twinkle (several seconds per cycle)
+        g.drawImage(sprite, f.x - sz * stretch / 2, f.y - sz / 2, sz * stretch, sz);
+        if (f.spark && stretch < 1.5) { // a gentle twinkle (several seconds per cycle)
           var tw = Math.max(0, Math.sin(f.ph * 0.6 + time * 0.8));
           if (tw > 0.2) {
             var L = sz * 0.9 * tw;
@@ -1816,7 +1818,7 @@
         makeSprites();
         flakes = []; stars = []; trees = [];
         for (var i = 0; i < 90; i++) stars.push({ x: Math.random(), y: Math.random() * 0.9, s: rand(1, 2.2), p: rand(0, TAU) });
-        storm = calm() ? 0.25 : 0.3; gust = 0.4;
+        storm = 0.12; gust = 0.4;
         for (i = 0; i < target(); i++) flakes.push(newFlake(false));
         t0 = 0;
       },
@@ -1851,12 +1853,12 @@
         var holding = Object.keys(held).length > 0;
         if (holding) {
           heldFor += dt;
-          storm = Math.min(cap(), storm + (calm() ? 0.1 : 0.18) * dt);
+          storm = Math.min(cap(), storm + (calm() ? 0.2 : 0.33) * dt); // about 3 seconds to a full blizzard
           gust = clamp(gust + Math.sin(heldFor * 0.7) * dt * 0.8, -2.5, 2.5); // the wind swirls around while you hold
-          if (heldFor > 1.5 && storm >= cap() - 0.02) announceSometimes(calm() ? "Lots of snow." : "A snowstorm!");
+          if (heldFor > 1.5 && storm >= cap() - 0.02) announceSometimes(calm() ? "Lots of snow." : "A blizzard!");
         } else {
           heldFor = 0;
-          storm += ((calm() ? 0.14 : 0.12) - storm) * dt * 0.35;
+          storm += (0.06 - storm) * dt * 0.7; // calms down quickly once you let go
         }
         if (storm > 0.5) wasStormy = true;
         if (wasStormy && storm < 0.25) { wasStormy = false; announceSometimes("The snow is settling."); }
@@ -1868,7 +1870,8 @@
           var f = flakes[i];
           f.ph += dt;
           var fall = (20 + 48 * f.z) * s * (1 - 0.35 * swirl);
-          var tx = gust * 90 * s * f.z + Math.sin(f.ph * 0.9) * (8 + 14 * f.z) * s
+          var blow = Math.pow(storm, 2) * (calm() ? 220 : 520) * (0.75 + 0.25 * Math.sin(t0 * 0.4)); // the blizzard wind blows sideways
+          var tx = (gust * 90 + blow) * s * f.z + Math.sin(f.ph * 0.9) * (8 + 14 * f.z) * s
                  + Math.sin(f.y * 0.012 + t0 * 0.7 + f.ph * 0.2) * swirl * 140 * s * f.z;
           var ty = fall + Math.cos(f.x * 0.009 + t0 * 0.5) * swirl * 70 * s * f.z;
           f.vx += (tx - f.vx) * dt * 1.3;
@@ -1876,7 +1879,7 @@
           f.x += f.vx * dt; f.y += f.vy * dt;
           if (f.x < -20) f.x += W + 40; else if (f.x > W + 20) f.x -= W + 40;
           if (f.y < -80) { f.y = -80; f.vy = Math.abs(f.vy) * 0.3; }
-          if (f.fade !== undefined) { f.fade -= dt / 1.5; if (f.fade <= 0) { flakes.splice(i, 1); continue; } }
+          if (f.fade !== undefined) { f.fade -= dt / 0.9; if (f.fade <= 0) { flakes.splice(i, 1); continue; } }
           if (f.y > H + 20) { // reached the ground: fall again from the top, if the snow is still busy
             if (flakes.length > target()) flakes.splice(i, 1);
             else { var n = newFlake(true); flakes[i] = n; }
@@ -1885,15 +1888,15 @@
         // after letting go, extra snow gently fades away
         var fading = 0;
         for (var m = 0; m < flakes.length; m++) if (flakes[m].fade !== undefined) fading++;
-        var toFade = Math.ceil((flakes.length - fading - target()) * dt * 1.2);
+        var toFade = Math.ceil((flakes.length - fading - target()) * dt * 2.5);
         for (m = 0; m < flakes.length && toFade > 0; m++) {
           var fm = flakes[(m * 7919 + Math.floor(t0 * 60)) % flakes.length];
           if (fm.fade === undefined) { fm.fade = 1; toFade--; }
         }
         // while held, new snow appears all over (it swirls in); otherwise it falls in from the top
-        var add = holding ? 12 : 1;
+        var add = holding ? 40 : 1;
         for (var n = 0; n < add && flakes.length < target(); n++) if (Math.random() < 0.6) flakes.push(newFlake(!holding));
-        setWind(clamp(storm * 0.8 + Math.abs(gust) * 0.15, 0, 1), dt);
+        setWind(clamp(storm + Math.abs(gust) * 0.08, 0, 1), dt);
         playBeat(dt);
       },
       draw: function (g, time) {
@@ -1913,7 +1916,13 @@
         if (animal >= 0) { g.globalAlpha = easeOut(animalT); drawAnimal(g, ANIMALS[animal], pos.animal, groundY(pos.animal) + u * 0.02, ah, time); }
         g.globalAlpha = 1;
         drawFlakes(g, true, time); // near snow, in front
-        if (storm > 0.3) { g.fillStyle = "rgba(225,235,250," + ((storm - 0.3) * (calm() ? 0.12 : 0.2)).toFixed(3) + ")"; g.fillRect(0, 0, W, H); } // a soft snowy haze
+        if (storm > 0.25) { // a white-out haze in a blizzard, thicker near the ground
+          var hz = Math.pow((storm - 0.25) / 0.75, 1.4) * (calm() ? 0.25 : 0.5);
+          var hg = g.createLinearGradient(0, 0, 0, H);
+          hg.addColorStop(0, "rgba(228,236,248," + (hz * 0.6).toFixed(3) + ")");
+          hg.addColorStop(1, "rgba(238,244,252," + hz.toFixed(3) + ")");
+          g.fillStyle = hg; g.fillRect(0, 0, W, H);
+        }
         drawGlass(g);
       }
     };
