@@ -1460,7 +1460,275 @@
     };
   }
 
-  var MAKERS = { fish: FishTank, trails: LightPainting, bubbles: BubbleFloat, lamp: ColourLamp, bloom: LookAndBloom, fireworks: Fireworks };
+  /* =====================================================================
+     Snow Globe: shake (tap, switch, look) to swirl the snow, drag to stir.
+     The wind is made by the computer from filtered noise (no sound files).
+     ===================================================================== */
+  function SnowGlobe() {
+    var flakes = [], stars = [], swirl = 0, wobble = 0, wobbleV = 0, energy = 0, lastShake = -9;
+    var wind = null, flakeImg = null, lastDrag = {};
+    function count() { return calm() ? 220 : 380; }
+    // The globe: centre, radius, and where its base sits.
+    function geo() {
+      var R = Math.min(W * 0.42, H * 0.36);
+      return { cx: W / 2, cy: H * 0.43, R: R };
+    }
+    // Inside the globe, R = 1 and the centre is 0,0.
+    function hill(x) { return 0.5 + 0.05 * Math.cos(x * 3.1) - 0.03 * Math.cos(x * 7 + 1); }
+    var HOUSE = { x0: -0.2, x1: 0.16, wall: 0.27, roof: 0.1 };
+    function ground(x) {
+      var y = Math.min(hill(x), Math.sqrt(Math.max(0, 1 - x * x)) * 0.97);
+      if (x > HOUSE.x0 - 0.04 && x < HOUSE.x1 + 0.04) { // snow can sit on the roof
+        var mid = (HOUSE.x0 + HOUSE.x1) / 2, half = (HOUSE.x1 - HOUSE.x0) / 2 + 0.04;
+        y = Math.min(y, HOUSE.roof + (HOUSE.wall - HOUSE.roof) * Math.abs(x - mid) / half);
+      }
+      return y;
+    }
+    function makeFlake(scattered) {
+      var a = rand(0, TAU), d = Math.sqrt(Math.random()) * 0.9, x = Math.cos(a) * d;
+      var f = { x: x, y: Math.sin(a) * d, vx: 0, vy: 0, s: rand(0.6, 1.4), fall: rand(0.05, 0.11), ph: rand(0, TAU), settled: false };
+      if (!scattered) { f.settled = true; f.y = ground(x) - 0.005; }
+      return f;
+    }
+    function sprite() {
+      if (flakeImg) return flakeImg;
+      var c = document.createElement("canvas");
+      c.width = c.height = 32;
+      var g = c.getContext("2d"), grad = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+      grad.addColorStop(0, "rgba(255,255,255,1)");
+      grad.addColorStop(0.45, "rgba(240,248,255,0.85)");
+      grad.addColorStop(1, "rgba(220,235,255,0)");
+      g.fillStyle = grad;
+      g.fillRect(0, 0, 32, 32);
+      return (flakeImg = c);
+    }
+    // Shake the globe. strength 0..1. dir -1 or 1 sets which way the snow swirls.
+    function shake(strength, dir) {
+      var k = (calm() ? 0.6 : 1) * strength;
+      swirl = clamp(swirl + dir * 1.1 * k, -1.6, 1.6);
+      wobbleV = clamp(wobbleV + dir * 1.2 * k, -1.6, 1.6);
+      flakes.forEach(function (f) {
+        f.settled = false;
+        f.vx += rand(-0.7, 0.7) * k;
+        f.vy -= rand(0.4, 1.2) * k;
+      });
+      if (clock - lastShake > 0.8) { // a soft glassy twinkle, never a burst of notes
+        arpeggio(10 + Math.floor(rand(0, 3)), calm() ? 2 : 3, 0.12, { gain: calm() ? 0.05 : 0.08, decay: 2.4 });
+      }
+      lastShake = clock;
+      announceSometimes("Whoosh! The snow swirls around.");
+    }
+    function local(x, y) { var G = geo(); return { x: (x - G.cx) / G.R, y: (y - G.cy) / G.R }; }
+    function sideOf(x) { return x < W / 2 ? -1 : 1; }
+
+    /* ---- Wind: noise through two moving filters, louder while the snow is swirling ---- */
+    function startWind() {
+      if (wind || !audioReady() || !noise()) return;
+      var src = actx.createBufferSource();
+      src.buffer = noiseBuf; src.loop = true;
+      var body = actx.createBiquadFilter(); body.type = "bandpass"; body.Q.value = 0.9; body.frequency.value = 420;
+      var howl = actx.createBiquadFilter(); howl.type = "bandpass"; howl.Q.value = 7; howl.frequency.value = 760;
+      var soft = actx.createBiquadFilter(); soft.type = "lowpass"; soft.frequency.value = 1800;
+      var bodyG = actx.createGain(), howlG = actx.createGain(), out = actx.createGain();
+      bodyG.gain.value = 1; howlG.gain.value = 0.55; out.gain.value = 0.0001;
+      src.connect(body); body.connect(bodyG); bodyG.connect(soft);
+      src.connect(howl); howl.connect(howlG); howlG.connect(soft);
+      soft.connect(out); out.connect(master);
+      src.start();
+      wind = { src: src, body: body, howl: howl, out: out, drift: 0, driftV: 0 };
+    }
+    function setWind(target, freqK, dt) {
+      if (!wind) return;
+      var t = actx.currentTime;
+      // a slow random drift so the wind rises and falls like a real breeze
+      wind.driftV += rand(-1, 1) * dt * 2;
+      wind.driftV *= 1 - dt * 0.8;
+      wind.drift = clamp(wind.drift + wind.driftV * dt, -1, 1);
+      var f = (calm() ? 300 : 360) + 700 * freqK + 120 * wind.drift;
+      wind.body.frequency.setTargetAtTime(f, t, 0.25);
+      wind.howl.frequency.setTargetAtTime(f * 1.9 + 80 * wind.drift, t, 0.35);
+      wind.out.gain.setTargetAtTime(Math.max(0.0001, target * (1 + 0.25 * wind.drift)), t, 0.3);
+    }
+    function stopWind() {
+      if (!wind) return;
+      var w = wind; wind = null;
+      try {
+        w.out.gain.setTargetAtTime(0.0001, actx.currentTime, 0.15);
+        w.src.stop(actx.currentTime + 0.8);
+      } catch (e) { /* ignore */ }
+    }
+
+    return {
+      start: function () {
+        flakes = []; stars = [];
+        for (var i = 0; i < count(); i++) flakes.push(makeFlake(true));
+        for (i = 0; i < 40; i++) stars.push({ x: rand(-0.85, 0.85), y: rand(-0.9, 0.1), s: rand(0.004, 0.01), p: rand(0, TAU) });
+        swirl = 0.8; wobble = 0; wobbleV = 0; energy = 0.6;
+        flakes.forEach(function (f) { f.vy = rand(-0.3, 0.1); });
+      },
+      stop: stopWind,
+      down: function (id, x, y) { lastDrag[id] = local(x, y); shake(1, sideOf(x)); },
+      move: function (id, x, y) { // dragging stirs the snow near the finger
+        var p = local(x, y), q = lastDrag[id];
+        if (!q) return;
+        lastDrag[id] = p;
+        var dx = clamp(p.x - q.x, -0.2, 0.2), dy = clamp(p.y - q.y, -0.2, 0.2);
+        if (Math.abs(dx) + Math.abs(dy) < 0.002) return;
+        var k = calm() ? 5 : 8;
+        flakes.forEach(function (f) {
+          var ddx = f.x - p.x, ddy = f.y - p.y, d2 = ddx * ddx + ddy * ddy;
+          if (d2 > 0.16) return;
+          var w = 1 - d2 / 0.16;
+          f.settled = false;
+          f.vx += dx * k * w; f.vy += dy * k * w;
+        });
+        swirl = clamp(swirl + (p.x * dy - p.y * dx) * 3, -1.6, 1.6);
+        wobbleV = clamp(wobbleV + dx * 2, -1.6, 1.6);
+      },
+      up: function (id) { delete lastDrag[id]; },
+      dwell: function (x) { shake(0.8, sideOf(x)); },
+      press: function () { shake(1, Math.random() < 0.5 ? -1 : 1); },
+      update: function (dt) {
+        startWind();
+        swirl *= Math.exp(-dt * 0.6);
+        // the globe rocks gently and settles, like a spring
+        wobbleV += (-wobble * 9 - wobbleV * 2.2) * dt;
+        wobble = clamp(wobble + wobbleV * dt, -0.09, 0.09);
+        var speed = 0, moving = 0;
+        for (var i = 0; i < flakes.length; i++) {
+          var f = flakes[i];
+          if (f.settled) continue;
+          f.ph += dt * 1.3;
+          // swirl around, with gentle eddies that also pull the snow back off the glass
+          var tx = -f.y * swirl * 0.8 - f.x * Math.abs(swirl) * 0.25 + Math.sin(f.ph + f.y * 3) * (0.04 + 0.12 * energy);
+          var ty = f.x * swirl * 0.8 - f.y * Math.abs(swirl) * 0.25 + Math.cos(f.ph * 0.8 + f.x * 3) * 0.1 * energy + f.fall * (1 - Math.min(0.8, Math.abs(swirl) * 0.3));
+          f.vx += (tx - f.vx) * dt * 1.6;
+          f.vy += (ty - f.vy) * dt * 1.6;
+          f.x += f.vx * dt; f.y += f.vy * dt;
+          var d = Math.sqrt(f.x * f.x + f.y * f.y);
+          if (d > 0.97) { // bounce softly off the glass
+            var nx = f.x / d, ny = f.y / d, vr = f.vx * nx + f.vy * ny;
+            f.x = nx * 0.97; f.y = ny * 0.97;
+            if (vr > 0) { f.vx -= 1.6 * vr * nx; f.vy -= 1.6 * vr * ny; }
+            f.vx *= 0.7; f.vy *= 0.7; // the glass slows it down so snow never sticks to the sides
+          }
+          var gy = ground(f.x);
+          if (f.y >= gy) {
+            if (f.vy > 0 && Math.abs(swirl) < 0.7) { f.settled = true; f.y = gy - rand(0, 0.012); }
+            else { f.y = gy; if (f.vy > 0) f.vy *= -0.4; }
+          }
+          speed += Math.abs(f.vx) + Math.abs(f.vy); moving++;
+        }
+        var e = clamp((speed / Math.max(1, flakes.length)) * 1.6 + Math.abs(swirl) * 0.25, 0, 1);
+        energy += (e - energy) * Math.min(1, dt * 3);
+        var top = calm() ? 0.22 : 0.4;
+        setWind(0.03 + top * energy, energy, dt);
+        stars.forEach(function (s) { s.p += dt * 0.4; });
+      },
+      draw: function (g, time) {
+        var G = geo(), R = G.R;
+        // the room around the globe
+        var bg = g.createRadialGradient(G.cx, G.cy, R * 0.6, G.cx, G.cy, Math.max(W, H) * 0.8);
+        bg.addColorStop(0, "#1c2a55");
+        bg.addColorStop(1, "#060917");
+        g.fillStyle = bg;
+        g.fillRect(0, 0, W, H);
+        g.save();
+        // rock around the bottom of the base
+        var pivotY = G.cy + R * 1.35;
+        g.translate(G.cx, pivotY);
+        g.rotate(wobble);
+        g.translate(-G.cx, -pivotY);
+        // soft shadow and base
+        g.fillStyle = "rgba(0,0,0,0.35)";
+        g.beginPath(); g.ellipse(G.cx, G.cy + R * 1.38, R * 0.95, R * 0.09, 0, 0, TAU); g.fill();
+        var bw = R * 0.82, by = G.cy + R * 0.8, bh = R * 0.55;
+        var wood = g.createLinearGradient(0, by, 0, by + bh);
+        wood.addColorStop(0, calm() ? "#6b3a3a" : "#8c2f39");
+        wood.addColorStop(1, calm() ? "#3a1f24" : "#4a1420");
+        g.fillStyle = wood;
+        g.beginPath();
+        g.moveTo(G.cx - bw * 0.85, by);
+        g.lineTo(G.cx + bw * 0.85, by);
+        g.lineTo(G.cx + bw, by + bh);
+        g.quadraticCurveTo(G.cx, by + bh * 1.12, G.cx - bw, by + bh);
+        g.closePath(); g.fill();
+        g.fillStyle = "#d9a441";
+        g.fillRect(G.cx - bw * 0.9, by + bh * 0.42, bw * 1.8, bh * 0.12);
+
+        // inside the globe
+        g.save();
+        g.translate(G.cx, G.cy);
+        g.scale(R, R);
+        g.beginPath(); g.arc(0, 0, 1, 0, TAU); g.clip();
+        var sky = g.createLinearGradient(0, -1, 0, 1);
+        sky.addColorStop(0, calm() ? "#14234a" : "#10255e");
+        sky.addColorStop(1, calm() ? "#3a5583" : "#4a73b8");
+        g.fillStyle = sky; g.fillRect(-1, -1, 2, 2);
+        g.fillStyle = "#fff";
+        stars.forEach(function (s) { g.globalAlpha = 0.35 + 0.25 * Math.sin(s.p); g.fillRect(s.x, s.y, s.s, s.s); });
+        g.globalAlpha = 0.9;
+        g.drawImage(glow(50, 60, 80), -0.75, -0.75, 0.3, 0.3); // the moon
+        g.globalAlpha = 1;
+        // trees
+        [[-0.6, 0.47, 0.32], [-0.42, 0.5, 0.22], [0.5, 0.47, 0.36], [0.68, 0.43, 0.2]].forEach(function (t) {
+          var x = t[0], y = t[1], h = t[2];
+          g.fillStyle = "#4b2e1e"; g.fillRect(x - h * 0.06, y - h * 0.12, h * 0.12, h * 0.14);
+          for (var k = 0; k < 3; k++) {
+            var ty = y - h * 0.1 - k * h * 0.28, tw = h * (0.42 - k * 0.1);
+            g.fillStyle = calm() ? "#2f5e4a" : "#1f6b45";
+            g.beginPath(); g.moveTo(x - tw, ty); g.lineTo(x + tw, ty); g.lineTo(x, ty - h * 0.42); g.closePath(); g.fill();
+            g.fillStyle = "#eef6ff";
+            g.beginPath(); g.moveTo(x - tw * 0.35, ty - h * 0.26); g.lineTo(x + tw * 0.35, ty - h * 0.26); g.lineTo(x, ty - h * 0.42); g.closePath(); g.fill();
+          }
+        });
+        // snowy hill
+        var snow = g.createLinearGradient(0, 0.4, 0, 1);
+        snow.addColorStop(0, "#f4f9ff"); snow.addColorStop(1, "#b9cdea");
+        g.fillStyle = snow;
+        g.beginPath(); g.moveTo(-1, 1);
+        for (var x = -1; x <= 1.001; x += 0.05) g.lineTo(x, hill(x));
+        g.lineTo(1, 1); g.closePath(); g.fill();
+        // the little house with a warm window
+        var hx0 = HOUSE.x0, hx1 = HOUSE.x1, mid = (hx0 + hx1) / 2;
+        g.fillStyle = "#a8553a"; g.fillRect(hx0, HOUSE.wall, hx1 - hx0, hill(mid) - HOUSE.wall + 0.03);
+        g.fillStyle = "#6e3b2c"; g.fillRect(hx1 - 0.09, 0.08, 0.05, 0.12); // chimney
+        g.fillStyle = "#5a2f26";
+        g.beginPath(); g.moveTo(hx0 - 0.05, HOUSE.wall + 0.01); g.lineTo(mid, HOUSE.roof - 0.01); g.lineTo(hx1 + 0.05, HOUSE.wall + 0.01); g.closePath(); g.fill();
+        g.fillStyle = "#f4f9ff";
+        g.beginPath(); g.moveTo(hx0 - 0.05, HOUSE.wall + 0.01); g.lineTo(mid, HOUSE.roof - 0.01); g.lineTo(hx1 + 0.05, HOUSE.wall + 0.01); g.lineTo(hx1 + 0.02, HOUSE.wall - 0.015); g.lineTo(mid, HOUSE.roof + 0.015); g.lineTo(hx0 - 0.02, HOUSE.wall - 0.015); g.closePath(); g.fill();
+        var lampGlow = 0.85 + 0.08 * Math.sin(time * 0.7); // a slow, gentle glow, never a flicker
+        g.globalAlpha = 0.5 * lampGlow; g.drawImage(glow(42, 90, 62), -0.12, 0.24, 0.2, 0.2); g.globalAlpha = 1;
+        g.fillStyle = "#ffd27a"; g.fillRect(-0.06, 0.3, 0.08, 0.08);
+        g.fillStyle = "#3b2018"; g.fillRect(0.07, 0.36, 0.06, hill(0.1) - 0.36 + 0.03); // door
+        // snowflakes
+        var img = sprite(), base = 0.022 * sizeK();
+        for (var i = 0; i < flakes.length; i++) {
+          var f = flakes[i], sz = base * f.s;
+          g.globalAlpha = f.settled ? 0.75 : 0.95;
+          g.drawImage(img, f.x - sz / 2, f.y - sz / 2, sz, sz);
+        }
+        g.globalAlpha = 1;
+        // the glass: a gentle shine and a rim
+        var shine = g.createRadialGradient(-0.35, -0.45, 0.05, -0.2, -0.3, 1.1);
+        shine.addColorStop(0, "rgba(255,255,255,0.28)");
+        shine.addColorStop(0.35, "rgba(255,255,255,0.06)");
+        shine.addColorStop(1, "rgba(255,255,255,0)");
+        g.fillStyle = shine; g.fillRect(-1, -1, 2, 2);
+        g.restore();
+        g.lineWidth = Math.max(2, R * 0.03);
+        g.strokeStyle = "rgba(220,236,255,0.55)";
+        g.beginPath(); g.arc(G.cx, G.cy, R, 0, TAU); g.stroke();
+        g.lineWidth = Math.max(2, R * 0.035);
+        g.lineCap = "round";
+        g.strokeStyle = "rgba(255,255,255,0.5)";
+        g.beginPath(); g.arc(G.cx, G.cy, R * 0.86, Math.PI * 1.08, Math.PI * 1.38); g.stroke();
+        g.restore();
+      }
+    };
+  }
+
+  var MAKERS = { snow: SnowGlobe, fish: FishTank, trails: LightPainting, bubbles: BubbleFloat, lamp: ColourLamp, bloom: LookAndBloom, fireworks: Fireworks };
 
   /* ---------- Running an activity ---------- */
   var current = null, currentInfo = null, running = false, lastT = 0, clock = 0;
@@ -1496,7 +1764,7 @@
     lastT = 0;
     requestAnimationFrame(loop);
   }
-  function stopLoop() { running = false; }
+  function stopLoop() { running = false; if (current && current.stop) current.stop(); } // e.g. the Snow Globe wind
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) stopLoop();
     else if (current) startLoop();
@@ -1644,6 +1912,11 @@
 
   /* ---------- Menu ---------- */
   var ART = {
+    snow: '<svg viewBox="0 0 160 90" aria-hidden="true"><defs><radialGradient id="g7" cx=".5" cy=".45" r=".7"><stop offset="0" stop-color="#1c2a55"/><stop offset="1" stop-color="#060917"/></radialGradient><linearGradient id="s7" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#10255e"/><stop offset="1" stop-color="#4a73b8"/></linearGradient><clipPath id="c7"><circle cx="80" cy="38" r="30"/></clipPath></defs><rect width="160" height="90" fill="url(#g7)"/>' +
+      '<path d="M57 62H103L110 80Q80 84 50 80Z" fill="#8c2f39"/><rect x="53" y="69" width="54" height="3.5" fill="#d9a441"/>' +
+      '<g clip-path="url(#c7)"><rect x="50" y="8" width="60" height="60" fill="url(#s7)"/><path d="M50 68V53Q65 50 80 53T110 52V68Z" fill="#eef6ff"/><path d="M62 52L68 40L74 52Z" fill="#1f6b45"/><path d="M89 53L96 38L103 53Z" fill="#1f6b45"/><rect x="74" y="44" width="11" height="9" fill="#a8553a"/><path d="M72 45L79.5 38L87 45Z" fill="#eef6ff"/><rect x="76.5" y="47" width="3" height="3" fill="#ffd27a"/>' +
+      [[60,20],[70,30],[88,16],[98,28],[76,24],[64,40],[94,42],[83,32],[72,14],[102,36],[58,30],[90,24]].map(function (p) { return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="1.4" fill="#fff"/>'; }).join("") +
+      '</g><circle cx="80" cy="38" r="30" fill="none" stroke="#dcecff" stroke-opacity=".6" stroke-width="1.5"/><path d="M58 30A25 25 0 0 1 68 17" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2.5" stroke-linecap="round"/></svg>',
     peek: '<img src="../home/thumbs/peek-and-find.jpg" alt="" style="width:100%;height:100%;object-fit:cover;display:block">',
     fireworks: '<svg viewBox="0 0 160 90" aria-hidden="true"><defs><filter id="a6" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2"/></filter></defs><rect width="160" height="90" fill="#070a22"/><g filter="url(#a6)" stroke-linecap="round" stroke-width="2.5">' +
       [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map(function (a) {
@@ -1708,6 +1981,7 @@
     W = H = 0;
     fitCanvas();
     downs = {}; hover = null; dwell = null;
+    if (current && current.stop) current.stop();
     current = MAKERS[id](info);
     current.start();
     clock = 0;

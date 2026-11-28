@@ -5,7 +5,7 @@
  * pictures or sound files are needed. You can add your own pictures later:
  * see "pictures" under Bubbles and Look and Bloom below.
  *
- * Link straight to one activity with ?activity=fish, fireworks, trails, bubbles, lamp or bloom.
+ * Link straight to one activity with ?activity=fish, fireworks, snow, trails, bubbles, lamp or bloom.
  * Add &calm=1 for calm mode, &dwell=1.5 to turn on eye gaze dwell, or &scan=0
  * to turn off switch scanning on the menu.
  * Example: .../sensory/?activity=bloom&dwell=1.5
@@ -39,6 +39,12 @@ window.SENSORY_CONFIG = {
       name: "Fireworks",
       hint: "Touch the sky to send up fireworks.",
       label: "Fireworks. Touch the sky to send a firework there. A switch press sends one up. The fireworks glow softly and never flash."
+    },
+    {
+      id: "snow",
+      name: "Snow Globe",
+      hint: "Shake the snow globe and listen to the wind.",
+      label: "Snow globe. Tap or press a switch to shake the globe. The snow swirls and the wind blows, then the snow slowly settles. Drag to stir the snow."
     },
     {
       id: "trails",
