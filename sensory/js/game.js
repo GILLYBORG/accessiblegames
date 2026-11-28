@@ -2087,7 +2087,875 @@
     };
   }
 
-  var MAKERS = { snow: SnowGlobe, fish: FishTank, trails: LightPainting, bubbles: BubbleFloat, lamp: ColourLamp, bloom: LookAndBloom, fireworks: Fireworks };
+  /* ---------- Bongo Drums: five cause-and-effect drum games ----------
+     All the sounds are made by the computer (no sound files to licence).
+     The game is chosen in Settings ("Bongo game") or with ?bongo=jam, band, roll, animals or echo. */
+  var BONGO_MODES = {
+    jam: {
+      name: "Bongo Jam", hint: "Tap a drum to play it.",
+      label: "Bongo jam. Two big bongo drums. Tap a drum, or press a switch, to play it. Every hit makes a splash of colour."
+    },
+    band: {
+      name: "Play-along band", hint: "Drum and the band plays along. Stop and the music stops.",
+      label: "Play-along band. Play the bongos and a band plays music with you. When you stop drumming, the music stops. Drum again to start it again."
+    },
+    roll: {
+      name: "Drumroll", hint: "Hold down for a drumroll. Let go for a big crash!",
+      label: "Drumroll. Hold your finger, key or switch down for a drumroll that gets louder and faster. Let go for a big cymbal crash."
+    },
+    animals: {
+      name: "Dancing animals", hint: "Drum to make the animals dance. Drum lots and more come!",
+      label: "Dancing animals. Every drum hit makes the animals dance. Keep drumming and more animals come to join the party."
+    },
+    echo: {
+      name: "Echo game", hint: "Listen to the monster, then play it back.",
+      label: "Echo game. A friendly monster plays a few drum beats. Then it is your turn to play them back on your drums. Every try gets a cheer."
+    }
+  };
+  if (params.has("bongo") && BONGO_MODES[params.get("bongo")]) settings.bongoMode = params.get("bongo");
+  function bongoMode() { return BONGO_MODES[settings.bongoMode] ? settings.bongoMode : "jam"; }
+  function mtof(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+  function perfNow() { return performance.now() / 1000; }
+
+  // Sound: a drum bus with a small wooden room around it.
+  var bgBus = null, bgVerb = null;
+  function bongoBus() {
+    if (bgBus || !actx) return bgBus;
+    try {
+      bgBus = actx.createGain();
+      var comp = actx.createDynamicsCompressor();
+      comp.threshold.value = -12; comp.knee.value = 6; comp.ratio.value = 5;
+      comp.attack.value = 0.002; comp.release.value = 0.15;
+      bgBus.connect(comp); comp.connect(master);
+      var len = Math.floor(actx.sampleRate * 0.6), ir = actx.createBuffer(2, len, actx.sampleRate);
+      for (var c = 0; c < 2; c++) {
+        var d = ir.getChannelData(c);
+        for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 4);
+      }
+      var conv = actx.createConvolver(); conv.buffer = ir;
+      bgVerb = actx.createGain(); bgVerb.gain.value = 0.22;
+      bgVerb.connect(conv); conv.connect(comp);
+    } catch (e) { bgBus = null; }
+    return bgBus;
+  }
+  // One bongo hit. side 0 is the big low drum, side 1 the small high drum.
+  // edge: hit near the rim for a brighter, ringing sound.
+  function bongoHit(side, vel, edge, delay) {
+    if (!audioReady() || !bongoBus() || !noise()) return;
+    var t = actx.currentTime + (delay || 0), soft = calm();
+    vel = clamp(vel, 0.08, 1) * (soft ? 0.55 : 0.9);
+    var f = (side ? 540 : 360) * rand(0.985, 1.015) * (edge ? 1.03 : 0.96);
+    var dec = (side ? 0.2 : 0.3) * (edge ? 1.15 : 0.8);
+    var out = actx.createGain(), tone = actx.createBiquadFilter();
+    out.gain.value = vel;
+    tone.type = "lowpass"; tone.frequency.value = soft ? 2400 : 7000;
+    out.connect(tone); tone.connect(bgBus); tone.connect(bgVerb);
+    // the drum skin rings at a few pitches that drop quickly after the hit
+    [[1, 0.8, 1], [1.59, 0.3, 0.55], [2.14, 0.16, 0.4], [2.65, 0.07, 0.3]].forEach(function (m) {
+      var o = actx.createOscillator(), g = actx.createGain(), ff = f * m[0], d = dec * m[2];
+      o.frequency.setValueAtTime(ff * 1.25, t);
+      o.frequency.exponentialRampToValueAtTime(ff, t + 0.028);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(m[1], t + (soft ? 0.004 : 0.0015));
+      g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(g); g.connect(out);
+      o.start(t); o.stop(t + d + 0.03);
+    });
+    // the slap of the hand on the skin
+    var n = actx.createBufferSource(), bp = actx.createBiquadFilter(), ng = actx.createGain();
+    var nd = edge ? 0.05 : 0.03;
+    n.buffer = noiseBuf; bp.type = "bandpass"; bp.frequency.value = edge ? 3400 : 1900; bp.Q.value = 0.8;
+    ng.gain.setValueAtTime((edge ? 0.6 : 0.35) * (soft ? 0.5 : 1), t);
+    ng.gain.exponentialRampToValueAtTime(0.0001, t + nd);
+    n.connect(bp); bp.connect(ng); ng.connect(out);
+    n.start(t, Math.random() * 1.5); n.stop(t + nd + 0.02);
+  }
+  // A cymbal crash: bright noise plus a shimmer of metal tones. size 0..1
+  function cymbalCrash(size) {
+    if (!audioReady() || !bongoBus() || !noise()) return;
+    var t = actx.currentTime, soft = calm();
+    size = clamp(size, 0.25, 1);
+    var dur = (soft ? 1.5 : 2.8) * (0.55 + 0.45 * size), peak = (soft ? 0.22 : 0.55) * (0.45 + 0.55 * size);
+    var out = actx.createGain();
+    out.gain.setValueAtTime(0.0001, t);
+    out.gain.linearRampToValueAtTime(peak, t + 0.004);
+    out.gain.exponentialRampToValueAtTime(peak * 0.4, t + 0.15);
+    out.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    var hp = actx.createBiquadFilter(), lp = actx.createBiquadFilter();
+    hp.type = "highpass"; hp.frequency.value = soft ? 2600 : 3200;
+    lp.type = "lowpass"; lp.frequency.value = soft ? 6500 : 13000;
+    hp.connect(lp); lp.connect(out); out.connect(bgBus); out.connect(bgVerb);
+    var n = actx.createBufferSource(); n.buffer = noiseBuf; n.loop = true;
+    n.connect(hp); n.start(t, Math.random()); n.stop(t + dur + 0.1);
+    var mg = actx.createGain(); mg.gain.value = 0.1; mg.connect(hp);
+    [263, 400, 421, 474, 587, 845].forEach(function (fq) {
+      var o = actx.createOscillator(); o.type = "square"; o.frequency.value = fq * 1.7;
+      o.connect(mg); o.start(t); o.stop(t + dur + 0.1);
+    });
+  }
+  // The play-along band: bass, keys, marimba and shaker.
+  function bandNote(kind, freq, t, gain, dest) {
+    var o, g, f;
+    if (kind === "shaker") {
+      if (!noise()) return;
+      var n = actx.createBufferSource(); f = actx.createBiquadFilter(); g = actx.createGain();
+      n.buffer = noiseBuf; f.type = "highpass"; f.frequency.value = 6500;
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(gain, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+      n.connect(f); f.connect(g); g.connect(dest); n.start(t, Math.random() * 1.5); n.stop(t + 0.1);
+      return;
+    }
+    var spec = {
+      bass: { types: [["triangle", 1, 1], ["sine", 2, 0.35]], dec: 0.42, att: 0.008, lp: 900 },
+      keys: { types: [["triangle", 1, 1], ["sine", 2, 0.2]], dec: 0.28, att: 0.005, lp: 2600 },
+      marimba: { types: [["sine", 1, 1], ["sine", 3.98, 0.18]], dec: 0.55, att: 0.003, lp: 5000 }
+    }[kind];
+    f = actx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = spec.lp; f.connect(dest);
+    spec.types.forEach(function (p) {
+      o = actx.createOscillator(); g = actx.createGain();
+      o.type = p[0]; o.frequency.value = freq * p[1];
+      var d = spec.dec / (p[1] > 2 ? 3 : 1);
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(gain * p[2], t + spec.att);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(g); g.connect(f); o.start(t); o.stop(t + d + 0.05);
+    });
+  }
+  // A happy "ta-da" for the echo game.
+  function cheerSound(big) {
+    arpeggio(10, big ? 5 : 4, 0.09, { gain: 0.16, decay: 1.4 });
+    if (big) setTimeout(function () { cymbalCrash(0.3); }, 380);
+  }
+
+  var DANCERS = [
+    { kind: "frog", name: "frog", body: "#4cc46a", belly: "#d3f5b8" },
+    { kind: "bear", name: "bear", body: "#a8703f", belly: "#ecd0a6" },
+    { kind: "penguin", name: "penguin", body: "#2f3a52", belly: "#f4f6fb" },
+    { kind: "cat", name: "cat", body: "#f29a3a", belly: "#ffe4bd" },
+    { kind: "bunny", name: "bunny", body: "#efe9f4", belly: "#ffd6e6" }
+  ];
+  // The echo game: the monster plays one of these, then it is the student's turn.
+  // Each beat is [time in beats, drum] where drum 0 is the big drum, 1 the small one.
+  var ECHO_PATTERNS = [
+    [[0, 0], [1, 1]],
+    [[0, 0], [1, 0]],
+    [[0, 1], [1, 1]],
+    [[0, 0], [1, 1], [2, 0]],
+    [[0, 0], [1, 0], [2, 1]],
+    [[0, 1], [0.5, 1], [1.5, 0]],
+    [[0, 0], [1, 1], [2, 0], [3, 1]],
+    [[0, 0], [0.5, 0], [1.5, 1], [2.5, 1]],
+    [[0, 1], [1, 0], [1.5, 0], [2.5, 1]],
+    [[0, 0], [1, 0], [2, 1], [2.5, 1], [3.5, 0]]
+  ];
+  // The band: 4 bars of G, Em, C, D, in eighth notes.
+  var BAND = {
+    bass: [43, 40, 48, 50],
+    chords: [[59, 62, 67], [59, 64, 67], [60, 64, 67], [57, 62, 66]],
+    tune: [74, 0, 71, 0, 67, 69, 71, 0, 71, 0, 67, 0, 64, 0, 67, 0, 76, 0, 74, 72, 71, 0, 67, 0, 69, 0, 66, 0, 69, 71, 74, 0]
+  };
+
+  function Bongos() {
+    var mode = bongoMode(), M = BONGO_MODES[mode];
+    var drums = [
+      { side: 0, hue: 22, x: 0, y: 0, r: 0, k: 1.08, flash: 0, dent: 0, wob: 0, hint: 0, ripples: [] },
+      { side: 1, hue: 200, x: 0, y: 0, r: 0, k: 0.9, flash: 0, dent: 0, wob: 0, hint: 0, ripples: [] }
+    ];
+    var bits = [], glows = [], notes = [], beams = 0, altSide = 0, t0 = 0, hits = [], total = 0;
+    var holds = {}, roll = null, pendingAuto = 0, cym = { tilt: 0, v: 0, shine: 0 };
+    var band = { on: false, level: 0, until: 0, step: 0, next: 0, out: null, pulse: 0 };
+    var dancers = [], fewerFor = 0, nextDancer = 1;
+    var echo = { state: "wait", t: 0, idx: 0, pat: null, played: 0, tries: [], last: 0, replays: 0, said: "", jump: 0, jv: 0, arm: [0, 0], mini: [0, 0], happy: 0 };
+    function S() { return Math.min(W, H) / 700; }
+    function calmK() { return calm() ? 0.5 : 1; }
+
+    /* ---- Layout: the drums sit at the bottom; the top is for the cymbal, animals or monster ---- */
+    function layout() {
+      var top = mode === "animals" || mode === "echo" ? 0.52 : mode === "roll" ? 0.36 : 0.16;
+      var avail = H * (0.97 - top);
+      var r = Math.min(W * 0.2, avail / 2.1, H * 0.27) * Math.min(1.15, 0.9 + 0.1 * sizeK());
+      var headY = H * 0.95 - r * 1.08 * 1.22;
+      drums[0].r = r * drums[0].k; drums[1].r = r * drums[1].k;
+      drums[0].x = W / 2 - r * 1.16; drums[1].x = W / 2 + r * 1.16;
+      drums[0].y = drums[1].y = headY;
+    }
+    function whichDrum(x, y) {
+      var best = 0, bestD = Infinity;
+      drums.forEach(function (d, i) {
+        var dx = (x - d.x) / d.r, dy = (y - d.y) / (d.r * 0.42), dd = Math.sqrt(dx * dx + dy * dy);
+        if (dd < bestD) { bestD = dd; best = i; }
+      });
+      if (bestD > 1.25) best = x < W / 2 ? 0 : 1; // anywhere on the screen plays the nearest drum
+      return { side: best, d: bestD };
+    }
+
+    /* ---- Hitting a drum ---- */
+    function hit(side, vel, edge, x, y, quiet) {
+      var d = drums[side];
+      vel = vel === undefined ? 0.85 : vel;
+      if (!quiet) bongoHit(side, vel, edge);
+      d.flash = Math.min(1, d.flash + 0.55 * vel); d.dent = 1;
+      if (d.ripples.length < 6) d.ripples.push({ x: x === undefined ? 0 : clamp((x - d.x) / d.r, -0.7, 0.7), y: y === undefined ? 0 : clamp((y - d.y) / (d.r * 0.42), -0.7, 0.7), t: 0 });
+      splash(side, vel, x, y);
+      hits.push(perfNow()); total++;
+      if (hits.length > 60) hits.shift();
+      onHit(side);
+    }
+    function splash(side, vel, x, y) {
+      var d = drums[side], s = S() * sizeK(), n = Math.round((roll ? 3 : mode === "jam" ? 22 : 12) * calmK() * (0.5 + vel));
+      var hx = x === undefined ? d.x : clamp(x, d.x - d.r * 0.8, d.x + d.r * 0.8);
+      var hy = y === undefined ? d.y : clamp(y, d.y - d.r * 0.3, d.y + d.r * 0.3);
+      var hue = (d.hue + rand(-40, 40) + total * 17) % 360;
+      for (var i = 0; i < n && bits.length < 500; i++) {
+        var a = rand(-Math.PI * 0.95, -Math.PI * 0.05), sp = rand(180, 620) * s * (calm() ? 0.6 : 1) * (0.6 + 0.5 * vel);
+        bits.push({ x: hx, y: hy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: rand(5, 14) * s, hue: (hue + rand(-25, 25) + 360) % 360, life: 0, max: rand(0.8, 1.4) * (calm() ? 1.3 : 1), kind: "drop" });
+      }
+      if (!roll || roll.n % 3 === 0) glows.push({ x: hx, y: hy - d.r * 0.2, r: d.r * 1.6, hue: hue, a: (roll ? 0.2 : 0.38) * calmK() + 0.1, life: 0, max: 1.1 });
+      if (glows.length > 8) glows.shift();
+    }
+    function confetti(x, y, count, spread) {
+      var s = S() * sizeK();
+      for (var i = 0; i < count && bits.length < 600; i++) {
+        var a = rand(-Math.PI, 0), sp = rand(200, 800) * s * spread * (calm() ? 0.6 : 1);
+        bits.push({ x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 120 * s, r: rand(6, 12) * s, hue: rand(0, 360), life: 0, max: rand(1.6, 2.6), kind: "paper", rot: rand(0, TAU), vr: rand(-8, 8) });
+      }
+    }
+    function recentHits(sec) {
+      var now = perfNow(), n = 0;
+      for (var i = hits.length - 1; i >= 0 && now - hits[i] < sec; i--) n++;
+      return n;
+    }
+    function onHit(side) {
+      if (mode === "band") startBand();
+      else if (mode === "animals") danceAll();
+      else if (mode === "echo" && echo.state === "turn") {
+        echo.tries.push(side); echo.last = perfNow();
+      }
+    }
+
+    /* ---- Play-along band ---- */
+    function startBand() {
+      band.until = perfNow() + (calm() ? 3.2 : 2.6); // keeps playing for a moment after the last hit
+      if (band.on) return;
+      band.on = true;
+      band.next = perfNow() + 0.06;
+      if (audioReady() && bongoBus()) {
+        band.out = actx.createGain(); band.out.gain.value = 0.0001;
+        band.out.connect(bgBus);
+        band.out.gain.setTargetAtTime(calm() ? 0.5 : 0.75, actx.currentTime, 0.05);
+      }
+      announceSometimes("The band is playing!");
+    }
+    function stopBand(say) {
+      if (!band.on) return;
+      band.on = false;
+      if (band.out) {
+        var o = band.out; band.out = null;
+        try { o.gain.setTargetAtTime(0.0001, actx.currentTime, 0.12); setTimeout(function () { try { o.disconnect(); } catch (e) { /* ignore */ } }, 1500); } catch (e) { /* ignore */ }
+      }
+      if (say) announce("The music stopped. Play the drums to start it again.");
+    }
+    function updateBand(dt) {
+      var now = perfNow();
+      if (band.on && now > band.until) stopBand(true);
+      band.level += ((band.on ? 1 : 0) - band.level) * Math.min(1, dt * (band.on ? 6 : 3));
+      band.pulse *= Math.exp(-dt * 5);
+      if (!band.on) return;
+      var stepLen = 60 / (calm() ? 84 : 100) / 2;
+      while (band.next < now + 0.12) {
+        var st = band.step % 32, bar = Math.floor(st / 8), b = st % 8, when = band.next;
+        if (band.out && audioReady()) {
+          var t = actx.currentTime + Math.max(0, when - now), out = band.out;
+          var root = BAND.bass[bar];
+          if (b === 0 || b === 3) bandNote("bass", mtof(root), t, 0.55, out);
+          if (b === 4) bandNote("bass", mtof(root + 7), t, 0.45, out);
+          if (b === 7) bandNote("bass", mtof(root + 12), t, 0.35, out);
+          if (b === 1 || b === 3 || b === 6) BAND.chords[bar].forEach(function (m) { bandNote("keys", mtof(m), t, 0.07, out); });
+          if (BAND.tune[st]) bandNote("marimba", mtof(BAND.tune[st]), t, 0.2, out);
+          bandNote("shaker", 0, t, b % 2 ? 0.12 : 0.06, out);
+        }
+        if (b % 2 === 0) queueBeat(when, st);
+        band.step++;
+        band.next += stepLen;
+      }
+    }
+    var beatQueue = [];
+    function queueBeat(when, st) { beatQueue.push({ t: when, st: st }); }
+    function flushBeats() {
+      var now = perfNow();
+      while (beatQueue.length && beatQueue[0].t <= now) {
+        var q = beatQueue.shift();
+        band.pulse = 1;
+        if (BAND.tune[q.st] && notes.length < 30) {
+          var d = drums[q.st % 4 < 2 ? 0 : 1], s = S() * sizeK();
+          notes.push({ x: d.x + rand(-d.r * 0.6, d.r * 0.6), y: d.y - d.r * 0.4, vx: rand(-30, 30) * s, vy: -rand(70, 120) * s, hue: rand(0, 360), life: 0, max: 3.2, sz: rand(16, 26) * s, two: Math.random() < 0.4 });
+        }
+      }
+    }
+
+    /* ---- Drumroll ---- */
+    function startRoll(auto) {
+      if (roll) { if (!auto) roll.auto = 0; return; }
+      roll = { t: 0, next: perfNow(), side: 0, auto: auto || 0, n: 0 };
+    }
+    function updateRoll(dt) {
+      if (pendingAuto && perfNow() - pendingAuto > 0.08) { pendingAuto = 0; startRoll(1.6); }
+      var anyHeld = Object.keys(holds).length > 0;
+      if (!roll) return;
+      roll.t += dt;
+      var k = easeOut(Math.min(1, roll.t / 3.5));
+      var gap = calm() ? 0.22 - 0.12 * k : 0.17 - 0.125 * k;
+      var now = perfNow();
+      while (roll.next <= now) {
+        hit(roll.side, 0.3 + 0.65 * k, roll.n % 4 === 3, undefined, undefined, false);
+        roll.side ^= 1; roll.n++;
+        roll.next += gap;
+      }
+      drums.forEach(function (d) { d.wob = Math.sin(now * 60 + d.side) * k * d.r * 0.012 * calmK(); });
+      cym.shine = Math.max(cym.shine, k * 0.6);
+      if (k > 0.97) announceSometimes("A big drumroll! Let go for the crash.");
+      if ((roll.auto && roll.t >= roll.auto) || (!roll.auto && !anyHeld)) endRoll();
+    }
+    function endRoll() {
+      if (!roll) return;
+      var r = roll; roll = null;
+      drums.forEach(function (d) { d.wob = 0; });
+      if (r.t < 0.3 && !r.auto) { announceSometimes("Hold down for a drumroll."); return; } // a quick tap is just one hit
+      var size = clamp(r.t / 3.5, 0.25, 1);
+      cymbalCrash(size);
+      cym.v += (calm() ? 3 : 7) * size; cym.shine = 1;
+      var cp = cymbalPos();
+      confetti(cp.x, cp.y, Math.round((30 + 110 * size) * calmK()), 0.6 + 0.6 * size);
+      announce(size > 0.8 ? "Crash! What a drumroll!" : "Crash!");
+    }
+    function cymbalPos() {
+      var cr = drums[0].r * 0.8;
+      return { x: W / 2, y: Math.max(cr * 0.72 + 16, drums[0].y - drums[0].r * 1.45), r: cr };
+    }
+
+    /* ---- Dancing animals ---- */
+    function addDancer(i) {
+      var s = dancerSize(), fromLeft = dancers.length % 2 === 0;
+      dancers.push({ a: DANCERS[i % DANCERS.length], x: fromLeft ? -s : W + s, tx: 0, jy: 0, jv: 0, tilt: 0, tt: 0, arm: 0, squash: 0, out: false, face: fromLeft ? 1 : -1, ph: rand(0, TAU), move: 0 });
+      placeDancers();
+    }
+    function dancerSize() { return Math.min(H * 0.17, W / 8) * Math.min(1.2, 0.9 + 0.1 * sizeK()); }
+    function maxDancers() { return calm() ? 3 : 5; }
+    function placeDancers() {
+      var stay = dancers.filter(function (d) { return !d.out; }), n = stay.length;
+      stay.forEach(function (d, i) { d.tx = W * (i + 1) / (n + 1); });
+    }
+    function danceAll() {
+      var s = dancerSize(), g = 2600 * S();
+      dancers.forEach(function (d, i) {
+        if (d.out) return;
+        d.move = (d.move + 1) % 4;
+        setTimeout(function () {
+          var h = s * (calm() ? 0.2 : 0.38) * (d.move === 2 ? 1.4 : 1);
+          if (d.jy > -2) d.jv = -Math.sqrt(2 * g * h);
+          d.squash = -0.12;
+          d.tt = d.move === 1 ? 0.22 : d.move === 3 ? -0.22 : 0;
+          d.arm = 1;
+        }, i * 45);
+      });
+      var want = Math.min(maxDancers(), 1 + Math.floor(recentHits(6) / 4));
+      var count = dancers.filter(function (d) { return !d.out; }).length;
+      if (want > count) {
+        var idx = nextDancer++;
+        addDancer(idx);
+        var nm = DANCERS[idx % DANCERS.length].name;
+        setTimeout(function () { announce("A " + nm + " joined the dance!"); }, 400);
+      }
+    }
+    function updateDancers(dt) {
+      var s = dancerSize(), g = 2600 * S();
+      var want = Math.min(maxDancers(), 1 + Math.floor(recentHits(6) / 4));
+      var stay = dancers.filter(function (d) { return !d.out; });
+      if (stay.length > want && stay.length > 1) {
+        fewerFor += dt;
+        if (fewerFor > 3) { // the newest animal waves goodbye and walks off
+          fewerFor = 0;
+          var last = stay[stay.length - 1];
+          last.out = true; last.tx = last.x < W / 2 ? -s * 2 : W + s * 2;
+          placeDancers();
+        }
+      } else fewerFor = 0;
+      for (var i = dancers.length - 1; i >= 0; i--) {
+        var d = dancers[i];
+        var speed = (d.out ? 1.2 : 2.4) * (calm() ? 0.6 : 1);
+        var dx = d.tx - d.x;
+        d.x += dx * Math.min(1, dt * speed);
+        if (Math.abs(dx) > 4) d.face = dx > 0 ? 1 : -1;
+        if (Math.abs(dx) > s * 0.3 && d.jy >= 0 && d.jv >= 0) d.jv = -Math.sqrt(2 * g * s * 0.12); // little hops while walking
+        d.jv += g * dt; d.jy += d.jv * dt;
+        if (d.jy > 0) { if (d.jv > 300 * S()) d.squash = 0.14; d.jy = 0; d.jv = 0; }
+        d.squash *= Math.exp(-dt * 9);
+        d.tilt += (d.tt - d.tilt) * Math.min(1, dt * 10);
+        d.tt *= Math.exp(-dt * 2.5);
+        d.arm *= Math.exp(-dt * 3);
+        d.ph += dt;
+        if (d.out && (d.x < -s * 1.5 || d.x > W + s * 1.5)) dancers.splice(i, 1);
+      }
+    }
+
+    /* ---- Echo game ---- */
+    function beatLen() { return calm() ? 0.62 : 0.48; }
+    function echoNext() {
+      var i = echo.idx < ECHO_PATTERNS.length ? echo.idx : 3 + Math.floor(Math.random() * (ECHO_PATTERNS.length - 3));
+      echo.idx++;
+      echo.pat = ECHO_PATTERNS[i]; echo.replays = 0;
+      echoListen();
+    }
+    function echoListen() {
+      echo.state = "listen"; echo.t = perfNow() + 0.9; echo.played = 0; echo.tries = [];
+      announce("Listen to the monster.");
+    }
+    function updateEcho(dt) {
+      var now = perfNow(), e = echo;
+      if (e.state === "wait") { if (now > e.t) echoNext(); }
+      else if (e.state === "listen") {
+        while (e.played < e.pat.length && now >= e.t + e.pat[e.played][0] * beatLen()) {
+          var side = e.pat[e.played][1];
+          bongoHit(side, 0.8, false);
+          e.mini[side] = 1; e.arm[side] = 1; drums[side].hint = 1;
+          e.played++;
+        }
+        var end = e.t + e.pat[e.pat.length - 1][0] * beatLen() + 0.7;
+        if (e.played >= e.pat.length && now > end) {
+          e.state = "turn"; e.turnAt = now; e.tries = [];
+          announce("Your turn!");
+        }
+      } else if (e.state === "turn") {
+        if (e.tries.length) {
+          if (now - e.last > (calm() ? 1.7 : 1.3) || e.tries.length >= e.pat.length + 4) echoCheer();
+        } else if (now - e.turnAt > 9 && e.replays < 1) { e.replays++; echoListen(); }
+      } else if (e.state === "cheer") {
+        if (now > e.t) echoNext();
+      }
+      e.jv += 2600 * S() * dt; e.jump += e.jv * dt;
+      if (e.jump > 0) { e.jump = 0; e.jv = 0; }
+      e.mini[0] *= Math.exp(-dt * 6); e.mini[1] *= Math.exp(-dt * 6);
+      e.arm[0] *= Math.exp(-dt * 7); e.arm[1] *= Math.exp(-dt * 7);
+      e.happy *= Math.exp(-dt * 0.8);
+    }
+    function echoCheer() {
+      var e = echo, same = e.tries.length === e.pat.length && e.pat.every(function (p, i) { return p[1] === e.tries[i]; });
+      e.state = "cheer"; e.t = perfNow() + 2.6; e.happy = 1; e.same = same;
+      e.said = same ? pick(["You copied it!", "Perfect echo!", "Just like me!"]) : pick(["Great drumming!", "Yay!", "Woo-hoo!", "Nice playing!"]);
+      e.jv = -Math.sqrt(2 * 2600 * S() * monsterSize() * (calm() ? 0.2 : 0.4));
+      cheerSound(same);
+      var m = monsterPos();
+      confetti(m.x, m.y - monsterSize() * 0.4, Math.round((same ? 80 : 50) * calmK()), same ? 1 : 0.7);
+      announce(e.said);
+    }
+    function monsterSize() { return Math.min(H * 0.16, W * 0.14) * Math.min(1.2, 0.9 + 0.1 * sizeK()); }
+    function monsterPos() { return { x: W * 0.36, y: H * 0.3 }; }
+
+    /* ---- Drawing ---- */
+    function drawBackground(g, time) {
+      var c = calm();
+      var bg = g.createLinearGradient(0, 0, 0, H);
+      bg.addColorStop(0, c ? "#120a1f" : "#1d0f33");
+      bg.addColorStop(0.6, c ? "#1c1029" : "#341545");
+      bg.addColorStop(1, c ? "#24150f" : "#3d2412");
+      g.fillStyle = bg; g.fillRect(0, 0, W, H);
+      // the wooden stage floor
+      var fy = drums[0].y + drums[0].r * 0.75;
+      var fl = g.createLinearGradient(0, fy, 0, H);
+      fl.addColorStop(0, c ? "#3a2414" : "#5a3418"); fl.addColorStop(1, c ? "#1e120a" : "#2c180b");
+      g.fillStyle = fl; g.fillRect(0, fy, W, H - fy);
+      g.strokeStyle = "rgba(0,0,0,0.18)"; g.lineWidth = 2;
+      for (var i = 1; i < 5; i++) { var yy = fy + (H - fy) * i / 5; g.beginPath(); g.moveTo(0, yy); g.lineTo(W, yy); g.stroke(); }
+      // a warm spotlight on the drums
+      var sp = g.createRadialGradient(W / 2, drums[0].y, 0, W / 2, drums[0].y, Math.max(W, H) * 0.6);
+      sp.addColorStop(0, c ? "rgba(255,200,140,0.12)" : "rgba(255,200,140,0.2)"); sp.addColorStop(1, "rgba(255,200,140,0)");
+      g.fillStyle = sp; g.fillRect(0, 0, W, H);
+      // band mode: coloured stage lights sway while the music plays
+      if (mode === "band" && band.level > 0.01) {
+        var left = Math.max(0, band.until - perfNow()), fade = band.on ? Math.min(1, 0.4 + left / 1.5) : 1;
+        g.save(); g.globalCompositeOperation = "lighter";
+        [0.2, 0.5, 0.8].forEach(function (fx, j) {
+          var ang = Math.sin(time * 0.6 + j * 2.1) * 0.35, hue = (time * 20 + j * 120) % 360;
+          var x0 = W * fx, len = H * 1.1, wdt = W * 0.16;
+          g.save(); g.translate(x0, -10); g.rotate(ang);
+          var lg = g.createLinearGradient(0, 0, 0, len);
+          var a = band.level * fade * (c ? 0.1 : 0.18) * (0.75 + 0.25 * band.pulse);
+          lg.addColorStop(0, "hsla(" + hue + ",90%,65%," + a + ")"); lg.addColorStop(1, "hsla(" + hue + ",90%,65%,0)");
+          g.fillStyle = lg;
+          g.beginPath(); g.moveTo(-wdt * 0.12, 0); g.lineTo(wdt * 0.12, 0); g.lineTo(wdt, len); g.lineTo(-wdt, len); g.closePath(); g.fill();
+          g.restore();
+        });
+        g.restore();
+      }
+    }
+    function drawDrum(g, d) {
+      var r = d.r, ry = r * 0.42, x = d.x + d.wob, y = d.y + d.dent * r * 0.025, sh = r * 0.88, bw = r * 0.86;
+      // shadow
+      g.fillStyle = "rgba(0,0,0,0.35)";
+      g.beginPath(); g.ellipse(x, d.y + sh + ry * 0.45, r * 1.0, ry * 0.5, 0, 0, TAU); g.fill();
+      // wooden shell, a little narrower at the bottom
+      var wood = g.createLinearGradient(x - r, 0, x + r, 0);
+      wood.addColorStop(0, "#3d1a08"); wood.addColorStop(0.28, "#a85a24"); wood.addColorStop(0.42, "#dc9450");
+      wood.addColorStop(0.62, "#9a4c1c"); wood.addColorStop(1, "#331505");
+      g.fillStyle = wood;
+      g.save();
+      g.beginPath(); g.moveTo(x - r, y);
+      g.lineTo(x - bw, y + sh);
+      g.ellipse(x, y + sh, bw, ry * 0.8, 0, Math.PI, 0, true);
+      g.lineTo(x + r, y); g.closePath(); g.fill();
+      g.clip(); // the painted band stays on the shell
+      // a painted band in the drum's own colour (orange for the big drum, blue for the small one)
+      var band2 = d.side ? "#3fb4ff" : "#ff8a3d", by = y + sh * 0.62, bww = r - (r - bw) * 0.62;
+      g.strokeStyle = band2; g.lineWidth = Math.max(4, r * 0.13);
+      g.beginPath(); g.ellipse(x, by, bww * 0.99, ry * 0.9, 0, Math.PI * 0.03, Math.PI * 0.97); g.stroke();
+      g.strokeStyle = "rgba(255,230,170,0.7)"; g.lineWidth = Math.max(1.5, r * 0.025);
+      [-1, 1].forEach(function (o) { g.beginPath(); g.ellipse(x, by + o * r * 0.085, bww * 0.99, ry * 0.9, 0, Math.PI * 0.03, Math.PI * 0.97); g.stroke(); });
+      g.restore();
+      // short metal tuning lugs under the rim
+      g.strokeStyle = "#cfd3da"; g.lineCap = "round"; g.lineWidth = Math.max(3, r * 0.055);
+      [-0.7, -0.24, 0.24, 0.7].forEach(function (f) {
+        var lx = x + f * r * 0.97, ly = y + ry * Math.sqrt(1 - f * f) * 0.95;
+        g.beginPath(); g.moveTo(lx, ly); g.lineTo(lx - f * (r - bw) * 0.3, ly + sh * 0.3); g.stroke();
+      });
+      g.lineCap = "butt";
+      // the drum skin
+      var hy = y;
+      var skin = g.createRadialGradient(x - r * 0.25, hy - ry * 0.3, r * 0.05, x, hy, r);
+      skin.addColorStop(0, "#fbf1d8"); skin.addColorStop(0.7, "#ecd6a6"); skin.addColorStop(1, "#c9a66b");
+      g.fillStyle = skin;
+      g.beginPath(); g.ellipse(x, hy, r * 0.95, ry * 0.92, 0, 0, TAU); g.fill();
+      // glow of colour when it is hit, and ripples across the skin
+      g.save();
+      g.beginPath(); g.ellipse(x, hy, r * 0.95, ry * 0.92, 0, 0, TAU); g.clip();
+      if (d.flash > 0.01) {
+        g.fillStyle = "hsla(" + d.hue + ",90%,60%," + (d.flash * (calm() ? 0.3 : 0.5)).toFixed(3) + ")";
+        g.fillRect(x - r, hy - ry, r * 2, ry * 2);
+      }
+      if (d.hint > 0.01) { // the echo monster played this drum
+        g.fillStyle = "hsla(285,90%,70%," + (d.hint * 0.45).toFixed(3) + ")";
+        g.fillRect(x - r, hy - ry, r * 2, ry * 2);
+      }
+      d.ripples.forEach(function (rp) {
+        var k = rp.t / 0.7, rr = r * (0.1 + 0.9 * k);
+        g.strokeStyle = "rgba(120,70,20," + (0.45 * (1 - k)).toFixed(3) + ")";
+        g.lineWidth = Math.max(2, r * 0.03 * (1 - k));
+        g.beginPath(); g.ellipse(x + rp.x * r * 0.9, hy + rp.y * ry * 0.9, rr, rr * 0.42, 0, 0, TAU); g.stroke();
+      });
+      g.restore();
+      // the metal rim
+      var rim = g.createLinearGradient(x - r, hy - ry, x + r, hy + ry);
+      rim.addColorStop(0, "#f2f4f7"); rim.addColorStop(0.5, "#8d939c"); rim.addColorStop(1, "#e3e6ea");
+      g.strokeStyle = rim; g.lineWidth = Math.max(3, r * 0.08);
+      g.beginPath(); g.ellipse(x, hy, r * 0.97, ry * 0.95, 0, 0, TAU); g.stroke();
+    }
+    function drawBlock(g) { // the wooden block that joins the two drums
+      var a = drums[0], b = drums[1], y = a.y + a.r * 0.35, h = a.r * 0.28;
+      g.fillStyle = "#6e3412";
+      g.fillRect(a.x + a.r * 0.85, y, (b.x - b.r * 0.85) - (a.x + a.r * 0.85), h);
+      g.fillStyle = "rgba(255,210,150,0.25)";
+      g.fillRect(a.x + a.r * 0.85, y, (b.x - b.r * 0.85) - (a.x + a.r * 0.85), h * 0.25);
+    }
+    function drawCymbal(g, time) {
+      var p = cymbalPos(), r = p.r;
+      // stand
+      g.strokeStyle = "#9aa0aa"; g.lineWidth = Math.max(3, r * 0.06);
+      g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x, drums[0].y + drums[0].r * 0.2); g.stroke();
+      // the ring of lights fills up as the drumroll grows
+      // an arch of light bulbs that light up one by one as the drumroll grows
+      var k = roll ? Math.min(1, roll.t / 3.5) : 0, n = 10, br = Math.max(6, r * 0.09);
+      for (var i = 0; i < n; i++) {
+        var a = Math.PI + (i / (n - 1)) * Math.PI, on = k * n > i + 0.01;
+        var lx = p.x + Math.cos(a) * r * 1.2, ly = p.y - r * 0.05 + Math.sin(a) * r * 0.62;
+        g.fillStyle = "rgba(0,0,0,0.45)"; g.beginPath(); g.arc(lx, ly, br * 1.35, 0, TAU); g.fill();
+        g.fillStyle = on ? "hsl(" + (50 - i * 5) + ",100%," + (calm() ? 60 : 68) + "%)" : "rgba(255,255,255,0.14)";
+        g.beginPath(); g.arc(lx, ly, br, 0, TAU); g.fill();
+      }
+      g.save(); g.translate(p.x, p.y); g.rotate(cym.tilt);
+      if (cym.shine > 0.02) {
+        g.globalCompositeOperation = "lighter";
+        var gl = glow(45, 90, 60), gs = r * 2.6 * (0.6 + 0.4 * cym.shine);
+        g.globalAlpha = cym.shine * (calm() ? 0.35 : 0.6);
+        g.drawImage(gl, -gs / 2, -gs / 2, gs, gs);
+        g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+      }
+      var gold = g.createLinearGradient(-r, 0, r, 0);
+      gold.addColorStop(0, "#a0701c"); gold.addColorStop(0.35, "#ffe08a"); gold.addColorStop(0.55, "#e6b444"); gold.addColorStop(1, "#8c5e14");
+      g.fillStyle = gold;
+      g.beginPath(); g.ellipse(0, 0, r, r * 0.16, 0, 0, TAU); g.fill();
+      g.strokeStyle = "rgba(120,80,10,0.5)"; g.lineWidth = 1.5;
+      [0.45, 0.7].forEach(function (f) { g.beginPath(); g.ellipse(0, 0, r * f, r * 0.16 * f, 0, 0, TAU); g.stroke(); });
+      g.fillStyle = "#c99a35"; g.beginPath(); g.ellipse(0, -r * 0.04, r * 0.18, r * 0.08, 0, 0, TAU); g.fill();
+      g.restore();
+    }
+    function drawDancer(g, d, baseY, time) {
+      var s = dancerSize(), a = d.a, kind = a.kind;
+      // shadow
+      var sk = 1 / (1 - d.jy / (s * 2));
+      g.fillStyle = "rgba(0,0,0," + (0.3 * Math.min(1, sk)).toFixed(3) + ")";
+      g.beginPath(); g.ellipse(d.x, baseY, s * 0.42 * Math.min(1, sk), s * 0.08, 0, 0, TAU); g.fill();
+      var bob = Math.sin(d.ph * 3) * s * 0.02;
+      g.save(); g.translate(d.x, baseY + d.jy + bob); g.rotate(d.tilt);
+      g.scale(1 - d.squash, 1 + d.squash);
+      var body = a.body, dark = kind === "penguin" ? "#1d2436" : "rgba(0,0,0,0.25)";
+      // feet
+      g.fillStyle = kind === "penguin" ? "#f5a623" : kind === "frog" ? "#3aa856" : body;
+      g.beginPath(); g.ellipse(-s * 0.18, -s * 0.03, s * 0.15, s * 0.07, 0, 0, TAU); g.ellipse(s * 0.18, -s * 0.03, s * 0.15, s * 0.07, 0, 0, TAU); g.fill();
+      // arms: up when the drum is hit
+      var up = d.arm, sw = Math.sin(d.ph * 4) * 0.2;
+      g.strokeStyle = body; g.lineCap = "round"; g.lineWidth = s * (kind === "penguin" ? 0.13 : 0.1);
+      [-1, 1].forEach(function (sd) {
+        var ang = (0.5 + sw * sd) * (1 - up) + (-0.9) * up;
+        g.beginPath(); g.moveTo(sd * s * 0.3, -s * 0.6);
+        g.lineTo(sd * (s * 0.3 + Math.cos(ang) * s * 0.32), -s * 0.6 + Math.sin(ang) * s * 0.32 * (1 - 2 * up) + up * -s * 0.05); g.stroke();
+      });
+      g.lineCap = "butt";
+      // body and tummy
+      g.fillStyle = body;
+      g.beginPath(); g.ellipse(0, -s * 0.45, s * 0.36, s * 0.42, 0, 0, TAU); g.fill();
+      g.fillStyle = a.belly;
+      g.beginPath(); g.ellipse(0, -s * 0.4, s * 0.24, s * 0.3, 0, 0, TAU); g.fill();
+      // head and ears
+      var hy = -s * 1.05, hr = s * (kind === "frog" ? 0.34 : 0.32);
+      g.fillStyle = body;
+      if (kind === "bear") { g.beginPath(); g.arc(-hr * 0.75, hy - hr * 0.75, hr * 0.35, 0, TAU); g.arc(hr * 0.75, hy - hr * 0.75, hr * 0.35, 0, TAU); g.fill(); }
+      if (kind === "cat") {
+        g.beginPath(); g.moveTo(-hr * 0.9, hy - hr * 0.3); g.lineTo(-hr * 0.6, hy - hr * 1.25); g.lineTo(-hr * 0.1, hy - hr * 0.8);
+        g.moveTo(hr * 0.9, hy - hr * 0.3); g.lineTo(hr * 0.6, hy - hr * 1.25); g.lineTo(hr * 0.1, hy - hr * 0.8); g.fill();
+      }
+      if (kind === "bunny") {
+        var flop = Math.sin(d.ph * 5) * 0.12 + d.tilt;
+        [-1, 1].forEach(function (sd) {
+          g.save(); g.translate(sd * hr * 0.42, hy - hr * 0.7); g.rotate(sd * 0.15 - flop);
+          g.fillStyle = body; g.beginPath(); g.ellipse(0, -hr * 0.75, hr * 0.26, hr * 0.8, 0, 0, TAU); g.fill();
+          g.fillStyle = "#ffc2d8"; g.beginPath(); g.ellipse(0, -hr * 0.75, hr * 0.13, hr * 0.6, 0, 0, TAU); g.fill();
+          g.restore();
+        });
+      }
+      g.fillStyle = body;
+      g.beginPath();
+      if (kind === "frog") g.ellipse(0, hy + hr * 0.15, hr * 1.2, hr * 0.85, 0, 0, TAU); else g.arc(0, hy, hr, 0, TAU);
+      g.fill();
+      if (kind === "penguin") { g.fillStyle = a.belly; g.beginPath(); g.ellipse(0, hy + hr * 0.2, hr * 0.7, hr * 0.62, 0, 0, TAU); g.fill(); }
+      if (kind === "bear" || kind === "cat") { g.fillStyle = a.belly; g.beginPath(); g.ellipse(0, hy + hr * 0.35, hr * 0.45, hr * 0.32, 0, 0, TAU); g.fill(); }
+      // eyes (the frog's sit on top of its head)
+      var ey = kind === "frog" ? hy - hr * 0.55 : hy - hr * 0.1, ex = kind === "frog" ? hr * 0.55 : hr * 0.38;
+      if (kind === "frog") { g.fillStyle = body; g.beginPath(); g.arc(-ex, ey, hr * 0.38, 0, TAU); g.arc(ex, ey, hr * 0.38, 0, TAU); g.fill(); }
+      var blink = Math.sin(d.ph * 0.9 + d.x) > 0.985;
+      g.fillStyle = "#fff";
+      g.beginPath(); g.arc(-ex, ey, hr * 0.24, 0, TAU); g.arc(ex, ey, hr * 0.24, 0, TAU); g.fill();
+      g.fillStyle = "#1a1a24";
+      if (blink) { g.fillRect(-ex - hr * 0.2, ey - 1, hr * 0.4, 3); g.fillRect(ex - hr * 0.2, ey - 1, hr * 0.4, 3); }
+      else { g.beginPath(); g.arc(-ex + hr * 0.04, ey + hr * 0.03, hr * 0.13, 0, TAU); g.arc(ex + hr * 0.04, ey + hr * 0.03, hr * 0.13, 0, TAU); g.fill(); }
+      // nose or beak, and a big smile
+      if (kind === "penguin") { g.fillStyle = "#f5a623"; g.beginPath(); g.moveTo(-hr * 0.15, hy + hr * 0.15); g.lineTo(hr * 0.15, hy + hr * 0.15); g.lineTo(0, hy + hr * 0.42); g.fill(); }
+      else if (kind !== "frog") { g.fillStyle = kind === "bunny" ? "#ff8fb4" : "#3a2216"; g.beginPath(); g.ellipse(0, hy + hr * 0.22, hr * 0.12, hr * 0.08, 0, 0, TAU); g.fill(); }
+      g.strokeStyle = "#3a2216"; g.lineWidth = Math.max(2, s * 0.025);
+      g.beginPath(); g.arc(0, hy + hr * (kind === "frog" ? 0.15 : 0.3), hr * (kind === "frog" ? 0.55 : 0.28) * (1 + up * 0.25), 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
+      if (kind === "cat") {
+        g.lineWidth = 1.5; g.strokeStyle = "rgba(60,30,10,0.6)";
+        [-1, 1].forEach(function (sd) { for (var w = -1; w <= 1; w++) { g.beginPath(); g.moveTo(sd * hr * 0.3, hy + hr * 0.3); g.lineTo(sd * hr * 0.95, hy + hr * (0.25 + w * 0.12)); g.stroke(); } });
+      }
+      // rosy cheeks
+      g.fillStyle = "rgba(255,120,150,0.35)";
+      g.beginPath(); g.arc(-hr * 0.6, hy + hr * 0.25, hr * 0.14, 0, TAU); g.arc(hr * 0.6, hy + hr * 0.25, hr * 0.14, 0, TAU); g.fill();
+      g.restore();
+    }
+    function drawMonster(g, time) {
+      var e = echo, m = monsterSize(), p = monsterPos(), x = p.x, y = p.y + e.jump;
+      var mini = { r: m * 0.42, y: p.y + m * 0.78 };
+      // its own little bongos
+      [0, 1].forEach(function (sd) {
+        var d = { side: sd, hue: drums[sd].hue, x: x + (sd ? 1 : -1) * m * 0.55, y: mini.y, r: mini.r * (sd ? 0.9 : 1.08), flash: e.mini[sd], dent: e.mini[sd], wob: 0, hint: 0, ripples: [] };
+        drawDrum(g, d);
+      });
+      var squ = Math.sin(time * 2) * 0.03;
+      g.save(); g.translate(x, y);
+      // horns
+      g.fillStyle = "#ffd65c";
+      g.beginPath(); g.moveTo(-m * 0.45, -m * 0.6); g.lineTo(-m * 0.62, -m * 1.05); g.lineTo(-m * 0.2, -m * 0.75);
+      g.moveTo(m * 0.45, -m * 0.6); g.lineTo(m * 0.62, -m * 1.05); g.lineTo(m * 0.2, -m * 0.75); g.fill();
+      // body
+      var bodyG = g.createRadialGradient(-m * 0.2, -m * 0.4, m * 0.1, 0, -m * 0.1, m * 0.9);
+      bodyG.addColorStop(0, "#c58bff"); bodyG.addColorStop(1, "#7a3fd1");
+      g.fillStyle = bodyG;
+      g.beginPath(); g.ellipse(0, -m * 0.1, m * 0.72 * (1 + squ), m * 0.68 * (1 - squ), 0, 0, TAU); g.fill();
+      // arms reach to the little drums
+      g.strokeStyle = "#8f52e0"; g.lineCap = "round"; g.lineWidth = m * 0.14;
+      [0, 1].forEach(function (sd) {
+        var dir = sd ? 1 : -1, down = e.arm[sd], cheer = Math.min(1, e.happy * 1.5);
+        // resting hands hover over its drums, a beat brings a hand down, a cheer throws them up
+        var hx = dir * m * (0.55 + 0.35 * cheer), hy2 = (m * 0.42 + down * m * 0.32) * (1 - cheer) + cheer * -m * 0.85;
+        var sx = dir * m * 0.58, sy = -m * 0.05;
+        g.strokeStyle = "#8f52e0"; g.lineWidth = m * 0.15;
+        g.beginPath(); g.moveTo(sx, sy); g.lineTo(hx, hy2 - e.jump * 0); g.stroke();
+        g.fillStyle = "#a66bf0"; g.beginPath(); g.arc(hx, hy2, m * 0.13, 0, TAU); g.fill();
+      });
+      g.lineCap = "butt";
+      // eyes look at the drum it is playing, or at you
+      var look = e.state === "listen" ? (e.arm[1] > e.arm[0] ? 1 : -1) * 0.3 * Math.max(e.arm[0], e.arm[1]) : 0;
+      [-1, 1].forEach(function (sd) {
+        g.fillStyle = "#fff"; g.beginPath(); g.arc(sd * m * 0.25, -m * 0.3, m * 0.17, 0, TAU); g.fill();
+        g.fillStyle = "#1a1030"; g.beginPath(); g.arc(sd * m * 0.25 + look * m * 0.2, -m * 0.27 + (e.state === "listen" ? m * 0.04 : 0), m * 0.08, 0, TAU); g.fill();
+      });
+      // mouth: an O while it listens to you, a big smile when it cheers
+      g.fillStyle = "#3a0f4d";
+      if (e.state === "turn") { g.beginPath(); g.ellipse(0, m * 0.08, m * 0.09, m * 0.11, 0, 0, TAU); g.fill(); }
+      else { g.beginPath(); g.arc(0, m * 0.0, m * (0.22 + 0.12 * e.happy), 0.1 * Math.PI, 0.9 * Math.PI); g.closePath(); g.fill(); }
+      g.restore();
+      drawBubble2(g, x + m * 0.95, p.y - m * 0.85, m, time);
+    }
+    function drawBubble2(g, x, y, m, time) {
+      var e = echo, text = e.state === "listen" ? "Listen..." : e.state === "turn" ? "Your turn!" : e.state === "cheer" ? e.said : "";
+      if (!text) return;
+      var fs = Math.max(20, Math.round(m * 0.32));
+      g.font = "700 " + fs + "px 'Atkinson Hyperlegible', system-ui, sans-serif";
+      var tw = g.measureText(text).width, pad = fs * 0.6, bw = tw + pad * 2, bh = fs * 1.7;
+      x = Math.min(x, W - bw - 10);
+      var pulse = e.state === "turn" ? 1 + Math.sin(time * 4) * 0.03 : 1;
+      g.save(); g.translate(x + bw / 2, y + bh / 2); g.scale(pulse, pulse); g.translate(-(x + bw / 2), -(y + bh / 2));
+      g.fillStyle = e.state === "turn" ? "#fff6c9" : "#ffffff";
+      g.beginPath();
+      if (g.roundRect) g.roundRect(x, y, bw, bh, bh / 2); else g.rect(x, y, bw, bh);
+      g.moveTo(x + bh * 0.4, y + bh - 2); g.lineTo(x + bh * 0.05, y + bh + fs * 0.55); g.lineTo(x + bh * 0.95, y + bh - 2);
+      g.fill();
+      g.fillStyle = "#2a1640"; g.textBaseline = "middle"; g.textAlign = "left";
+      g.fillText(text, x + pad, y + bh / 2 + 1);
+      g.restore();
+      // the beats to copy, as dots: orange is the big drum, blue the small drum.
+      if (!e.pat) return;
+      var dots = e.pat, n = dots.length, dr = Math.max(9, m * 0.11), gap = dr * 2.8;
+      var dx0 = x + pad * 0.5, dy = y + bh + fs * 1.2;
+      for (var i = 0; i < n; i++) {
+        var sd = dots[i][1], shown = e.state === "listen" ? i < e.played : true;
+        var done = e.state !== "listen" && i < e.tries.length;
+        var cx = dx0 + dots[i][0] * gap * 0.9 + i * gap * 0.35;
+        g.globalAlpha = shown ? 1 : 0.25;
+        g.fillStyle = sd ? "#3fb4ff" : "#ff8a3d";
+        g.beginPath(); g.arc(cx, dy, dr * (sd ? 0.85 : 1.05), 0, TAU); g.fill();
+        if (done) { g.strokeStyle = "#fff"; g.lineWidth = 3; g.beginPath(); g.arc(cx, dy, dr * 1.35, 0, TAU); g.stroke(); }
+      }
+      g.globalAlpha = 1;
+    }
+    function drawNote(g, n) {
+      var a = clamp(Math.min(n.life / 0.3, (n.max - n.life) / 0.8), 0, 1), s = n.sz;
+      g.globalAlpha = a * 0.9;
+      g.fillStyle = "hsl(" + n.hue + ",85%,70%)"; g.strokeStyle = g.fillStyle; g.lineWidth = Math.max(2, s * 0.14);
+      g.beginPath(); g.ellipse(n.x, n.y, s * 0.42, s * 0.3, -0.4, 0, TAU); g.fill();
+      g.beginPath(); g.moveTo(n.x + s * 0.36, n.y - s * 0.05); g.lineTo(n.x + s * 0.36, n.y - s * 1.2);
+      if (n.two) { g.lineTo(n.x + s * 1.2, n.y - s * 1.35); g.lineTo(n.x + s * 1.2, n.y - s * 0.2); g.stroke(); g.beginPath(); g.ellipse(n.x + s * 0.84, n.y - s * 0.15, s * 0.42, s * 0.3, -0.4, 0, TAU); g.fill(); }
+      else { g.quadraticCurveTo(n.x + s * 0.9, n.y - s * 0.9, n.x + s * 0.8, n.y - s * 0.5); g.stroke(); }
+      g.globalAlpha = 1;
+    }
+
+    return {
+      label: M.label,
+      hint: M.name + ": " + M.hint,
+      holdExtra: mode === "roll" ? 10 : 0, // holding is the drumroll here, so going back to the menu needs a longer hold
+      start: function () {
+        layout();
+        if (mode === "animals") addDancer(0);
+        if (mode === "echo") { echo.state = "wait"; echo.t = perfNow() + 1.6; }
+        setTimeout(function () { announce(M.name + ". " + M.hint); }, 700);
+      },
+      resize: function () { layout(); placeDancers(); },
+      stop: function () { stopBand(false); roll = null; holds = {}; pendingAuto = 0; },
+      hold: function (on) {
+        if (mode !== "roll") return;
+        if (on) { pendingAuto = 0; holds.key = 1; startRoll(0); } else delete holds.key;
+      },
+      down: function (id, x, y) {
+        var w = whichDrum(x, y), edge = w.d > 0.62 && w.d < 1.25;
+        if (mode === "roll") { holds["p" + id] = 1; if (!roll) startRoll(0); return; }
+        hit(w.side, 0.85, edge, x, y);
+      },
+      move: function () {},
+      up: function (id) { delete holds["p" + id]; },
+      dwell: function (x, y) {
+        var w = whichDrum(x, y);
+        if (mode === "roll") { startRoll(1.6); return; }
+        hit(w.side, 0.85, false, x, y);
+      },
+      press: function (key) {
+        if (mode === "roll") { if (!roll) pendingAuto = perfNow(); return; } // a tap from Switch Control gets a short drumroll
+        var how = settings.bongoSwitch || "turns", side;
+        if (key === "ArrowLeft") side = 0;
+        else if (key === "ArrowRight") side = 1;
+        else if (how === "two" && (key === " " || key === "Spacebar")) side = 0;
+        else if (how === "two" && key === "Enter") side = 1;
+        if (side === undefined && how === "both") { hit(0, 0.7, false); hit(1, 0.7, false); return; }
+        if (side === undefined) { side = altSide; altSide ^= 1; }
+        hit(side, 0.85, false);
+      },
+      update: function (dt) {
+        t0 += dt;
+        if (mode === "band") { updateBand(dt); flushBeats(); }
+        if (mode === "roll") updateRoll(dt);
+        if (mode === "animals") updateDancers(dt);
+        if (mode === "echo") updateEcho(dt);
+        drums.forEach(function (d) {
+          d.flash *= Math.exp(-dt * 4); d.dent *= Math.exp(-dt * 14); d.hint *= Math.exp(-dt * 3);
+          for (var i = d.ripples.length - 1; i >= 0; i--) { d.ripples[i].t += dt; if (d.ripples[i].t > 0.7) d.ripples.splice(i, 1); }
+        });
+        // the cymbal swings after a crash
+        cym.v += (-cym.tilt * 60 - cym.v * 4) * dt; cym.tilt += cym.v * dt * 0.1;
+        cym.tilt = clamp(cym.tilt, -0.5, 0.5);
+        if (!roll) cym.shine *= Math.exp(-dt * 1.6);
+        var gr = 900 * S();
+        for (var i = bits.length - 1; i >= 0; i--) {
+          var b = bits[i];
+          b.life += dt;
+          if (b.life > b.max) { bits.splice(i, 1); continue; }
+          if (b.kind === "paper") { b.vx *= Math.exp(-dt * 1.8); b.vy = b.vy * Math.exp(-dt * 1.8) + gr * 0.5 * dt; b.rot += b.vr * dt; }
+          else b.vy += gr * dt;
+          b.x += b.vx * dt; b.y += b.vy * dt;
+        }
+        for (i = glows.length - 1; i >= 0; i--) { glows[i].life += dt; if (glows[i].life > glows[i].max) glows.splice(i, 1); }
+        for (i = notes.length - 1; i >= 0; i--) {
+          var n = notes[i]; n.life += dt; n.x += n.vx * dt + Math.sin(n.life * 3) * 0.4; n.y += n.vy * dt;
+          if (n.life > n.max) notes.splice(i, 1);
+        }
+      },
+      draw: function (g, time) {
+        if (!drums[0].r) layout();
+        drawBackground(g, time);
+        // soft coloured glows behind the drums
+        g.save(); g.globalCompositeOperation = "lighter";
+        glows.forEach(function (gl) {
+          var k = gl.life / gl.max, a = gl.a * (1 - k) * Math.min(1, gl.life / 0.08);
+          var img = glow(gl.hue, sat(), light()), sz = gl.r * 2 * (0.8 + 0.4 * k);
+          g.globalAlpha = a; g.drawImage(img, gl.x - sz / 2, gl.y - sz / 2, sz, sz);
+        });
+        g.globalAlpha = 1; g.restore();
+        if (mode === "roll") drawCymbal(g, time);
+        if (mode === "animals") {
+          var baseY = H * 0.47;
+          g.fillStyle = "rgba(255,255,255,0.05)"; g.fillRect(0, baseY - 2, W, 4);
+          dancers.forEach(function (d) { drawDancer(g, d, baseY, time); });
+        }
+        if (mode === "echo") drawMonster(g, time);
+        drawBlock(g);
+        drawDrum(g, drums[0]); drawDrum(g, drums[1]);
+        notes.forEach(function (n) { drawNote(g, n); });
+        // colourful splashes and confetti
+        bits.forEach(function (b) {
+          var a = clamp(1 - (b.life / b.max), 0, 1);
+          g.globalAlpha = Math.min(1, a * 1.6);
+          g.fillStyle = "hsl(" + b.hue + "," + sat() + "%," + light() + "%)";
+          if (b.kind === "paper") {
+            g.save(); g.translate(b.x, b.y); g.rotate(b.rot);
+            g.fillRect(-b.r / 2, -b.r * 0.3, b.r, b.r * 0.6 * Math.abs(Math.cos(b.rot * 1.3)) + 1);
+            g.restore();
+          } else {
+            g.beginPath(); g.arc(b.x, b.y, b.r * (0.6 + 0.4 * a), 0, TAU); g.fill();
+            g.fillStyle = "rgba(255,255,255,0.45)";
+            g.beginPath(); g.arc(b.x - b.r * 0.25, b.y - b.r * 0.25, b.r * 0.25, 0, TAU); g.fill();
+          }
+        });
+        g.globalAlpha = 1;
+      }
+    };
+  }
+
+  var MAKERS = { bongo: Bongos, snow: SnowGlobe, fish: FishTank, trails: LightPainting, bubbles: BubbleFloat, lamp: ColourLamp, bloom: LookAndBloom, fireworks: Fireworks };
 
   /* ---------- Running an activity ---------- */
   var current = null, currentInfo = null, running = false, lastT = 0, clock = 0;
@@ -2203,12 +3071,12 @@
 
   /* ---------- Keys and switches ---------- */
   var lastSwitch = 0;
-  function switchPress() {
+  function switchPress(key) {
     if (!current) return;
     var now = Date.now();
     if (now - lastSwitch < (settings.switchGap || 0) * 1000) return;
     lastSwitch = now;
-    current.press();
+    current.press(key);
   }
   var IGNORE = { Tab: 1, Shift: 1, Control: 1, Alt: 1, Meta: 1, Escape: 1, CapsLock: 1, Fn: 1 };
   var holdTimer = null, hintTimer = null;
@@ -2233,7 +3101,7 @@
     if (t && t !== play && t.closest && t.closest("button, input, select, a")) return; // let buttons work
     e.preventDefault();
     if (e.repeat) return; // holding a switch down counts once
-    switchPress();
+    switchPress(e.key);
     if (current.hold) current.hold(true); // e.g. the Snow Globe: holding makes more snow
     // Holding the switch down goes back to the menu.
     clearHold();
@@ -2273,6 +3141,11 @@
 
   /* ---------- Menu ---------- */
   var ART = {
+    bongo: '<svg viewBox="0 0 160 90" aria-hidden="true"><defs><linearGradient id="b8" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d0f33"/><stop offset=".65" stop-color="#341545"/><stop offset="1" stop-color="#3d2412"/></linearGradient><linearGradient id="w8" x1="0" x2="1"><stop offset="0" stop-color="#3d1a08"/><stop offset=".3" stop-color="#a85a24"/><stop offset=".45" stop-color="#dc9450"/><stop offset=".65" stop-color="#9a4c1c"/><stop offset="1" stop-color="#331505"/></linearGradient><radialGradient id="k8" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#fbf1d8"/><stop offset=".7" stop-color="#ecd6a6"/><stop offset="1" stop-color="#c9a66b"/></radialGradient></defs><rect width="160" height="90" fill="url(#b8)"/><rect y="70" width="160" height="20" fill="#5a3418"/>' +
+      '<rect x="66" y="58" width="26" height="7" fill="#6e3412"/><path d="M24 50L29 82Q47 90 65 82L70 50Z" fill="url(#w8)"/><path d="M92 54L96 80Q110 86 124 80L128 54Z" fill="url(#w8)"/>' +
+      '<ellipse cx="47" cy="50" rx="23" ry="9.5" fill="url(#k8)" stroke="#d9dce1" stroke-width="2.5"/><ellipse cx="110" cy="54" rx="18" ry="7.5" fill="url(#k8)" stroke="#d9dce1" stroke-width="2.5"/>' +
+      [[40,30,5,"#ff5f8f"],[52,22,4,"#ffd65c"],[60,34,3.5,"#ff9a3d"],[30,36,3,"#ff7ad9"],[104,34,4.5,"#3fb4ff"],[116,26,3.5,"#2ee6c8"],[124,38,3,"#7f8cff"],[98,22,2.5,"#62ff9e"]].map(function (p) { return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + p[2] + '" fill="' + p[3] + '"/>'; }).join("") +
+      '<path d="M78 20v16" stroke="#fff" stroke-width="2.5"/><ellipse cx="75" cy="37" rx="4" ry="3" fill="#fff"/><path d="M78 20q6 3 5 9" fill="none" stroke="#fff" stroke-width="2.5"/></svg>',
     snow: '<svg viewBox="0 0 160 90" aria-hidden="true"><defs><linearGradient id="s7" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#040820"/><stop offset=".6" stop-color="#0d1b48"/><stop offset="1" stop-color="#26407a"/></linearGradient><radialGradient id="v7" cx=".5" cy=".48" r=".62"><stop offset=".7" stop-color="#78aae6" stop-opacity="0"/><stop offset="1" stop-color="#0a1432" stop-opacity=".6"/></radialGradient><radialGradient id="f7"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#fff" stop-opacity=".8"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><rect width="160" height="90" fill="url(#s7)"/>' +
       '<path d="M0 90V56Q30 50 60 55T120 52T160 54V90Z" fill="#5a6fa0"/><path d="M14 64L22 46L30 64ZM132 62L141 42L150 62Z" fill="#1d6a44"/><path d="M0 90V68Q40 62 80 68T160 66V90Z" fill="#e8f0fb"/>' +
       '<rect x="96" y="54" width="24" height="15" fill="#a8553a"/><path d="M93 55L108 44L123 55Z" fill="#f6faff"/><rect x="100" y="58" width="6" height="5" fill="#ffd27a"/><circle cx="44" cy="63" r="6" fill="#fff"/><circle cx="44" cy="54" r="4.3" fill="#fff"/><circle cx="44" cy="47" r="3.2" fill="#fff"/>' +
@@ -2345,6 +3218,8 @@
     if (current && current.stop) current.stop();
     current = MAKERS[id](info);
     current.start();
+    if (current.hint) $("status").textContent = info.name + ": " + current.hint; // e.g. the bongo game chosen in Settings
+    if (current.label) play.setAttribute("aria-label", current.label);
     clock = 0;
     startLoop();
     play.focus();
@@ -2456,9 +3331,21 @@
     size.addEventListener("change", function () { settings.size = parseFloat(size.value); saveSettings(); });
     dw.addEventListener("change", function () { settings.dwell = parseFloat(dw.value); dwell = null; saveSettings(); });
     gap.addEventListener("change", function () { settings.switchGap = parseFloat(gap.value); saveSettings(); });
+    var bMode = $("set-bongo-mode"), bSwitch = $("set-bongo-switch");
+    if (bMode) {
+      bMode.value = bongoMode();
+      bMode.addEventListener("change", function () {
+        settings.bongoMode = bMode.value; saveSettings();
+        if (currentInfo && currentInfo.id === "bongo") openActivity("bongo", false); // start the new game straight away
+      });
+    }
+    if (bSwitch) {
+      bSwitch.value = settings.bongoSwitch || "turns";
+      bSwitch.addEventListener("change", function () { settings.bongoSwitch = bSwitch.value; saveSettings(); });
+    }
     var snowSnd = $("set-snow-sound");
     if (snowSnd) {
-      selectValue(snowSnd, settings.snowSound || "wind");
+      snowSnd.value = settings.snowSound || "wind"; // (a word, not a number)
       snowSnd.addEventListener("change", function () { settings.snowSound = snowSnd.value; saveSettings(); });
     }
   }

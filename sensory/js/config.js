@@ -5,7 +5,7 @@
  * pictures or sound files are needed. You can add your own pictures later:
  * see "pictures" under Bubbles and Look and Bloom below.
  *
- * Link straight to one activity with ?activity=fish, fireworks, snow, trails, bubbles, lamp or bloom.
+ * Link straight to one activity with ?activity=fish, fireworks, snow, bongo, trails, bubbles, lamp or bloom.
  * Add &calm=1 for calm mode, &dwell=1.5 to turn on eye gaze dwell, or &scan=0
  * to turn off switch scanning on the menu.
  * Example: .../sensory/?activity=bloom&dwell=1.5
@@ -45,6 +45,14 @@ window.SENSORY_CONFIG = {
       name: "Snow Globe",
       hint: "You are inside a snow globe. Hold down for more and more snow!",
       label: "Snow globe. You are inside the snow globe. Tap or press a switch to shake the globe. Hold it down and the snow gets heavier and heavier; let go and it calms down. Every few shakes the sky changes or an animal comes to visit. Drag to stir the snow."
+    },
+    {
+      id: "bongo",
+      name: "Bongo Drums",
+      hint: "Play the bongos! Pick the game in Settings.",
+      label: "Bongo drums. Tap a drum or press a switch to play it."
+      // The game (Bongo Jam, Play-along band, Drumroll, Dancing animals or
+      // Echo game) is picked in Settings, or with a link: ?activity=bongo&bongo=echo
     },
     {
       id: "trails",
@@ -138,6 +146,8 @@ window.SENSORY_CONFIG = {
     scanSeconds: 2,  // how long each activity stays lit
     holdSeconds: 3,  // hold a switch this long inside an activity to go back to the menu (0 = off)
     snowSound: "wind", // Snow Globe sound: "wind", "music" (wind and music box) or "bells" (wind and sleigh bells)
+    bongoMode: "jam",  // Bongo Drums game: "jam", "band", "roll" (drumroll), "animals" or "echo"
+    bongoSwitch: "turns", // a switch press plays the drums in turn ("turns"), both together ("both"), or "two": Space is the big drum, Enter the small one
     useMine: true,   // use pictures added with "My pictures" when there are any
     keepPictures: false // false: added pictures are forgotten when the page closes (safer on shared devices)
   }
