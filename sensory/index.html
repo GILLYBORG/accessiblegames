@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <!-- When you change css or js files, change the ?v= number below so iPads load the new version. -->
-<link rel="stylesheet" href="css/style.css?v=20261127s">
+<link rel="stylesheet" href="css/style.css?v=20261127t">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#14213d">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -152,6 +152,20 @@
           <option value="5">Hold for 5 seconds</option>
         </select>
       </div>
+      <div class="field">
+        <label for="set-snow-sound">Snow Globe sound</label>
+        <select id="set-snow-sound">
+          <option value="wind">Wind</option>
+          <option value="music">Wind and music box</option>
+          <option value="bells">Wind and sleigh bells</option>
+        </select>
+      </div>
+      <label class="toggle" for="set-snow-motion">
+        <input type="checkbox" id="set-snow-motion" aria-describedby="snow-motion-desc">
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-text">Shake the iPad to shake the Snow Globe</span>
+      </label>
+      <p class="help" id="snow-motion-desc">On an iPad or tablet, shaking or tilting it moves the snow. The iPad asks once for permission to use motion. Tapping and switches always work too.</p>
     </div>
   </div>
 </div>
@@ -227,8 +241,8 @@
   </div>
 </div>
 
-<script src="js/config.js?v=20261127s"></script>
-<script src="js/pictures.js?v=20261127s"></script>
-<script src="js/game.js?v=20261127s"></script>
+<script src="js/config.js?v=20261127t"></script>
+<script src="js/pictures.js?v=20261127t"></script>
+<script src="js/game.js?v=20261127t"></script>
 </body>
 </html>
